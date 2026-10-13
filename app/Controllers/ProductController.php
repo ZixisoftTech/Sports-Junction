@@ -1,0 +1,361 @@
+<?php
+declare(strict_types=1);
+
+namespace App\Controllers;
+
+use App\Core\Controller;
+use App\Helpers\CSRF;
+use App\Helpers\Exporter;
+use App\Helpers\Uploader;
+use App\Helpers\Validator;
+use App\Models\Category;
+use App\Models\Country;
+use App\Models\MoqUnit;
+use App\Models\PriceUnit;
+use App\Models\Product;
+use App\Models\Subcategory;
+
+class ProductController extends Controller
+{
+    public function index(): void
+    {
+        $categories = Category::allActive();
+        $priceUnits = PriceUnit::allActive();
+        $moqUnits = MoqUnit::allActive();
+        $countries = Country::allActive();
+        $suppliers = \App\Models\Supplier::allApproved();
+
+        $this->render('products/index', [
+            'pageTitle'       => 'Product Management',
+            'activeMenu'      => 'products',
+            'categories'      => $categories,
+            'priceUnits'      => $priceUnits,
+            'moqUnits'        => $moqUnits,
+            'countries'       => $countries,
+            'suppliers'       => $suppliers,
+            'metaDescription' => 'Enterprise management of sports equipment catalog, factory specifications, wholesale pricing tiers and homepage featured products.',
+        ]);
+    }
+
+    public function create(): void
+    {
+        $categories = Category::allActive();
+        $priceUnits = PriceUnit::allActive();
+        $moqUnits = MoqUnit::allActive();
+        $countries = Country::allActive();
+        $suppliers = \App\Models\Supplier::allApproved();
+
+        $this->render('products/form', [
+            'pageTitle'       => 'Add New Product',
+            'activeMenu'      => 'products',
+            'categories'      => $categories,
+            'priceUnits'      => $priceUnits,
+            'moqUnits'        => $moqUnits,
+            'countries'       => $countries,
+            'suppliers'       => $suppliers,
+            'product'         => null,
+            'isEdit'          => false,
+            'subcategories'   => [],
+            'metaDescription' => 'Add new sports equipment catalog item.',
+        ]);
+    }
+
+    public function edit(array $params): void
+    {
+        $id = (int) ($params['id'] ?? 0);
+        $product = Product::findById($id);
+        if (!$product) {
+            $this->redirect('/admin/products');
+            return;
+        }
+
+        $categories = Category::allActive();
+        $priceUnits = PriceUnit::allActive();
+        $moqUnits = MoqUnit::allActive();
+        $countries = Country::allActive();
+        $suppliers = \App\Models\Supplier::allApproved();
+
+        $subcategories = [];
+        if (!empty($product['category_id'])) {
+            $subcategories = Subcategory::byCategory((int)$product['category_id']);
+        }
+
+        $this->render('products/form', [
+            'pageTitle'       => 'Edit Product: ' . ($product['name'] ?? 'Product #' . $id),
+            'activeMenu'      => 'products',
+            'categories'      => $categories,
+            'priceUnits'      => $priceUnits,
+            'moqUnits'        => $moqUnits,
+            'countries'       => $countries,
+            'suppliers'       => $suppliers,
+            'product'         => $product,
+            'isEdit'          => true,
+            'subcategories'   => $subcategories,
+            'metaDescription' => 'Edit sports equipment catalog item.',
+        ]);
+    }
+
+    public function data(): void
+    {
+        $result = Product::getDataTable($this->request->all());
+        $this->json($result);
+    }
+
+    public function show(array $params): void
+    {
+        $id = (int) ($params['id'] ?? 0);
+        $product = Product::findById($id);
+        if (!$product) {
+            $this->json(['success' => false, 'message' => 'Product not found'], 404);
+            return;
+        }
+
+        $this->json(['success' => true, 'data' => $product]);
+    }
+
+    public function store(): void
+    {
+        $token = $this->request->input('_csrf') ?? $this->request->input('csrf_token') ?? $this->request->header('X-CSRF-Token');
+        CSRF::validateOrFail($token);
+
+        $input = $this->request->all();
+
+        $validator = Validator::make($input);
+        $rules = [
+            'name'          => 'required|max:200',
+            'supplier_id'   => 'required|integer',
+            'category_id'   => 'required|integer',
+            'subcategory_id'=> 'required|integer',
+            'min_price'     => 'required|numeric',
+            'price_unit_id' => 'required|integer',
+            'moq'           => 'required|integer',
+            'moq_unit_id'   => 'required|integer',
+            'status'        => 'required|in:PUBLISHED,DRAFT,INACTIVE',
+        ];
+
+        if (!$validator->validate($rules)) {
+            $this->json(['success' => false, 'errors' => $validator->errors(), 'message' => $validator->firstError()], 422);
+            return;
+        }
+
+        // Handle primary image upload
+        $images = [];
+        if (isset($_FILES['primary_image_file']) && $_FILES['primary_image_file']['error'] !== UPLOAD_ERR_NO_FILE) {
+            try {
+                $input['primary_image'] = Uploader::uploadImage($_FILES['primary_image_file'], 'products');
+                $images[] = $input['primary_image'];
+            } catch (\Throwable $e) {
+                $this->json(['success' => false, 'message' => 'Primary image upload failed: ' . $e->getMessage()], 422);
+                return;
+            }
+        }
+
+        // Handle gallery images
+        if (!empty($_FILES['gallery_images']['name']) && is_array($_FILES['gallery_images']['name'])) {
+            $filesCount = count($_FILES['gallery_images']['name']);
+            for ($i = 0; $i < $filesCount; $i++) {
+                if (!empty($_FILES['gallery_images']['tmp_name'][$i]) && is_uploaded_file($_FILES['gallery_images']['tmp_name'][$i])) {
+                    $singleFile = [
+                        'name'     => $_FILES['gallery_images']['name'][$i],
+                        'type'     => $_FILES['gallery_images']['type'][$i],
+                        'tmp_name' => $_FILES['gallery_images']['tmp_name'][$i],
+                        'error'    => $_FILES['gallery_images']['error'][$i],
+                        'size'     => $_FILES['gallery_images']['size'][$i],
+                    ];
+                    try {
+                        $images[] = Uploader::uploadImage($singleFile, 'products');
+                    } catch (\Throwable) {
+                        // Skip failed individual gallery image
+                    }
+                }
+            }
+        }
+
+        try {
+            $id = Product::create($input, $images);
+            $this->json([
+                'success' => true,
+                'id'      => $id,
+                'message' => 'Product published successfully.'
+            ], 201);
+        } catch (\Throwable $e) {
+            $this->json(['success' => false, 'message' => 'Failed to save product: ' . $e->getMessage()], 500);
+        }
+    }
+
+    public function update(array $params): void
+    {
+        $token = $this->request->input('_csrf') ?? $this->request->input('csrf_token') ?? $this->request->header('X-CSRF-Token');
+        CSRF::validateOrFail($token);
+
+        $id = (int) ($params['id'] ?? 0);
+        $product = Product::findById($id);
+        if (!$product) {
+            $this->json(['success' => false, 'message' => 'Product not found'], 404);
+            return;
+        }
+
+        $input = $this->request->all();
+
+        $validator = Validator::make($input);
+        $rules = [
+            'name'          => 'required|max:200',
+            'supplier_id'   => 'required|integer',
+            'category_id'   => 'required|integer',
+            'subcategory_id'=> 'required|integer',
+            'min_price'     => 'required|numeric',
+            'price_unit_id' => 'required|integer',
+            'moq'           => 'required|integer',
+            'moq_unit_id'   => 'required|integer',
+            'status'        => 'required|in:PUBLISHED,DRAFT,INACTIVE',
+        ];
+
+        if (!$validator->validate($rules)) {
+            $this->json(['success' => false, 'errors' => $validator->errors(), 'message' => $validator->firstError()], 422);
+            return;
+        }
+
+        // Primary image upload
+        if (isset($_FILES['primary_image_file']) && $_FILES['primary_image_file']['error'] !== UPLOAD_ERR_NO_FILE) {
+            try {
+                $input['primary_image'] = Uploader::uploadImage($_FILES['primary_image_file'], 'products');
+            } catch (\Throwable $e) {
+                $this->json(['success' => false, 'message' => 'Primary image upload failed: ' . $e->getMessage()], 422);
+                return;
+            }
+        }
+
+        // New gallery images
+        $newImages = [];
+        if (!empty($_FILES['gallery_images']['name']) && is_array($_FILES['gallery_images']['name'])) {
+            $filesCount = count($_FILES['gallery_images']['name']);
+            for ($i = 0; $i < $filesCount; $i++) {
+                if (!empty($_FILES['gallery_images']['tmp_name'][$i]) && is_uploaded_file($_FILES['gallery_images']['tmp_name'][$i])) {
+                    $singleFile = [
+                        'name'     => $_FILES['gallery_images']['name'][$i],
+                        'type'     => $_FILES['gallery_images']['type'][$i],
+                        'tmp_name' => $_FILES['gallery_images']['tmp_name'][$i],
+                        'error'    => $_FILES['gallery_images']['error'][$i],
+                        'size'     => $_FILES['gallery_images']['size'][$i],
+                    ];
+                    try {
+                        $newImages[] = Uploader::uploadImage($singleFile, 'products');
+                    } catch (\Throwable) {
+                        // Skip failed
+                    }
+                }
+            }
+        }
+
+        $deletedImageIds = [];
+        if (!empty($input['deleted_image_ids'])) {
+            $deletedImageIds = array_map('intval', explode(',', (string) $input['deleted_image_ids']));
+        }
+
+        try {
+            Product::update($id, $input, $newImages, $deletedImageIds);
+            $this->json([
+                'success' => true,
+                'id'      => $id,
+                'message' => 'Product updated successfully.'
+            ]);
+        } catch (\Throwable $e) {
+            $this->json(['success' => false, 'message' => 'Failed to update product: ' . $e->getMessage()], 500);
+        }
+    }
+
+    public function toggleStatus(array $params): void
+    {
+        $token = $this->request->input('_csrf') ?? $this->request->input('csrf_token') ?? $this->request->header('X-CSRF-Token');
+        CSRF::validateOrFail($token);
+
+        $id = (int) ($params['id'] ?? 0);
+        $newStatus = trim((string) ($this->request->input('status') ?? $this->request->get('status', '')));
+
+        if (!in_array($newStatus, ['PUBLISHED', 'DRAFT', 'INACTIVE', 'ACTIVE'], true)) {
+            $this->json(['success' => false, 'message' => 'Invalid product status.'], 400);
+            return;
+        }
+
+        $success = Product::setStatus($id, $newStatus);
+        if ($success) {
+            $this->json(['success' => true, 'message' => "Product status updated to {$newStatus}."]);
+        } else {
+            $this->json(['success' => false, 'message' => 'Failed to update product status.'], 404);
+        }
+    }
+
+    public function toggleFeatured(array $params): void
+    {
+        $token = $this->request->input('_csrf') ?? $this->request->input('csrf_token') ?? $this->request->header('X-CSRF-Token');
+        CSRF::validateOrFail($token);
+
+        $id = (int) ($params['id'] ?? 0);
+        $isFeatured = (bool) ($this->request->input('is_featured') ?? $this->request->get('is_featured', false));
+        $order = (int) ($this->request->input('featured_order') ?? $this->request->get('featured_order', 0));
+
+        $success = Product::setFeatured($id, $isFeatured, $order);
+        if ($success) {
+            $this->json(['success' => true, 'message' => 'Homepage featured status updated.']);
+        } else {
+            $this->json(['success' => false, 'message' => 'Failed to update featured flag.'], 404);
+        }
+    }
+
+    public function delete(array $params): void
+    {
+        $token = $this->request->input('_csrf') ?? $this->request->input('csrf_token') ?? $this->request->header('X-CSRF-Token');
+        CSRF::validateOrFail($token);
+
+        $id = (int) ($params['id'] ?? 0);
+        $result = Product::hardDelete($id);
+        $statusCode = ($result['success'] ?? false) ? 200 : 422;
+        $this->json($result, $statusCode);
+    }
+
+    public function export(): void
+    {
+        $format = strtolower((string)$this->request->get('format', 'csv'));
+        $search = trim((string)$this->request->get('search', ''));
+        $statusFilter = trim((string)$this->request->get('status', ''));
+
+        $dtResult = Product::getDataTable([
+            'draw'   => 1,
+            'start'  => 0,
+            'length' => 0, // all
+            'search' => $search,
+            'status' => $statusFilter,
+            'order'  => [['column' => 0, 'dir' => 'desc']],
+        ]);
+
+        $records = $dtResult['data'] ?? [];
+        $headers = ['ID', 'Product Title', 'Category', 'Subcategory', 'Min Price', 'Max Price', 'MOQ', 'Status', 'Featured', 'Created Date'];
+        $rows = [];
+
+        foreach ($records as $r) {
+            $rows[] = [
+                $r['id'],
+                $r['title'],
+                $r['category_name'] ?? '-',
+                $r['subcategory_name'] ?? '-',
+                $r['min_price'],
+                $r['max_price'],
+                $r['moq_quantity'] . ' ' . ($r['moq_unit_symbol'] ?? ''),
+                $r['status'],
+                $r['is_featured'] ? 'YES' : 'NO',
+                $r['created_at'],
+            ];
+        }
+
+        $title = 'Products Catalog Export';
+        $filename = 'sports_junction_products_' . date('Ymd_His');
+
+        if ($format === 'excel') {
+            Exporter::exportExcelXml($filename, $headers, $rows);
+        } elseif ($format === 'pdf') {
+            Exporter::exportPdfView($title, $headers, $rows);
+        } else {
+            Exporter::exportCsv($filename, $headers, $rows);
+        }
+    }
+}
