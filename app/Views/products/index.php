@@ -204,32 +204,42 @@ document.addEventListener('DOMContentLoaded', function () {
             },
             {
                 data: 'status',
-                width: '90px',
+                width: '110px',
                 className: 'text-center',
-                render: function (data) {
+                render: function (data, type, row) {
                     let badgeClass = 'bg-secondary';
                     if (data === 'PUBLISHED' || data === 'ACTIVE') badgeClass = 'bg-success';
                     else if (data === 'DRAFT') badgeClass = 'bg-warning text-dark';
                     else if (data === 'INACTIVE') badgeClass = 'bg-danger';
 
-                    return `<span class="badge ${badgeClass}">${data}</span>`;
+                    let appBadge = '';
+                    if (row.approval_status === 'PENDING_APPROVAL' || row.pending_changes) {
+                        appBadge = '<div class="mt-1"><span class="badge bg-warning-subtle text-warning border border-warning-subtle" style="font-size: 10px;">Pending Approval</span></div>';
+                    } else if (row.approval_status === 'REJECTED') {
+                        appBadge = '<div class="mt-1"><span class="badge bg-danger-subtle text-danger border border-danger-subtle" style="font-size: 10px;">Rejected</span></div>';
+                    }
+
+                    return `<span class="badge ${badgeClass}">${data}</span>${appBadge}`;
                 }
             },
             {
                 data: null,
                 orderable: false,
                 searchable: false,
-                width: '120px',
+                width: '150px',
                 className: 'text-end',
                 render: function (data, type, row) {
                     const viewUrl = `${baseUrl}/product/${row.slug || row.id}`;
                     return `
                         <div class="btn-group btn-group-sm">
+                            <button type="button" class="btn btn-outline-info btn-view-product" data-id="${row.id}" title="View all product details">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                            <a href="${baseUrl}/admin/products/edit/${row.id}" class="btn btn-outline-primary" title="Edit all product details">
+                                <i class="bi bi-pencil"></i>
+                            </a>
                             <a href="${viewUrl}" target="_blank" class="btn btn-outline-secondary" title="View live product storefront">
                                 <i class="bi bi-box-arrow-up-right"></i>
-                            </a>
-                            <a href="${baseUrl}/admin/products/edit/${row.id}" class="btn btn-outline-primary" title="Edit product on dedicated page">
-                                <i class="bi bi-pencil"></i>
                             </a>
                             <button type="button" class="btn btn-outline-danger btn-delete-product" data-id="${row.id}" data-name="${row.title || row.name}" title="Delete product">
                                 <i class="bi bi-trash"></i>
@@ -249,8 +259,120 @@ document.addEventListener('DOMContentLoaded', function () {
         productsDataTable.ajax.reload();
     });
 
-    // Bind featured toggle & delete
+    function ynBadge(val, label) {
+        const active = parseInt(val || 0) === 1;
+        return `<span class="badge ${active ? 'bg-success-subtle text-success border border-success-subtle' : 'bg-light text-muted border'} me-1 mb-1">
+            <i class="bi ${active ? 'bi-check-circle-fill' : 'bi-dash-circle'} me-1"></i>${label}: ${active ? 'Yes' : 'No'}
+        </span>`;
+    }
+
+    // Bind view, featured toggle & delete
     function bindProductActions() {
+        // View Full Product Details Modal
+        $('.btn-view-product').off('click').on('click', function () {
+            const id = $(this).data('id');
+            const modal = new bootstrap.Modal(document.getElementById('productQuickViewModal'));
+            modal.show();
+            $('#quickViewBody').html('<div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></div>');
+            $('#quickViewEditBtn').attr('href', `${baseUrl}/admin/products/edit/${id}`);
+
+            fetch(`${baseUrl}/api/products/${id}`)
+                .then(r => r.json())
+                .then(res => {
+                    if (!res.success) {
+                        $('#quickViewBody').html(`<div class="alert alert-danger">${res.message || 'Failed to load details'}</div>`);
+                        return;
+                    }
+                    const p = res.data;
+                    const sym = p.price_unit_symbol || '₹';
+                    const img = window.SportsJunction.formatImageUrl(p.primary_image);
+                    $('#quickViewTitle').text(`Product Details: ${p.title}`);
+
+                    let galleryHtml = '';
+                    if (p.images && p.images.length > 0) {
+                        galleryHtml = '<div class="d-flex flex-wrap gap-2 mt-2">';
+                        p.images.forEach(g => {
+                            const gUrl = window.SportsJunction.formatImageUrl(g.image_url || g.image_path);
+                            galleryHtml += `<img src="${gUrl}" onerror="this.onerror=null;this.src='${window.SportsJunction.defaultLogo}';" class="rounded border" style="width: 60px; height: 60px; object-fit: cover;">`;
+                        });
+                        galleryHtml += '</div>';
+                    } else {
+                        galleryHtml = '<div class="text-muted small">No gallery photos.</div>';
+                    }
+
+                    const html = `
+                        <div class="row g-4">
+                            <div class="col-md-4">
+                                <div class="text-center p-3 bg-light rounded-3 border mb-3">
+                                    <img src="${img}" onerror="this.onerror=null;this.src='${window.SportsJunction.defaultLogo}';" class="img-fluid rounded" style="max-height: 220px; object-fit: contain;">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="fw-bold small text-uppercase text-muted d-block mb-1">Gallery Photos</label>
+                                    ${galleryHtml}
+                                </div>
+                                <div class="p-3 bg-light rounded-3 border small">
+                                    <div class="mb-1"><strong>Approval Status:</strong> <span class="badge ${p.approval_status === 'APPROVED' ? 'bg-success' : 'bg-warning text-dark'}">${p.approval_status}</span></div>
+                                    <div class="mb-1"><strong>Publishing Status:</strong> <span class="badge bg-secondary">${p.status}</span></div>
+                                    <div class="mb-1"><strong>Featured:</strong> ${parseInt(p.is_featured || 0) === 1 ? `Yes (Priority: ${p.featured_order || 0})` : 'No'}</div>
+                                    <div class="mb-1"><strong>Supplier:</strong> ${p.supplier_name || 'N/A'}</div>
+                                </div>
+                            </div>
+                            <div class="col-md-8">
+                                <div class="border rounded-3 p-3 mb-3 small">
+                                    <h6 class="fw-bold text-primary border-bottom pb-2 mb-2">1. Basic Product Information</h6>
+                                    <div class="row g-2">
+                                        <div class="col-md-8"><strong>Title:</strong> ${p.title || '—'}</div>
+                                        <div class="col-md-4"><strong>SKU:</strong> ${p.sku || 'N/A'}</div>
+                                        <div class="col-md-6"><strong>Category:</strong> ${p.category_name || '—'}</div>
+                                        <div class="col-md-6"><strong>Subcategory:</strong> ${p.subcategory_name || '—'}</div>
+                                        <div class="col-md-6"><strong>Brand:</strong> ${p.brand_name || '—'}</div>
+                                        <div class="col-md-6"><strong>Slug:</strong> <code>${p.slug || '—'}</code></div>
+                                        <div class="col-12"><strong>Short Summary:</strong> ${p.short_description || '—'}</div>
+                                        <div class="col-12"><strong>Description:</strong><div class="p-2 bg-light rounded border mt-1" style="white-space: pre-wrap;">${p.description || '—'}</div></div>
+                                    </div>
+                                </div>
+                                <div class="border rounded-3 p-3 mb-3 small">
+                                    <h6 class="fw-bold text-primary border-bottom pb-2 mb-2">2. Pricing &amp; MOQ</h6>
+                                    <div class="row g-2">
+                                        <div class="col-md-4"><strong>Price Range:</strong> ${sym}${parseFloat(p.min_price || 0).toFixed(2)} - ${sym}${parseFloat(p.max_price || 0).toFixed(2)}</div>
+                                        <div class="col-md-4"><strong>MOQ:</strong> ${p.moq_quantity} ${p.moq_unit_name || ''}</div>
+                                        <div class="col-md-4"><strong>Ready Stock:</strong> ${p.available_quantity ?? 0}</div>
+                                        <div class="col-md-6"><strong>Sample Available:</strong> ${parseInt(p.sample_available || 0) === 1 ? `Yes (${sym}${parseFloat(p.sample_price || 0).toFixed(2)})` : 'No'}</div>
+                                    </div>
+                                </div>
+                                <div class="border rounded-3 p-3 mb-3 small">
+                                    <h6 class="fw-bold text-primary border-bottom pb-2 mb-2">3. Specifications &amp; Customization</h6>
+                                    <div class="row g-2">
+                                        <div class="col-md-6"><strong>Material:</strong> ${p.material || '—'}</div>
+                                        <div class="col-md-6"><strong>Colors:</strong> ${p.colors || '—'}</div>
+                                        <div class="col-md-6"><strong>Size:</strong> ${p.size || '—'}</div>
+                                        <div class="col-md-6"><strong>Weight:</strong> ${p.weight || '—'}</div>
+                                        <div class="col-12 mt-1">
+                                            ${ynBadge(p.custom_logo, 'Custom Logo')}
+                                            ${ynBadge(p.custom_color, 'Custom Color')}
+                                            ${ynBadge(p.custom_packaging, 'Custom Packaging')}
+                                            ${ynBadge(p.oem_available, 'OEM')}
+                                            ${ynBadge(p.odm_available, 'ODM')}
+                                            ${ynBadge(p.private_label, 'Private Label')}
+                                        </div>
+                                        <div class="col-12"><strong>Customization Details:</strong> ${p.customization_details || '—'}</div>
+                                    </div>
+                                </div>
+                                <div class="border rounded-3 p-3 small">
+                                    <h6 class="fw-bold text-primary border-bottom pb-2 mb-2">4. Shipping &amp; Origin</h6>
+                                    <div class="row g-2">
+                                        <div class="col-md-6"><strong>Country:</strong> ${p.country_name || 'India'}</div>
+                                        <div class="col-md-6"><strong>Lead Time:</strong> ${p.lead_time || '—'}</div>
+                                        <div class="col-12"><strong>Shipping Info:</strong> ${p.shipping_info || '—'}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    $('#quickViewBody').html(html);
+                });
+        });
+
         // Toggle Featured
         $('.btn-toggle-featured').off('click').on('click', function () {
             const id = $(this).data('id');
@@ -315,3 +437,22 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
 </script>
+
+<!-- Product Quick View Modal -->
+<div class="modal fade" id="productQuickViewModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-light border-bottom py-3">
+                <h5 class="modal-title fw-bold fs-6" id="quickViewTitle">Product Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4" id="quickViewBody"></div>
+            <div class="modal-footer bg-light border-top py-2.5 d-flex justify-content-between">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+                <a href="#" id="quickViewEditBtn" class="btn btn-primary btn-sm">
+                    <i class="bi bi-pencil-square me-1"></i>Edit All Product Details
+                </a>
+            </div>
+        </div>
+    </div>
+</div>

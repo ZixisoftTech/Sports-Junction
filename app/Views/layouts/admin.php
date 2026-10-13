@@ -100,6 +100,16 @@ $activeMenu = $activeMenu ?? 'dashboard';
             <span>Product Approvals</span>
         </a>
 
+        <div class="sj-nav-section-title">Buyers &amp; Enquiries</div>
+        <a href="<?= htmlspecialchars($baseUrl) ?>/admin/buyers" class="sj-nav-item <?= ($activeMenu === 'buyers' || str_contains($_SERVER['REQUEST_URI'] ?? '', '/admin/buyers')) ? 'active' : '' ?>">
+            <i class="bi bi-people"></i>
+            <span>Buyer Management</span>
+        </a>
+        <a href="<?= htmlspecialchars($baseUrl) ?>/admin/enquiries" class="sj-nav-item <?= ($activeMenu === 'enquiries' || str_contains($_SERVER['REQUEST_URI'] ?? '', '/admin/enquiries')) ? 'active' : '' ?>">
+            <i class="bi bi-chat-left-quote"></i>
+            <span>Enquiry Management</span>
+        </a>
+
         <div class="sj-nav-section-title">Security & Audit</div>
         <a href="<?= htmlspecialchars($baseUrl) ?>/admin/dashboard#audit" class="sj-nav-item">
             <i class="bi bi-journal-text"></i>

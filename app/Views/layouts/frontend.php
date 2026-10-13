@@ -166,7 +166,7 @@ $currentUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" 
                     <a href="<?= htmlspecialchars($baseUrl) ?>/products" class="text-on-surface-variant hover:text-primary transition-colors shrink-0">ALL PRODUCTS</a>
                     <a href="<?= htmlspecialchars($baseUrl) ?>/category/sports-and-fitness" class="text-on-surface-variant hover:text-primary transition-colors shrink-0">FITNESS & GYM</a>
                     <a href="<?= htmlspecialchars($baseUrl) ?>/category/cricket-and-field-sports" class="text-on-surface-variant hover:text-primary transition-colors shrink-0">CRICKET HUB</a>
-                    <a href="<?= htmlspecialchars($baseUrl) ?>/category/agility-and-speed-training" class="text-on-surface-variant hover:text-primary transition-colors shrink-0">AGILITY TRAINING</a>
+                    <a href="<?= htmlspecialchars($baseUrl) ?>/contact" class="text-on-surface-variant hover:text-primary transition-colors shrink-0">CONTACT US</a>
                 </nav>
 
                 <div class="hidden lg:flex items-center gap-5 text-on-surface-variant normal-case shrink-0 text-xs">
@@ -204,6 +204,8 @@ $currentUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" 
             <form id="publicInquiryForm" class="space-y-3" onsubmit="handleInquirySubmit(event)">
                 <input type="hidden" name="product_id" id="modal-product-id" value="">
                 <input type="hidden" name="supplier_id" id="modal-supplier-id" value="">
+                <input type="hidden" name="enquiry_source" id="modal-enquiry-source" value="GENERAL">
+                <input type="hidden" name="subject" id="modal-subject" value="">
 
                 <div class="grid grid-cols-2 gap-3">
                     <div>
@@ -233,12 +235,8 @@ $currentUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" 
                         <input type="number" name="target_quantity" id="modal-qty" required min="1" value="100" class="w-full bg-surface-container-low px-3 py-2 text-on-surface rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-primary outline-none transition-all">
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-on-surface-variant mb-1 uppercase tracking-wider">Required Lead Time</label>
-                        <select name="lead_time_req" class="w-full bg-surface-container-low px-3 py-2 text-on-surface rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-primary outline-none transition-all">
-                            <option value="15 - 25 days (Standard)">15 - 25 days (Standard)</option>
-                            <option value="Under 15 days (Rush)">Under 15 days (Rush)</option>
-                            <option value="Sample first (5-7 days)">Sample first (5-7 days)</option>
-                        </select>
+                        <label class="block text-xs font-bold text-on-surface-variant mb-1 uppercase tracking-wider">Delivery Location / City</label>
+                        <input type="text" name="delivery_location" id="modal-delivery-location" placeholder="e.g., Delhi, India" class="w-full bg-surface-container-low px-3 py-2 text-on-surface rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-primary outline-none transition-all">
                     </div>
                 </div>
 
@@ -305,7 +303,7 @@ $currentUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" 
                     <ul class="space-y-2 text-xs">
                         <li><a href="<?= htmlspecialchars($baseUrl) ?>/products" class="hover:text-white transition-colors">Direct Factory Catalog</a></li>
                         <li><a href="#" onclick="openInquiryModal('Custom Wholesale RFP', 'Sports Junction Pool', 500); return false;" class="hover:text-white transition-colors">Request for Quotation (RFQ)</a></li>
-                        <li><a href="#" class="hover:text-white transition-colors">OEM Private Labeling</a></li>
+                        <li><a href="<?= htmlspecialchars($baseUrl) ?>/contact" class="hover:text-white transition-colors">Contact Us & Support</a></li>
                         <li><a href="#" class="hover:text-white transition-colors">Container Freight Logistics</a></li>
                         <li><a href="<?= htmlspecialchars($baseUrl) ?>/sitemap.xml" target="_blank" class="hover:text-white transition-colors">XML Sitemap</a></li>
                     </ul>
@@ -362,8 +360,10 @@ $currentUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" 
             document.getElementById('modal-supplier-name').textContent = supplierName ? `Target: ${supplierName}` : 'Target: Sports Junction Verified Pool';
             document.getElementById('modal-qty').value = defaultQty || 100;
 
-            if (productId) document.getElementById('modal-product-id').value = productId;
-            if (supplierId) document.getElementById('modal-supplier-id').value = supplierId;
+            document.getElementById('modal-product-id').value = productId || '';
+            document.getElementById('modal-supplier-id').value = supplierId || '';
+            document.getElementById('modal-enquiry-source').value = productId ? 'PRODUCT_PAGE' : 'GENERAL';
+            document.getElementById('modal-subject').value = productTitle || 'General Bulk Requirement / RFQ';
 
             modal.classList.remove('hidden');
             setTimeout(() => {

@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 use App\Core\Response;
 use App\Helpers\CSRF;
+use App\Helpers\Uploader;
 
 $baseUrl = Response::baseUrl();
 $isEdit = $isEdit ?? false;
@@ -16,6 +17,7 @@ $subcategories = $subcategories ?? [];
             <ol class="breadcrumb mb-1 small">
                 <li class="breadcrumb-item"><a href="<?= htmlspecialchars($baseUrl) ?>/admin/dashboard" class="text-decoration-none">Dashboard</a></li>
                 <li class="breadcrumb-item"><a href="<?= htmlspecialchars($baseUrl) ?>/admin/products" class="text-decoration-none">Product Inventory</a></li>
+                <li class="breadcrumb-item"><a href="<?= htmlspecialchars($baseUrl) ?>/admin/product-approvals" class="text-decoration-none">Product Approvals</a></li>
                 <li class="breadcrumb-item active" aria-current="page"><?= $isEdit ? 'Edit Product' : 'Add New Product' ?></li>
             </ol>
         </nav>
@@ -23,9 +25,12 @@ $subcategories = $subcategories ?? [];
             <i class="bi <?= $isEdit ? 'bi-pencil-square text-primary' : 'bi-plus-circle-fill text-success' ?> me-2"></i>
             <?= $isEdit ? 'Edit Product: ' . htmlspecialchars($product['name'] ?? $product['title'] ?? '') : 'Add Wholesale Product' ?>
         </h4>
-        <p class="text-muted small mb-0">Complete all required sections below to publish or update sports equipment specifications in the marketplace catalog.</p>
+        <p class="text-muted small mb-0">Complete or modify any section below to manage sports equipment specifications before or after approval.</p>
     </div>
     <div class="d-flex align-items-center gap-2">
+        <a href="<?= htmlspecialchars($baseUrl) ?>/admin/product-approvals" class="btn btn-outline-warning btn-sm shadow-sm px-3 text-dark">
+            <i class="bi bi-shield-check me-1.5"></i> Approvals Queue
+        </a>
         <a href="<?= htmlspecialchars($baseUrl) ?>/admin/products" class="btn btn-outline-secondary btn-sm shadow-sm px-3">
             <i class="bi bi-arrow-left me-1.5"></i> Back to Products
         </a>
@@ -36,6 +41,27 @@ $subcategories = $subcategories ?? [];
         <?php endif; ?>
     </div>
 </div>
+
+<?php if ($isEdit && !empty($product)): ?>
+    <?php
+        $appSt = $product['approval_status'] ?? 'APPROVED';
+        $hasPend = !empty($product['has_pending_changes']);
+    ?>
+    <div class="alert <?= ($appSt === 'APPROVED' && !$hasPend) ? 'alert-success' : 'alert-warning' ?> d-flex align-items-center justify-content-between py-2.5 px-3 mb-4 shadow-xs">
+        <div class="small">
+            <i class="bi <?= ($appSt === 'APPROVED' && !$hasPend) ? 'bi-check-circle-fill' : 'bi-exclamation-triangle-fill' ?> me-2"></i>
+            <strong>Current Approval Status: <?= htmlspecialchars($appSt) ?></strong>
+            <?php if ($hasPend): ?>
+                — This product has a pending supplier edit revision loaded into the fields below. Saving will apply your edited values directly.
+            <?php elseif ($appSt === 'PENDING_APPROVAL'): ?>
+                — You are editing this product <strong>before approval</strong>. You can keep it as Pending Approval or set Approval Status to Approved in Step 4.
+            <?php else: ?>
+                — You are editing this product <strong>after approval</strong>. Changes saved here by Super Admin take effect immediately.
+            <?php endif; ?>
+        </div>
+        <span class="badge <?= $appSt === 'APPROVED' ? 'bg-success' : ($appSt === 'REJECTED' ? 'bg-danger' : 'bg-warning text-dark') ?>"><?= htmlspecialchars($appSt) ?></span>
+    </div>
+<?php endif; ?>
 
 <!-- Main Wizard Card -->
 <div class="sj-card mb-5 shadow-sm border-0">
@@ -386,7 +412,17 @@ $subcategories = $subcategories ?? [];
                         <textarea class="form-control" id="prodShippingInfo" name="shipping_info" rows="2" placeholder="e.g. FOB Nhava Sheva (Mumbai) / Mundra Port or Worldwide Express Air Freight"><?= htmlspecialchars($product['shipping_info'] ?? '') ?></textarea>
                     </div>
 
-                    <div class="col-md-4">
+                    <div class="col-md-3">
+                        <label for="prodApprovalStatus" class="form-label fw-semibold small">Approval Status <span class="text-danger">*</span></label>
+                        <select class="form-select" id="prodApprovalStatus" name="approval_status" required>
+                            <option value="APPROVED" <?= (($product['approval_status'] ?? 'APPROVED') === 'APPROVED') ? 'selected' : '' ?>>Approved (Verified)</option>
+                            <option value="PENDING_APPROVAL" <?= (($product['approval_status'] ?? '') === 'PENDING_APPROVAL') ? 'selected' : '' ?>>Pending Approval (Before Approve)</option>
+                            <option value="REJECTED" <?= (($product['approval_status'] ?? '') === 'REJECTED') ? 'selected' : '' ?>>Rejected</option>
+                            <option value="DRAFT" <?= (($product['approval_status'] ?? '') === 'DRAFT') ? 'selected' : '' ?>>Draft</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-3">
                         <label for="prodStatus" class="form-label fw-semibold small">Marketplace Publishing Status <span class="text-danger">*</span></label>
                         <select class="form-select" id="prodStatus" name="status" required>
                             <option value="PUBLISHED" <?= (($product['status'] ?? 'PUBLISHED') === 'PUBLISHED') ? 'selected' : '' ?>>Published (Live in Catalog)</option>
@@ -396,7 +432,7 @@ $subcategories = $subcategories ?? [];
                         <div class="invalid-feedback">Please select a publishing status.</div>
                     </div>
 
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <div class="card p-3 bg-light border-0 rounded-3 mt-4">
                             <div class="form-check form-switch mb-0">
                                 <input class="form-check-input" type="checkbox" role="switch" id="prodFeatured" name="is_featured" value="1" <?= (!empty($product['is_featured'])) ? 'checked' : '' ?>>
@@ -407,7 +443,7 @@ $subcategories = $subcategories ?? [];
                         </div>
                     </div>
 
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <label for="prodFeatOrder" class="form-label fw-semibold small">Featured Display Priority</label>
                         <input type="number" class="form-control" id="prodFeatOrder" name="featured_order" min="0" value="<?= htmlspecialchars((string)($product['featured_order'] ?? 0)) ?>">
                         <div class="text-muted small" style="font-size: 11px;">Higher priority numbers sort first on the homepage carousel.</div>
@@ -431,7 +467,7 @@ $subcategories = $subcategories ?? [];
                         <label class="form-label fw-semibold small mb-2">Primary Product Image</label>
                         <div class="p-3 bg-light rounded-3 border d-flex flex-column flex-sm-row align-items-center gap-4">
                             <div class="position-relative border bg-white rounded-3 shadow-xs d-flex align-items-center justify-content-center overflow-hidden flex-shrink-0" style="width: 120px; height: 120px;">
-                                <img id="primaryImgPreview" src="<?= htmlspecialchars(!empty($product['primary_image']) ? $product['primary_image'] : $baseUrl . '/assets/images/logo.jpg') ?>" alt="Product Preview" class="w-100 h-100 object-fit-cover rounded">
+                                <img id="primaryImgPreview" src="<?= htmlspecialchars(!empty($product['primary_image']) ? Uploader::imageUrl($product['primary_image']) : $baseUrl . '/assets/images/logo.jpg') ?>" alt="Product Preview" class="w-100 h-100 object-fit-cover rounded">
                             </div>
                             <div class="flex-grow-1 w-100">
                                 <label for="prodPrimaryImgFile" class="form-label fw-semibold small text-dark mb-1">

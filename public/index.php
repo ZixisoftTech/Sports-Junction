@@ -73,6 +73,8 @@ use App\Controllers\SubcategoryController;
 use App\Controllers\ProductController;
 use App\Controllers\SupplierApprovalController;
 use App\Controllers\ProductApprovalController;
+use App\Controllers\BuyerManagementController;
+use App\Controllers\EnquiryManagementController;
 use App\Controllers\SupplierPortalController;
 use App\Controllers\BuyerPortalController;
 use App\Controllers\HomeController;
@@ -92,6 +94,8 @@ $router->get('/category/{catSlug}', [ShopController::class, 'categoryProducts'])
 $router->get('/category/{catSlug}/{subSlug}', [ShopController::class, 'subcategoryProducts']);
 $router->get('/product/{slug}', [ShopController::class, 'productDetail']);
 $router->post('/api/inquiries', [ShopController::class, 'submitInquiry']);
+$router->get('/contact', [ShopController::class, 'contact']);
+$router->post('/api/contact', [ShopController::class, 'submitContact']);
 $router->get('/sitemap.xml', [ShopController::class, 'sitemap']);
 
 // -------------------------------------------------------------
@@ -179,8 +183,10 @@ $router->get('/supplier/dashboard', [SupplierPortalController::class, 'dashboard
 $router->get('/supplier/products', [SupplierPortalController::class, 'products'], [SupplierAuthMiddleware::class]);
 $router->get('/supplier/products/add', [SupplierPortalController::class, 'addProduct'], [SupplierAuthMiddleware::class]);
 $router->post('/supplier/products/add', [SupplierPortalController::class, 'storeProduct'], [SupplierAuthMiddleware::class]);
+$router->post('/supplier/products/store', [SupplierPortalController::class, 'storeProduct'], [SupplierAuthMiddleware::class]);
 $router->get('/supplier/products/edit/{id}', [SupplierPortalController::class, 'editProduct'], [SupplierAuthMiddleware::class]);
 $router->post('/supplier/products/edit/{id}', [SupplierPortalController::class, 'updateProduct'], [SupplierAuthMiddleware::class]);
+$router->post('/supplier/products/update/{id}', [SupplierPortalController::class, 'updateProduct'], [SupplierAuthMiddleware::class]);
 $router->get('/supplier/enquiries', [SupplierPortalController::class, 'enquiries'], [SupplierAuthMiddleware::class]);
 $router->get('/supplier/enquiries/{id}', [SupplierPortalController::class, 'enquiryDetail'], [SupplierAuthMiddleware::class]);
 $router->post('/supplier/enquiries/{id}/reply', [SupplierPortalController::class, 'replyEnquiry'], [SupplierAuthMiddleware::class]);
@@ -192,6 +198,26 @@ $router->post('/supplier/change-password', [SupplierPortalController::class, 'ch
 // PROTECTED SUPER ADMIN ROUTES (Role: SUPER_ADMIN)
 // -------------------------------------------------------------
 $router->get('/admin/dashboard', [DashboardController::class, 'index'], [AuthMiddleware::class]);
+
+// Super Admin Buyer Management
+$router->get('/admin/buyers', [BuyerManagementController::class, 'index'], [AuthMiddleware::class]);
+$router->get('/api/admin/buyers/data', [BuyerManagementController::class, 'data'], [AuthMiddleware::class]);
+$router->get('/api/admin/buyers/export', [BuyerManagementController::class, 'export'], [AuthMiddleware::class]);
+$router->get('/api/admin/buyers/{id}', [BuyerManagementController::class, 'show'], [AuthMiddleware::class]);
+$router->post('/api/admin/buyers/{id}/update', [BuyerManagementController::class, 'update'], [AuthMiddleware::class]);
+$router->post('/api/admin/buyers/{id}/toggle-status', [BuyerManagementController::class, 'toggleStatus'], [AuthMiddleware::class]);
+
+// Super Admin Centralized Enquiry Management
+$router->get('/admin/enquiries', [EnquiryManagementController::class, 'index'], [AuthMiddleware::class]);
+$router->get('/admin/enquiries/{id}', [EnquiryManagementController::class, 'show'], [AuthMiddleware::class]);
+$router->post('/admin/enquiries/{id}/reply', [EnquiryManagementController::class, 'reply'], [AuthMiddleware::class]);
+$router->get('/api/admin/enquiries/data', [EnquiryManagementController::class, 'data'], [AuthMiddleware::class]);
+$router->get('/api/admin/enquiries/export', [EnquiryManagementController::class, 'export'], [AuthMiddleware::class]);
+$router->get('/api/admin/enquiries/{id}', [EnquiryManagementController::class, 'show'], [AuthMiddleware::class]);
+$router->post('/api/admin/enquiries/{id}/assign-supplier', [EnquiryManagementController::class, 'assignSupplier'], [AuthMiddleware::class]);
+$router->post('/api/admin/enquiries/{id}/status', [EnquiryManagementController::class, 'updateStatus'], [AuthMiddleware::class]);
+$router->post('/api/admin/enquiries/{id}/notes', [EnquiryManagementController::class, 'updateNotes'], [AuthMiddleware::class]);
+$router->post('/api/admin/enquiries/{id}/reply', [EnquiryManagementController::class, 'reply'], [AuthMiddleware::class]);
 
 // Super Admin Supplier Management & Approvals
 $router->get('/admin/suppliers', [SupplierApprovalController::class, 'index'], [AuthMiddleware::class]);

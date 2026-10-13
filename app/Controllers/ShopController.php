@@ -183,20 +183,44 @@ class ShopController extends Controller
 
         $user = $this->authUser();
         if ($user && ($user['role'] ?? '') === 'BUYER') {
+            $liveUser = \App\Models\User::findById((int)$user['id']);
+            if ($liveUser && ($liveUser['status'] ?? '') === 'INACTIVE') {
+                $this->json(['success' => false, 'message' => 'Your buyer account is currently deactivated. Please contact support.'], 403);
+                return;
+            }
             $input['buyer_user_id'] = (int)$user['id'];
             if (empty($input['buyer_email'])) {
-                $input['buyer_email'] = $user['email'];
+                $input['buyer_email'] = $liveUser['email'] ?? $user['email'];
             }
             if (empty($input['buyer_name'])) {
-                $input['buyer_name'] = $user['name'];
+                $input['buyer_name'] = $liveUser['name'] ?? $user['name'];
+            }
+            if (empty($input['company_name']) && !empty($liveUser['company_name'])) {
+                $input['company_name'] = $liveUser['company_name'];
+            }
+            if (empty($input['buyer_phone']) && !empty($liveUser['phone'])) {
+                $input['buyer_phone'] = ($liveUser['country_code'] ?? '+91') . ' ' . $liveUser['phone'];
             }
         }
 
-        // Auto-resolve supplier_id from product if product_id is passed
-        if (!empty($input['product_id']) && empty($input['supplier_id'])) {
+        // Auto-resolve supplier_id and source from product if product_id is passed
+        if (!empty($input['product_id'])) {
+            $input['enquiry_source'] = 'PRODUCT_PAGE';
             $prod = Product::findById((int)$input['product_id']);
-            if ($prod && !empty($prod['supplier_id'])) {
-                $input['supplier_id'] = (int)$prod['supplier_id'];
+            if ($prod) {
+                if (empty($input['supplier_id']) && !empty($prod['supplier_id'])) {
+                    $input['supplier_id'] = (int)$prod['supplier_id'];
+                }
+                if (empty($input['subject'])) {
+                    $input['subject'] = 'Product Inquiry: ' . ($prod['title'] ?? $prod['name'] ?? '');
+                }
+            }
+        } else {
+            if (empty($input['enquiry_source']) || !in_array($input['enquiry_source'], ['GENERAL', 'CONTACT_US'], true)) {
+                $input['enquiry_source'] = 'GENERAL';
+            }
+            if (empty($input['subject'])) {
+                $input['subject'] = 'General Bulk Requirement / RFQ';
             }
         }
 
@@ -221,6 +245,91 @@ class ShopController extends Controller
             ]);
         } catch (\Throwable $e) {
             $this->json(['success' => false, 'message' => 'Failed to record inquiry: ' . $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Public Contact Us Page (GET /contact)
+     */
+    public function contact(): void
+    {
+        $categories = Category::allActive();
+        $user = $this->authUser();
+        $buyerDetails = null;
+        if ($user && ($user['role'] ?? '') === 'BUYER') {
+            $buyerDetails = \App\Models\User::findById((int)$user['id']);
+        }
+
+        $this->render('frontend/contact', [
+            'pageTitle'       => 'Contact Us — Sports Junction B2B Manufacturing Marketplace',
+            'metaDescription' => 'Contact Sports Junction for bulk sports manufacturing enquiries, supplier partnerships, or B2B procurement assistance.',
+            'categories'      => $categories,
+            'buyerDetails'    => $buyerDetails,
+        ], 'frontend');
+    }
+
+    /**
+     * Submit Contact Us Form (POST /api/contact)
+     */
+    public function submitContact(): void
+    {
+        $input = $this->request->all();
+        $user = $this->authUser();
+
+        if ($user && ($user['role'] ?? '') === 'BUYER') {
+            $liveUser = \App\Models\User::findById((int)$user['id']);
+            if ($liveUser && ($liveUser['status'] ?? '') === 'INACTIVE') {
+                $this->json(['success' => false, 'message' => 'Your buyer account is currently deactivated.'], 403);
+                return;
+            }
+            $input['buyer_user_id'] = (int)$user['id'];
+            if (empty($input['buyer_name'])) {
+                $input['buyer_name'] = $liveUser['name'] ?? $user['name'];
+            }
+            if (empty($input['buyer_email'])) {
+                $input['buyer_email'] = $liveUser['email'] ?? $user['email'];
+            }
+            if (empty($input['company_name']) && !empty($liveUser['company_name'])) {
+                $input['company_name'] = $liveUser['company_name'];
+            }
+        }
+
+        $name    = trim((string)($input['buyer_name'] ?? $input['name'] ?? ''));
+        $email   = trim((string)($input['buyer_email'] ?? $input['email'] ?? ''));
+        $phone   = trim((string)($input['buyer_phone'] ?? $input['phone'] ?? ''));
+        $company = trim((string)($input['company_name'] ?? ''));
+        $subject = trim((string)($input['subject'] ?? 'General Contact Us Message'));
+        $message = trim((string)($input['specifications'] ?? $input['message'] ?? ''));
+
+        if ($name === '' || $email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL) || strlen($message) < 5) {
+            $this->json(['success' => false, 'message' => 'Please provide your Full Name, a valid Email Address, and a detailed Message (at least 5 characters).'], 422);
+            return;
+        }
+
+        try {
+            $id = ProductInquiry::create([
+                'enquiry_source'    => 'CONTACT_US',
+                'product_id'        => null,
+                'supplier_id'       => null,
+                'buyer_user_id'     => $input['buyer_user_id'] ?? null,
+                'buyer_name'        => $name,
+                'buyer_email'       => $email,
+                'buyer_phone'       => $phone ?: null,
+                'company_name'      => $company ?: null,
+                'subject'           => $subject,
+                'target_quantity'   => max(1, (int)($input['target_quantity'] ?? 1)),
+                'delivery_location' => !empty($input['delivery_location']) ? trim((string)$input['delivery_location']) : null,
+                'specifications'    => $message,
+                'status'            => 'SUBMITTED',
+            ]);
+
+            $this->json([
+                'success' => true,
+                'id'      => $id,
+                'message' => 'Thank you for contacting Sports Junction! Your message (#ENQ-' . str_pad((string)$id, 5, '0', STR_PAD_LEFT) . ') has been received by our Super Admin desk.',
+            ]);
+        } catch (\Throwable $e) {
+            $this->json(['success' => false, 'message' => 'Failed to submit Contact Us message: ' . $e->getMessage()], 500);
         }
     }
 

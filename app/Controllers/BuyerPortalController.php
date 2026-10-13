@@ -76,9 +76,10 @@ class BuyerPortalController extends Controller
             return;
         }
 
-        // Ownership check
+        // Ownership check: Contact Us messages only match if submitted while logged in (buyer_user_id matches)
+        $isContactUs = (($inquiry['enquiry_source'] ?? '') === 'CONTACT_US');
         $matchesUser = ((int)($inquiry['buyer_user_id'] ?? 0) === (int)$buyer['id']);
-        $matchesEmail = (strtolower(trim($inquiry['buyer_email'] ?? '')) === strtolower(trim($buyer['email'] ?? '')));
+        $matchesEmail = !$isContactUs && (strtolower(trim($inquiry['buyer_email'] ?? '')) === strtolower(trim($buyer['email'] ?? '')));
 
         if (!$matchesUser && !$matchesEmail) {
             Session::flash('error', 'Unauthorized access to this enquiry.');
@@ -107,8 +108,9 @@ class BuyerPortalController extends Controller
             return;
         }
 
+        $isContactUs = (($inquiry['enquiry_source'] ?? '') === 'CONTACT_US');
         $matchesUser = ((int)($inquiry['buyer_user_id'] ?? 0) === (int)$buyer['id']);
-        $matchesEmail = (strtolower(trim($inquiry['buyer_email'] ?? '')) === strtolower(trim($buyer['email'] ?? '')));
+        $matchesEmail = !$isContactUs && (strtolower(trim($inquiry['buyer_email'] ?? '')) === strtolower(trim($buyer['email'] ?? '')));
 
         if (!$matchesUser && !$matchesEmail) {
             $this->json(['success' => false, 'message' => 'Access denied.'], 403);

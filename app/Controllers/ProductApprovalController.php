@@ -25,12 +25,13 @@ class ProductApprovalController extends Controller
 
     public function data(): void
     {
-        $pending = Product::getPendingApprovals();
+        $filter = (string)$this->request->query('filter', 'ALL');
+        $records = Product::getPendingApprovals($filter);
         $this->json([
             'draw'            => 1,
-            'recordsTotal'    => count($pending),
-            'recordsFiltered' => count($pending),
-            'data'            => $pending,
+            'recordsTotal'    => count($records),
+            'recordsFiltered' => count($records),
+            'data'            => $records,
         ]);
     }
 

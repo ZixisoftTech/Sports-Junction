@@ -50,12 +50,12 @@ $baseUrl = Response::baseUrl();
                             ?>
                             <tr class="hover:bg-slate-50/50 transition-colors">
                                 <td class="py-4 px-4 font-bold text-slate-900 font-mono">
-                                    #ENQ-<?= (int)$inq['id'] ?>
+                                    #ENQ-<?= str_pad((string)(int)$inq['id'], 5, '0', STR_PAD_LEFT) ?>
                                 </td>
                                 <td class="py-4 px-4 font-bold text-slate-900 flex items-center gap-3">
                                     <img src="<?= htmlspecialchars(\App\Helpers\Uploader::imageUrl($inq['primary_image'])) ?>" onerror="this.onerror=null;this.src='<?= htmlspecialchars($baseUrl) ?>/assets/images/logo.jpg';" class="w-10 h-10 rounded-xl object-cover border border-slate-200 shrink-0">
                                     <div>
-                                        <div class="font-bold text-slate-900"><?= htmlspecialchars($inq['product_name'] ?? 'General Catalog Inquiry') ?></div>
+                                        <div class="font-bold text-slate-900"><?= htmlspecialchars($inq['product_name'] ?: ($inq['subject'] ?: 'General Requirement Assigned')) ?></div>
                                         <?php if (!empty($inq['product_slug'])): ?>
                                             <a href="<?= htmlspecialchars($baseUrl) ?>/product/<?= htmlspecialchars($inq['product_slug']) ?>" target="_blank" class="text-[11px] text-blue-900 hover:underline">View Product &rarr;</a>
                                         <?php endif; ?>
@@ -66,10 +66,10 @@ $baseUrl = Response::baseUrl();
                                     <div class="text-[11px] text-slate-400"><?= htmlspecialchars($inq['company_name'] ?? 'Direct Buyer') ?></div>
                                 </td>
                                 <td class="py-4 px-4 text-slate-900 font-bold">
-                                    <?= (int)$inq['target_quantity'] ?> units
+                                    <?= (int)$inq['target_quantity'] ?> <?= htmlspecialchars($inq['moq_unit_name'] ?? 'units') ?>
                                 </td>
                                 <td class="py-4 px-4 text-slate-600">
-                                    <?= htmlspecialchars($inq['lead_time_req'] ?? 'Standard') ?>
+                                    <?= htmlspecialchars($inq['delivery_location'] ?: ($inq['lead_time_req'] ?: 'Standard')) ?>
                                 </td>
                                 <td class="py-4 px-4 text-slate-500 whitespace-nowrap text-[11px]">
                                     <?= date('d M Y, h:i A', strtotime($inq['created_at'])) ?>

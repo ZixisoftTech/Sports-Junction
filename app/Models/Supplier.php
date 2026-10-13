@@ -65,6 +65,17 @@ class Supplier extends Model
         ");
     }
 
+    public static function allActive(): array
+    {
+        return self::fetchAll("
+            SELECT s.id, s.company_name, s.contact_person, s.email, s.approval_status, bt.name AS business_type_name
+            FROM suppliers s
+            LEFT JOIN business_types bt ON s.business_type_id = bt.id
+            WHERE s.status = 'ACTIVE'
+            ORDER BY s.company_name ASC
+        ");
+    }
+
     public static function create(array $data): int
     {
         self::execute("

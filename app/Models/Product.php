@@ -86,11 +86,16 @@ class Product extends Model
 
     public static function getImages(int $productId): array
     {
-        return self::fetchAll("
+        $rows = self::fetchAll("
             SELECT * FROM product_images 
             WHERE product_id = :id 
             ORDER BY is_primary DESC, display_order ASC, id ASC
         ", [':id' => $productId]);
+
+        foreach ($rows as &$r) {
+            $r['image_url'] = Uploader::imageUrl($r['image_path'] ?? '');
+        }
+        return $rows;
     }
 
     public static function featuredProducts(int $limit = 8): array
@@ -432,6 +437,10 @@ class Product extends Model
             $primaryImage = $newImages[0];
         }
 
+        $approvalStatus = in_array($data['approval_status'] ?? '', ['DRAFT', 'PENDING_APPROVAL', 'APPROVED', 'REJECTED'], true)
+            ? $data['approval_status']
+            : ($existing['approval_status'] ?? 'APPROVED');
+
         self::beginTransaction();
         try {
             self::execute("
@@ -471,6 +480,7 @@ class Product extends Model
                     lead_time = :lead_time,
                     shipping_info = :shipping_info,
                     status = :status,
+                    approval_status = :approval_status,
                     is_featured = :is_featured,
                     featured_order = :featured_order,
                     updated_at = NOW()
@@ -511,10 +521,15 @@ class Product extends Model
                 ':lead_time'            => !empty($data['lead_time']) ? trim($data['lead_time']) : $existing['lead_time'],
                 ':shipping_info'        => !empty($data['shipping_info']) ? trim($data['shipping_info']) : $existing['shipping_info'],
                 ':status'               => in_array($data['status'] ?? '', ['PUBLISHED', 'DRAFT', 'INACTIVE', 'ACTIVE'], true) ? $data['status'] : $existing['status'],
+                ':approval_status'      => $approvalStatus,
                 ':is_featured'          => isset($data['is_featured']) ? (!empty($data['is_featured']) ? 1 : 0) : $existing['is_featured'],
                 ':featured_order'       => (int) ($data['featured_order'] ?? $existing['featured_order']),
                 ':id'                   => $id,
             ]);
+
+            if (!empty($data['clear_pending_changes']) || $approvalStatus === 'APPROVED') {
+                self::execute("UPDATE products SET pending_changes = NULL WHERE id = :id", [':id' => $id]);
+            }
 
             // Delete requested images
             if (!empty($deletedImageIds)) {
@@ -706,20 +721,28 @@ class Product extends Model
         $data['supplier_id'] = $supplierId;
         $data['status'] = 'DRAFT';
         $data['approval_status'] = 'PENDING_APPROVAL';
+        $data['is_featured'] = 0;
+        $data['featured_order'] = 0;
         return self::create($data, $images);
     }
 
-    public static function saveSupplierEdit(int $id, int $supplierId, array $data, ?string $primaryImage = null, array $galleryImages = []): bool
+    public static function saveSupplierEdit(int $id, int $supplierId, array $data, ?string $primaryImage = null, array $galleryImages = [], array $deletedImageIds = []): bool
     {
         $product = self::findById($id);
         if (!$product || (int)$product['supplier_id'] !== $supplierId) {
             return false;
         }
 
+        // Suppliers cannot modify featured status
+        unset($data['is_featured'], $data['featured_order']);
+
+        $finalPrimary = $primaryImage ?: (!empty($data['primary_image']) ? trim((string)$data['primary_image']) : $product['primary_image']);
+
         // If product is already APPROVED, save modifications as pending_changes to prevent unapproved changes from going live
         if ($product['approval_status'] === 'APPROVED') {
             $pendingData = [
                 'name'                  => trim($data['name'] ?? $data['title'] ?? $product['title']),
+                'slug'                  => trim($data['slug'] ?? $product['slug'] ?? ''),
                 'category_id'           => (int)($data['category_id'] ?? $product['category_id']),
                 'subcategory_id'        => (int)($data['subcategory_id'] ?? $product['subcategory_id']),
                 'sku'                   => trim($data['sku'] ?? $product['sku'] ?? ''),
@@ -729,11 +752,30 @@ class Product extends Model
                 'min_price'             => (float)($data['min_price'] ?? $product['min_price']),
                 'max_price'             => (float)($data['max_price'] ?? $product['max_price']),
                 'price_unit_id'         => (int)($data['price_unit_id'] ?? $product['price_unit_id']),
-                'moq'                   => (int)($data['moq'] ?? $product['moq_quantity']),
+                'moq'                   => (int)($data['moq'] ?? $data['moq_quantity'] ?? $product['moq_quantity']),
                 'moq_unit_id'           => (int)($data['moq_unit_id'] ?? $product['moq_unit_id']),
+                'available_quantity'    => (int)($data['available_quantity'] ?? $product['available_quantity'] ?? 0),
+                'sample_available'      => !empty($data['sample_available']) ? 1 : 0,
+                'sample_price'          => !empty($data['sample_price']) ? (float)$data['sample_price'] : null,
+                'material'              => trim($data['material'] ?? $product['material'] ?? ''),
+                'colors'                => trim($data['colors'] ?? $product['colors'] ?? ''),
+                'size'                  => trim($data['size'] ?? $product['size'] ?? ''),
+                'weight'                => trim($data['weight'] ?? $product['weight'] ?? ''),
+                'customization_details' => trim($data['customization_details'] ?? $product['customization_details'] ?? ''),
+                'custom_logo'           => !empty($data['custom_logo']) ? 1 : 0,
+                'custom_color'          => !empty($data['custom_color']) ? 1 : 0,
+                'custom_packaging'      => !empty($data['custom_packaging']) ? 1 : 0,
+                'oem_available'         => !empty($data['oem_available']) ? 1 : 0,
+                'odm_available'         => !empty($data['odm_available']) ? 1 : 0,
+                'private_label'         => !empty($data['private_label']) ? 1 : 0,
+                'country_id'            => (int)($data['country_id'] ?? $product['country_id'] ?? 1),
                 'lead_time'             => trim($data['lead_time'] ?? $product['lead_time'] ?? ''),
-                'primary_image'         => $primaryImage ?: $product['primary_image'],
+                'shipping_info'         => trim($data['shipping_info'] ?? $product['shipping_info'] ?? ''),
+                'status'                => in_array($data['status'] ?? '', ['PUBLISHED', 'DRAFT', 'INACTIVE'], true) ? $data['status'] : ($product['status'] ?? 'PUBLISHED'),
+                'video_url'             => trim($data['video_url'] ?? $product['video_url'] ?? ''),
+                'primary_image'         => $finalPrimary,
                 'gallery_images'        => $galleryImages,
+                'deleted_image_ids'     => $deletedImageIds,
                 'submitted_at'          => date('Y-m-d H:i:s'),
             ];
 
@@ -751,10 +793,17 @@ class Product extends Model
             return true;
         }
 
-        // If product was in DRAFT or REJECTED, update columns directly and re-submit
+        // If product was in DRAFT, PENDING_APPROVAL, or REJECTED, update columns directly and re-submit
         $data['supplier_id'] = $supplierId;
         $data['status'] = 'DRAFT';
-        self::update($id, $data, $galleryImages);
+        if ($finalPrimary) {
+            $data['primary_image'] = $finalPrimary;
+        }
+        // Normalize checkbox flags when unchecked in form submission
+        foreach (['sample_available', 'custom_logo', 'custom_color', 'custom_packaging', 'oem_available', 'odm_available', 'private_label'] as $flag) {
+            $data[$flag] = !empty($data[$flag]) ? 1 : 0;
+        }
+        self::update($id, $data, $galleryImages, $deletedImageIds);
         self::execute("
             UPDATE products 
             SET approval_status = 'PENDING_APPROVAL', 
@@ -781,25 +830,49 @@ class Product extends Model
                 $pending = json_decode($product['pending_changes'], true);
                 if (is_array($pending)) {
                     $upData = [
-                        'name'              => $pending['name'] ?? $product['title'],
-                        'slug'              => $product['slug'],
-                        'category_id'       => $pending['category_id'] ?? $product['category_id'],
-                        'subcategory_id'    => $pending['subcategory_id'] ?? $product['subcategory_id'],
-                        'sku'               => $pending['sku'] ?? $product['sku'],
-                        'brand_name'        => $pending['brand_name'] ?? $product['brand_name'],
-                        'short_description' => $pending['short_description'] ?? $product['short_description'],
-                        'description'       => $pending['description'] ?? $product['description'],
-                        'min_price'         => $pending['min_price'] ?? $product['min_price'],
-                        'max_price'         => $pending['max_price'] ?? $product['max_price'],
-                        'price_unit_id'     => $pending['price_unit_id'] ?? $product['price_unit_id'],
-                        'moq'               => $pending['moq'] ?? $product['moq_quantity'],
-                        'moq_unit_id'       => $pending['moq_unit_id'] ?? $product['moq_unit_id'],
-                        'lead_time'         => $pending['lead_time'] ?? $product['lead_time'],
-                        'primary_image'     => $pending['primary_image'] ?? $product['primary_image'],
-                        'supplier_id'       => $product['supplier_id'],
-                        'status'            => 'PUBLISHED',
+                        'name'                  => $pending['name'] ?? $product['title'],
+                        'slug'                  => !empty($pending['slug']) ? $pending['slug'] : $product['slug'],
+                        'category_id'           => $pending['category_id'] ?? $product['category_id'],
+                        'subcategory_id'        => $pending['subcategory_id'] ?? $product['subcategory_id'],
+                        'sku'                   => $pending['sku'] ?? $product['sku'],
+                        'brand_name'            => $pending['brand_name'] ?? $product['brand_name'],
+                        'short_description'     => $pending['short_description'] ?? $product['short_description'],
+                        'description'           => $pending['description'] ?? $product['description'],
+                        'min_price'             => $pending['min_price'] ?? $product['min_price'],
+                        'max_price'             => $pending['max_price'] ?? $product['max_price'],
+                        'price_unit_id'         => $pending['price_unit_id'] ?? $product['price_unit_id'],
+                        'moq'                   => $pending['moq'] ?? $product['moq_quantity'],
+                        'moq_unit_id'           => $pending['moq_unit_id'] ?? $product['moq_unit_id'],
+                        'available_quantity'    => $pending['available_quantity'] ?? $product['available_quantity'],
+                        'sample_available'      => $pending['sample_available'] ?? $product['sample_available'],
+                        'sample_price'          => $pending['sample_price'] ?? $product['sample_price'],
+                        'material'              => $pending['material'] ?? $product['material'],
+                        'colors'                => $pending['colors'] ?? $product['colors'],
+                        'size'                  => $pending['size'] ?? $product['size'],
+                        'weight'                => $pending['weight'] ?? $product['weight'],
+                        'customization_details' => $pending['customization_details'] ?? $product['customization_details'],
+                        'custom_logo'           => $pending['custom_logo'] ?? $product['custom_logo'],
+                        'custom_color'          => $pending['custom_color'] ?? $product['custom_color'],
+                        'custom_packaging'      => $pending['custom_packaging'] ?? $product['custom_packaging'],
+                        'oem_available'         => $pending['oem_available'] ?? $product['oem_available'],
+                        'odm_available'         => $pending['odm_available'] ?? $product['odm_available'],
+                        'private_label'         => $pending['private_label'] ?? $product['private_label'],
+                        'country_id'            => $pending['country_id'] ?? $product['country_id'],
+                        'lead_time'             => $pending['lead_time'] ?? $product['lead_time'],
+                        'shipping_info'         => $pending['shipping_info'] ?? $product['shipping_info'],
+                        'video_url'             => $pending['video_url'] ?? $product['video_url'],
+                        'primary_image'         => $pending['primary_image'] ?? $product['primary_image'],
+                        'is_featured'           => $product['is_featured'],
+                        'featured_order'        => $product['featured_order'],
+                        'supplier_id'           => $product['supplier_id'],
+                        'status'                => 'PUBLISHED',
                     ];
-                    self::update($id, $upData, $pending['gallery_images'] ?? []);
+                    self::update(
+                        $id,
+                        $upData,
+                        $pending['gallery_images'] ?? [],
+                        $pending['deleted_image_ids'] ?? []
+                    );
                 }
             }
 
@@ -850,8 +923,19 @@ class Product extends Model
         return true;
     }
 
-    public static function getPendingApprovals(): array
+    public static function getPendingApprovals(string $filter = 'PENDING'): array
     {
+        $filter = strtoupper(trim($filter));
+        if ($filter === 'APPROVED') {
+            $where = "WHERE p.approval_status = 'APPROVED' AND p.pending_changes IS NULL";
+        } elseif ($filter === 'REJECTED') {
+            $where = "WHERE p.approval_status = 'REJECTED'";
+        } elseif ($filter === 'ALL') {
+            $where = "";
+        } else {
+            $where = "WHERE p.approval_status = 'PENDING_APPROVAL' OR p.pending_changes IS NOT NULL";
+        }
+
         return self::fetchAll("
             SELECT p.*, p.title as name,
                    c.name as category_name, s.name as subcategory_name,
@@ -864,7 +948,7 @@ class Product extends Model
             LEFT JOIN price_units pu ON p.price_unit_id = pu.id
             LEFT JOIN moq_units mu ON p.moq_unit_id = mu.id
             LEFT JOIN suppliers sp ON p.supplier_id = sp.id
-            WHERE p.approval_status = 'PENDING_APPROVAL' OR p.pending_changes IS NOT NULL
+            {$where}
             ORDER BY p.updated_at DESC, p.id DESC
         ");
     }

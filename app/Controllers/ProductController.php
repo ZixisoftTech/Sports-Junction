@@ -69,11 +69,41 @@ class ProductController extends Controller
             return;
         }
 
+        // If product has pending_changes from a supplier edit, merge them so Super Admin can review and edit them directly
+        if (!empty($product['pending_changes'])) {
+            $pending = json_decode((string)$product['pending_changes'], true);
+            if (is_array($pending)) {
+                $product = array_merge($product, $pending);
+                if (isset($pending['name'])) {
+                    $product['title'] = $pending['name'];
+                }
+                if (isset($pending['moq'])) {
+                    $product['moq_quantity'] = $pending['moq'];
+                }
+                $product['has_pending_changes'] = true;
+            }
+        }
+
         $categories = Category::allActive();
         $priceUnits = PriceUnit::allActive();
         $moqUnits = MoqUnit::allActive();
         $countries = Country::allActive();
         $suppliers = \App\Models\Supplier::allApproved();
+
+        // Ensure product's own supplier is present in dropdown even if unapproved/suspended
+        $hasSupplierInList = false;
+        foreach ($suppliers as $sup) {
+            if ((int)$sup['id'] === (int)($product['supplier_id'] ?? 0)) {
+                $hasSupplierInList = true;
+                break;
+            }
+        }
+        if (!$hasSupplierInList && !empty($product['supplier_id'])) {
+            $prodSup = \App\Models\Supplier::findById((int)$product['supplier_id']);
+            if ($prodSup) {
+                $suppliers[] = $prodSup;
+            }
+        }
 
         $subcategories = [];
         if (!empty($product['category_id'])) {
@@ -215,6 +245,12 @@ class ProductController extends Controller
             return;
         }
 
+        // Normalize checkbox flags when unchecked in HTML form submission
+        foreach (['sample_available', 'custom_logo', 'custom_color', 'custom_packaging', 'oem_available', 'odm_available', 'private_label', 'is_featured'] as $flag) {
+            $input[$flag] = !empty($input[$flag]) ? 1 : 0;
+        }
+        $input['clear_pending_changes'] = 1;
+
         // Primary image upload
         if (isset($_FILES['primary_image_file']) && $_FILES['primary_image_file']['error'] !== UPLOAD_ERR_NO_FILE) {
             try {
@@ -225,8 +261,14 @@ class ProductController extends Controller
             }
         }
 
-        // New gallery images
+        // New gallery images (include any pending supplier gallery images if present)
         $newImages = [];
+        if (!empty($product['pending_changes'])) {
+            $pending = json_decode((string)$product['pending_changes'], true);
+            if (!empty($pending['gallery_images']) && is_array($pending['gallery_images'])) {
+                $newImages = $pending['gallery_images'];
+            }
+        }
         if (!empty($_FILES['gallery_images']['name']) && is_array($_FILES['gallery_images']['name'])) {
             $filesCount = count($_FILES['gallery_images']['name']);
             for ($i = 0; $i < $filesCount; $i++) {

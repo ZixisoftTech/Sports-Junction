@@ -110,6 +110,20 @@ class SupplierPortalController extends Controller
             return;
         }
 
+        // If product has pending_changes, merge them so supplier edits their latest revision
+        if (!empty($product['pending_changes'])) {
+            $pending = json_decode((string)$product['pending_changes'], true);
+            if (is_array($pending)) {
+                $product = array_merge($product, $pending);
+                if (isset($pending['name'])) {
+                    $product['title'] = $pending['name'];
+                }
+                if (isset($pending['moq'])) {
+                    $product['moq_quantity'] = $pending['moq'];
+                }
+            }
+        }
+
         $categories = Category::allActive();
         $subcategories = !empty($product['category_id']) ? Subcategory::byCategory((int)$product['category_id']) : [];
         $priceUnits = PriceUnit::allActive();
@@ -117,7 +131,7 @@ class SupplierPortalController extends Controller
         $countries = Country::allActive();
 
         $this->render('supplier/product_form', [
-            'pageTitle'     => 'Edit Product — ' . htmlspecialchars($product['title']),
+            'pageTitle'     => 'Edit Product — ' . htmlspecialchars($product['title'] ?? $product['name'] ?? ''),
             'supplier'      => $supplier,
             'categories'    => $categories,
             'subcategories' => $subcategories,
@@ -132,8 +146,13 @@ class SupplierPortalController extends Controller
     public function storeProduct(): void
     {
         $supplier = $this->getSupplier();
-        $csrfToken = (string)$this->request->post('csrf_token', '');
+        $isAjax = strtolower((string)$this->request->header('X-Requested-With')) === 'xmlhttprequest';
+        $csrfToken = (string)($this->request->input('_csrf') ?? $this->request->input('csrf_token') ?? $this->request->header('X-CSRF-Token') ?? '');
         if (!CSRF::validate($csrfToken)) {
+            if ($isAjax) {
+                $this->json(['success' => false, 'message' => 'Security token expired. Please refresh and try again.'], 419);
+                return;
+            }
             Session::flash('error', 'Security token expired. Please try again.');
             $this->redirect('/supplier/products/add');
             return;
@@ -153,7 +172,12 @@ class SupplierPortalController extends Controller
         ];
 
         if (!$validator->validate($rules)) {
-            Session::flash('error', $validator->firstError() ?? 'Validation failed.');
+            $errMsg = $validator->firstError() ?? 'Validation failed.';
+            if ($isAjax) {
+                $this->json(['success' => false, 'errors' => $validator->errors(), 'message' => $errMsg], 422);
+                return;
+            }
+            Session::flash('error', $errMsg);
             $this->redirect('/supplier/products/add');
             return;
         }
@@ -165,7 +189,12 @@ class SupplierPortalController extends Controller
                 $input['primary_image'] = Uploader::uploadImage($_FILES['primary_image_file'], 'products');
                 $images[] = $input['primary_image'];
             } catch (\Throwable $e) {
-                Session::flash('error', 'Image upload error: ' . $e->getMessage());
+                $errMsg = 'Image upload error: ' . $e->getMessage();
+                if ($isAjax) {
+                    $this->json(['success' => false, 'message' => $errMsg], 422);
+                    return;
+                }
+                Session::flash('error', $errMsg);
                 $this->redirect('/supplier/products/add');
                 return;
             }
@@ -192,8 +221,10 @@ class SupplierPortalController extends Controller
             }
         }
 
-        // Automatically bind supplier's own facility location
-        $input['country_id'] = $supplier['country_id'];
+        // Use selected country_id if provided, otherwise supplier's facility location
+        if (empty($input['country_id'])) {
+            $input['country_id'] = $supplier['country_id'];
+        }
         $input['state_id'] = $supplier['state_id'];
         $input['city_id'] = $supplier['city_id'];
 
@@ -201,10 +232,20 @@ class SupplierPortalController extends Controller
             $id = Product::submitSupplierProduct($input, (int)$supplier['id'], $images);
             Mailer::sendProductSubmitted($supplier['email'], $supplier['company_name'], (string)$input['name']);
 
-            Session::flash('success', "Product submitted successfully! It is queued for Super Admin review before publishing.");
+            $msg = "Product submitted successfully! It is queued for Super Admin review before publishing.";
+            Session::flash('success', $msg);
+            if ($isAjax) {
+                $this->json(['success' => true, 'id' => $id, 'message' => $msg], 201);
+                return;
+            }
             $this->redirect('/supplier/products');
         } catch (\Throwable $e) {
-            Session::flash('error', 'Failed to submit product: ' . $e->getMessage());
+            $errMsg = 'Failed to submit product: ' . $e->getMessage();
+            if ($isAjax) {
+                $this->json(['success' => false, 'message' => $errMsg], 500);
+                return;
+            }
+            Session::flash('error', $errMsg);
             $this->redirect('/supplier/products/add');
         }
     }
@@ -212,17 +253,26 @@ class SupplierPortalController extends Controller
     public function updateProduct(array $params): void
     {
         $supplier = $this->getSupplier();
+        $isAjax = strtolower((string)$this->request->header('X-Requested-With')) === 'xmlhttprequest';
         $id = (int)($params['id'] ?? 0);
         $product = Product::findById($id);
 
         if (!$product || (int)$product['supplier_id'] !== (int)$supplier['id']) {
+            if ($isAjax) {
+                $this->json(['success' => false, 'message' => 'Product not found or access denied.'], 404);
+                return;
+            }
             Session::flash('error', 'Product not found or access denied.');
             $this->redirect('/supplier/products');
             return;
         }
 
-        $csrfToken = (string)$this->request->post('csrf_token', '');
+        $csrfToken = (string)($this->request->input('_csrf') ?? $this->request->input('csrf_token') ?? $this->request->header('X-CSRF-Token') ?? '');
         if (!CSRF::validate($csrfToken)) {
+            if ($isAjax) {
+                $this->json(['success' => false, 'message' => 'Security token expired. Please refresh and try again.'], 419);
+                return;
+            }
             Session::flash('error', 'Security token expired. Please try again.');
             $this->redirect("/supplier/products/edit/{$id}");
             return;
@@ -242,7 +292,12 @@ class SupplierPortalController extends Controller
         ];
 
         if (!$validator->validate($rules)) {
-            Session::flash('error', $validator->firstError() ?? 'Validation failed.');
+            $errMsg = $validator->firstError() ?? 'Validation failed.';
+            if ($isAjax) {
+                $this->json(['success' => false, 'errors' => $validator->errors(), 'message' => $errMsg], 422);
+                return;
+            }
+            Session::flash('error', $errMsg);
             $this->redirect("/supplier/products/edit/{$id}");
             return;
         }
@@ -252,7 +307,12 @@ class SupplierPortalController extends Controller
             try {
                 $primaryImage = Uploader::uploadImage($_FILES['primary_image_file'], 'products');
             } catch (\Throwable $e) {
-                Session::flash('error', 'Image upload error: ' . $e->getMessage());
+                $errMsg = 'Image upload error: ' . $e->getMessage();
+                if ($isAjax) {
+                    $this->json(['success' => false, 'message' => $errMsg], 422);
+                    return;
+                }
+                Session::flash('error', $errMsg);
                 $this->redirect("/supplier/products/edit/{$id}");
                 return;
             }
@@ -279,14 +339,29 @@ class SupplierPortalController extends Controller
             }
         }
 
+        $deletedImageIds = [];
+        if (!empty($input['deleted_image_ids'])) {
+            $deletedImageIds = array_values(array_filter(array_map('intval', explode(',', (string)$input['deleted_image_ids']))));
+        }
+
         try {
-            Product::saveSupplierEdit($id, (int)$supplier['id'], $input, $primaryImage, $galleryImages);
+            Product::saveSupplierEdit($id, (int)$supplier['id'], $input, $primaryImage, $galleryImages, $deletedImageIds);
             Mailer::sendProductSubmitted($supplier['email'], $supplier['company_name'], (string)$input['name']);
 
-            Session::flash('success', "Product modifications saved and queued for Super Admin review.");
+            $msg = "Product modifications saved and queued for Super Admin review.";
+            Session::flash('success', $msg);
+            if ($isAjax) {
+                $this->json(['success' => true, 'id' => $id, 'message' => $msg]);
+                return;
+            }
             $this->redirect('/supplier/products');
         } catch (\Throwable $e) {
-            Session::flash('error', 'Failed to update product: ' . $e->getMessage());
+            $errMsg = 'Failed to update product: ' . $e->getMessage();
+            if ($isAjax) {
+                $this->json(['success' => false, 'message' => $errMsg], 500);
+                return;
+            }
+            Session::flash('error', $errMsg);
             $this->redirect("/supplier/products/edit/{$id}");
         }
     }
@@ -307,12 +382,23 @@ class SupplierPortalController extends Controller
     {
         $supplier = $this->getSupplier();
         $id = (int)($params['id'] ?? 0);
-        $inquiry = \App\Models\ProductInquiry::findById($id);
+        $inquiry = \App\Models\ProductInquiry::findById($id, false);
 
-        if (!$inquiry || (int)$inquiry['supplier_id'] !== (int)$supplier['id']) {
+        $ownsEnquiry = $inquiry && (
+            (int)($inquiry['supplier_id'] ?? 0) === (int)$supplier['id']
+            || (int)($inquiry['product_owner_supplier_id'] ?? 0) === (int)$supplier['id']
+        );
+
+        if (!$ownsEnquiry) {
             Session::flash('error', 'Inquiry not found or access denied.');
             $this->redirect('/supplier/enquiries');
             return;
+        }
+
+        // Automatically mark as VIEWED if currently SUBMITTED or PENDING
+        if (in_array($inquiry['status'] ?? '', ['PENDING', 'SUBMITTED'], true)) {
+            \App\Models\ProductInquiry::updateStatus($id, 'VIEWED');
+            $inquiry['status'] = 'VIEWED';
         }
 
         $replies = \App\Models\ProductInquiry::getReplies($id);
@@ -329,9 +415,14 @@ class SupplierPortalController extends Controller
     {
         $supplier = $this->getSupplier();
         $id = (int)($params['id'] ?? 0);
-        $inquiry = \App\Models\ProductInquiry::findById($id);
+        $inquiry = \App\Models\ProductInquiry::findById($id, false);
 
-        if (!$inquiry || (int)$inquiry['supplier_id'] !== (int)$supplier['id']) {
+        $ownsEnquiry = $inquiry && (
+            (int)($inquiry['supplier_id'] ?? 0) === (int)$supplier['id']
+            || (int)($inquiry['product_owner_supplier_id'] ?? 0) === (int)$supplier['id']
+        );
+
+        if (!$ownsEnquiry) {
             $this->json(['success' => false, 'message' => 'Access denied.'], 403);
             return;
         }
