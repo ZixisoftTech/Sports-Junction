@@ -16,7 +16,8 @@ class Request
 
     public function __construct()
     {
-        $this->method = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
+        $rawMethod = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
+        $this->method = ($rawMethod === 'HEAD') ? 'GET' : $rawMethod;
         
         // Handle method override for forms (PUT, PATCH, DELETE)
         if ($this->method === 'POST') {

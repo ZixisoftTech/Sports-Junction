@@ -18,6 +18,11 @@ class CSRF
         return $token;
     }
 
+    public static function generate(): string
+    {
+        return self::generateToken();
+    }
+
     public static function getToken(): string
     {
         return self::generateToken();
