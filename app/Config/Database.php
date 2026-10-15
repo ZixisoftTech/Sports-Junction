@@ -7,7 +7,7 @@ return [
     'connection' => Env::get('DB_CONNECTION', 'mysql'),
     'host'       => Env::get('DB_HOST', '127.0.0.1'),
     'port'       => (int) Env::get('DB_PORT', 3306),
-    'socket'     => Env::get('DB_SOCKET', '/Applications/XAMPP/xamppfiles/var/mysql/mysql.sock'),
+    'socket'     => Env::get('DB_SOCKET', ''),
     'database'   => Env::get('DB_DATABASE', 'sports_junction'),
     'username'   => Env::get('DB_USERNAME', 'root'),
     'password'   => Env::get('DB_PASSWORD', ''),
