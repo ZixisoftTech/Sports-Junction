@@ -53,6 +53,15 @@ class Supplier extends Model
             SELECT * FROM suppliers WHERE LOWER(email) = :email LIMIT 1
         ", [':email' => strtolower(trim($email))]);
     }
+    public static function all(): array
+    {
+        return self::fetchAll("
+            SELECT s.id, s.company_name, s.contact_person, s.email, s.phone, s.approval_status, s.status, bt.name AS business_type_name
+            FROM suppliers s
+            LEFT JOIN business_types bt ON s.business_type_id = bt.id
+            ORDER BY s.company_name ASC
+        ");
+    }
 
     public static function allApproved(): array
     {

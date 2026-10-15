@@ -21,7 +21,7 @@ class BuyerPortalController extends Controller
     private function getBuyer(): array
     {
         $user = $this->authUser();
-        if (!$user || ($user['role'] ?? '') !== 'BUYER') {
+        if (!$user || !in_array($user['role'] ?? '', ['BUYER', 'SUPPLIER', 'ADMIN', 'SUPER_ADMIN'])) {
             $this->redirect('/login');
             exit;
         }

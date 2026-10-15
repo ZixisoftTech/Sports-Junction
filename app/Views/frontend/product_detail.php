@@ -181,6 +181,11 @@ $currentUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" 
                         <span class="material-symbols-outlined text-[20px] <?= !empty($isFavourite) ? 'fill-1' : '' ?>">favorite</span>
                     </button>
                 </div>
+                <!-- Chat & Negotiate Button -->
+                <button type="button" onclick="launchProductChat()" class="w-full py-3 rounded-xl bg-teal-800 hover:bg-teal-900 text-white font-headline font-bold text-xs shadow-sm transition-all flex items-center justify-center gap-2">
+                    <span class="material-symbols-outlined text-[18px]">chat</span>
+                    <span>Chat & Negotiate with Factory</span>
+                </button>
                 <?php if ((int)$product['sample_available'] === 1): ?>
                     <button type="button" onclick="openInquiryModal('Sample Request: <?= htmlspecialchars(addslashes($product['name'])) ?>', '<?= htmlspecialchars(addslashes($product['supplier_name'] ?? 'Verified Indian Factory')) ?>', 1, <?= (int)$product['id'] ?>, <?= (int)($product['supplier_id'] ?? 1) ?>)" class="w-full py-2.5 rounded-xl bg-white hover:bg-gray-50 text-blue-900 border border-surface-container font-headline font-bold text-xs transition-colors flex items-center justify-center gap-2">
                         <span class="material-symbols-outlined text-[16px] text-teal-600">science</span>
@@ -198,7 +203,14 @@ $currentUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" 
                     <div>
                         <span class="text-[10px] font-bold uppercase tracking-wider text-teal-700 block">Verified Manufacturer</span>
                         <h4 class="font-headline font-bold text-sm text-on-surface mt-0.5">
-                            <?= htmlspecialchars($product['supplier_name'] ?? 'Meerut Sports Gear Ltd') ?>
+                            <?php if (!empty($product['supplier_id'])): ?>
+                                <a href="<?= htmlspecialchars($baseUrl) ?>/supplier/<?= (int)$product['supplier_id'] ?>" class="hover:text-teal-700 hover:underline transition-colors inline-flex items-center gap-1 group" title="View Factory Profile & Full Catalog">
+                                    <span><?= htmlspecialchars($product['supplier_name'] ?? 'Verified Manufacturer') ?></span>
+                                    <span class="material-symbols-outlined text-[14px] text-slate-400 group-hover:text-teal-700">open_in_new</span>
+                                </a>
+                            <?php else: ?>
+                                <?= htmlspecialchars($product['supplier_name'] ?? 'Meerut Sports Gear Ltd') ?>
+                            <?php endif; ?>
                         </h4>
                     </div>
                     <span class="material-symbols-outlined text-[24px] text-teal-600">verified</span>
@@ -425,5 +437,19 @@ $currentUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" 
         });
         btn.classList.remove('border-transparent', 'text-outline');
         btn.classList.add('border-primary', 'text-primary');
+    }
+
+    function launchProductChat() {
+        if (typeof openProductChat === 'function') {
+            openProductChat({
+                id: <?= (int)$product['id'] ?>,
+                title: <?= json_encode($product['name'] ?? $product['title']) ?>,
+                price: <?= (float)$product['min_price'] ?>,
+                moq: <?= (int)$product['moq_quantity'] ?>,
+                supplier_id: <?= (int)($product['supplier_id'] ?? 1) ?>,
+                supplier_name: <?= json_encode($product['supplier_name'] ?? 'Verified Indian Factory') ?>,
+                image: <?= json_encode($primaryImg) ?>
+            });
+        }
     }
 </script>

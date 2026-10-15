@@ -109,6 +109,20 @@ $activeMenu = $activeMenu ?? 'dashboard';
             <i class="bi bi-chat-left-quote"></i>
             <span>Enquiry Management</span>
         </a>
+        <a href="<?= htmlspecialchars($baseUrl) ?>/admin/communication" class="sj-nav-item <?= ($activeMenu === 'communication' || str_contains($_SERVER['REQUEST_URI'] ?? '', '/admin/communication')) ? 'active' : '' ?>">
+            <i class="bi bi-chat-dots-fill"></i>
+            <span>Communication Center</span>
+        </a>
+
+        <div class="sj-nav-section-title">Website &amp; CMS</div>
+        <a href="<?= htmlspecialchars($baseUrl) ?>/admin/settings" class="sj-nav-item <?= ($activeMenu === 'settings') ? 'active' : '' ?>">
+            <i class="bi bi-gear-fill"></i>
+            <span>Website Settings</span>
+        </a>
+        <a href="<?= htmlspecialchars($baseUrl) ?>/admin/pages" class="sj-nav-item <?= ($activeMenu === 'cms_pages') ? 'active' : '' ?>">
+            <i class="bi bi-file-earmark-richtext"></i>
+            <span>Footer &amp; CMS Pages</span>
+        </a>
 
         <div class="sj-nav-section-title">Security & Audit</div>
         <a href="<?= htmlspecialchars($baseUrl) ?>/admin/dashboard#audit" class="sj-nav-item">
@@ -369,6 +383,8 @@ $activeMenu = $activeMenu ?? 'dashboard';
         }
     });
 </script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="<?= htmlspecialchars($baseUrl) ?>/assets/js/master-module.js"></script>
+<?= $pageScripts ?? '' ?>
 </body>
 </html>

@@ -19,9 +19,11 @@ class BuyerManagementController extends Controller
         $countries = Country::all();
 
         $this->render('admin/buyers', [
-            'pageTitle' => 'Buyer Management — Sports Junction Admin',
-            'metrics'   => $metrics,
-            'countries' => $countries,
+            'pageTitle'  => 'Buyer Management — Sports Junction Admin',
+            'activeMenu' => 'buyers',
+            'metrics'    => $metrics,
+            'countries'  => $countries,
+            'csrfToken'  => CSRF::token(),
         ], 'admin');
     }
 

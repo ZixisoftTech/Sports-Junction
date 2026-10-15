@@ -80,6 +80,12 @@ use App\Controllers\BuyerPortalController;
 use App\Controllers\HomeController;
 use App\Controllers\ShopController;
 use App\Controllers\Api\MasterApiController;
+use App\Controllers\BuyerMessagesController;
+use App\Controllers\SupplierMessagesController;
+use App\Controllers\AdminCommunicationController;
+use App\Controllers\ChatApiController;
+use App\Controllers\AdminSettingsController;
+use App\Controllers\CmsPageController;
 
 $request = new Request();
 $response = new Response();
@@ -93,9 +99,12 @@ $router->get('/products', [ShopController::class, 'products']);
 $router->get('/category/{catSlug}', [ShopController::class, 'categoryProducts']);
 $router->get('/category/{catSlug}/{subSlug}', [ShopController::class, 'subcategoryProducts']);
 $router->get('/product/{slug}', [ShopController::class, 'productDetail']);
+$router->get('/supplier-store/{id}', [ShopController::class, 'supplierProfile']);
+$router->get('/suppliers/{id}', [ShopController::class, 'supplierProfile']);
 $router->post('/api/inquiries', [ShopController::class, 'submitInquiry']);
 $router->get('/contact', [ShopController::class, 'contact']);
 $router->post('/api/contact', [ShopController::class, 'submitContact']);
+$router->get('/page/{slug}', [CmsPageController::class, 'show']);
 $router->get('/sitemap.xml', [ShopController::class, 'sitemap']);
 
 // -------------------------------------------------------------
@@ -175,6 +184,7 @@ $router->post('/buyer/recently-viewed/clear', [BuyerPortalController::class, 'cl
 $router->get('/buyer/profile', [BuyerPortalController::class, 'profile'], [BuyerAuthMiddleware::class]);
 $router->post('/buyer/profile', [BuyerPortalController::class, 'updateProfile'], [BuyerAuthMiddleware::class]);
 $router->post('/buyer/change-password', [BuyerPortalController::class, 'changePassword'], [BuyerAuthMiddleware::class]);
+$router->get('/buyer/messages', [BuyerMessagesController::class, 'index'], [BuyerAuthMiddleware::class]);
 
 // -------------------------------------------------------------
 // PROTECTED SUPPLIER PORTAL ROUTES (Role: SUPPLIER, Approved)
@@ -190,9 +200,11 @@ $router->post('/supplier/products/update/{id}', [SupplierPortalController::class
 $router->get('/supplier/enquiries', [SupplierPortalController::class, 'enquiries'], [SupplierAuthMiddleware::class]);
 $router->get('/supplier/enquiries/{id}', [SupplierPortalController::class, 'enquiryDetail'], [SupplierAuthMiddleware::class]);
 $router->post('/supplier/enquiries/{id}/reply', [SupplierPortalController::class, 'replyEnquiry'], [SupplierAuthMiddleware::class]);
+$router->get('/supplier/messages', [SupplierMessagesController::class, 'index'], [SupplierAuthMiddleware::class]);
 $router->get('/supplier/profile', [SupplierPortalController::class, 'profile'], [SupplierAuthMiddleware::class]);
 $router->post('/supplier/profile', [SupplierPortalController::class, 'updateProfile'], [SupplierAuthMiddleware::class]);
 $router->post('/supplier/change-password', [SupplierPortalController::class, 'changePassword'], [SupplierAuthMiddleware::class]);
+$router->get('/supplier/{id}', [ShopController::class, 'supplierProfile']);
 
 // -------------------------------------------------------------
 // PROTECTED SUPER ADMIN ROUTES (Role: SUPER_ADMIN)
@@ -218,6 +230,19 @@ $router->post('/api/admin/enquiries/{id}/assign-supplier', [EnquiryManagementCon
 $router->post('/api/admin/enquiries/{id}/status', [EnquiryManagementController::class, 'updateStatus'], [AuthMiddleware::class]);
 $router->post('/api/admin/enquiries/{id}/notes', [EnquiryManagementController::class, 'updateNotes'], [AuthMiddleware::class]);
 $router->post('/api/admin/enquiries/{id}/reply', [EnquiryManagementController::class, 'reply'], [AuthMiddleware::class]);
+
+// Super Admin Communication & Negotiation Monitoring Center
+$router->get('/admin/communication', [AdminCommunicationController::class, 'index'], [AuthMiddleware::class]);
+$router->get('/admin/communication/{id}', [AdminCommunicationController::class, 'show'], [AuthMiddleware::class]);
+$router->post('/admin/communication/reports/{id}/resolve', [AdminCommunicationController::class, 'resolveReport'], [AuthMiddleware::class]);
+
+// Super Admin Site Settings & Footer CMS Management
+$router->get('/admin/settings', [AdminSettingsController::class, 'index'], [AuthMiddleware::class]);
+$router->post('/admin/settings/general', [AdminSettingsController::class, 'updateGeneral'], [AuthMiddleware::class]);
+$router->get('/admin/pages', [AdminSettingsController::class, 'pages'], [AuthMiddleware::class]);
+$router->post('/admin/pages/create', [AdminSettingsController::class, 'storePage'], [AuthMiddleware::class]);
+$router->post('/admin/pages/edit/{id}', [AdminSettingsController::class, 'updatePage'], [AuthMiddleware::class]);
+$router->post('/admin/pages/delete/{id}', [AdminSettingsController::class, 'deletePage'], [AuthMiddleware::class]);
 
 // Super Admin Supplier Management & Approvals
 $router->get('/admin/suppliers', [SupplierApprovalController::class, 'index'], [AuthMiddleware::class]);
@@ -305,6 +330,25 @@ $router->post('/api/masters/{entity}/{id}/status', [MasterApiController::class, 
 // Hard delete endpoint
 $router->delete('/api/masters/{entity}/{id}', [MasterApiController::class, 'delete'], [AuthMiddleware::class]);
 $router->post('/api/masters/{entity}/{id}/delete', [MasterApiController::class, 'delete'], [AuthMiddleware::class]);
+
+// -------------------------------------------------------------
+// REAL-TIME CHAT, NEGOTIATION & DEAL MANAGEMENT API ENDPOINTS
+// -------------------------------------------------------------
+$router->get('/api/chat/conversations', [ChatApiController::class, 'conversations']);
+$router->post('/api/chat/conversations/start', [ChatApiController::class, 'startConversation']);
+$router->get('/api/chat/conversations/{id}', [ChatApiController::class, 'getConversation']);
+$router->post('/api/chat/messages', [ChatApiController::class, 'sendMessage']);
+$router->get('/api/chat/stream', [ChatApiController::class, 'stream']);
+$router->get('/api/chat/poll', [ChatApiController::class, 'poll']);
+$router->post('/api/chat/attachments/upload', [ChatApiController::class, 'uploadAttachment']);
+$router->get('/api/chat/attachments/{id}/download', [ChatApiController::class, 'downloadAttachment']);
+$router->post('/api/chat/offers', [ChatApiController::class, 'createOffer']);
+$router->post('/api/chat/offers/{id}/accept', [ChatApiController::class, 'acceptOffer']);
+$router->post('/api/chat/offers/{id}/reject', [ChatApiController::class, 'rejectOffer']);
+$router->post('/api/chat/offers/{id}/withdraw', [ChatApiController::class, 'withdrawOffer']);
+$router->post('/api/chat/block', [ChatApiController::class, 'toggleBlock']);
+$router->post('/api/chat/report', [ChatApiController::class, 'submitReport']);
+$router->post('/api/chat/admin/reply', [ChatApiController::class, 'adminReply']);
 
 // Dispatch incoming request
 $router->dispatch();

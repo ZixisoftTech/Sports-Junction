@@ -5,3 +5,7 @@ storage/logs/*.log
 storage/logs/*.html
 vendor/
 node_modules/
+Archive.zip
+public/uploads/chat/*
+public/uploads/settings/*
+!public/uploads/settings/.gitkeep

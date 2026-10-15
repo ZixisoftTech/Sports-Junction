@@ -962,5 +962,31 @@ class Product extends Model
             'rejected'  => (int) self::fetchColumn("SELECT COUNT(*) FROM products WHERE approval_status = 'REJECTED'"),
         ];
     }
+
+    public static function getSupplierPublishedProducts(int $supplierId): array
+    {
+        return self::fetchAll("
+            SELECT p.*,
+                   p.title as name,
+                   c.name as category_name, c.slug as category_slug,
+                   s.name as subcategory_name, s.slug as subcategory_slug,
+                   pu.name as price_unit_name, pu.symbol as price_unit_symbol,
+                   mu.name as moq_unit_name, mu.symbol as moq_unit_symbol,
+                   co.name as country_name,
+                   ct.name as city_name
+            FROM products p
+            LEFT JOIN categories c ON p.category_id = c.id
+            LEFT JOIN subcategories s ON p.subcategory_id = s.id
+            LEFT JOIN price_units pu ON p.price_unit_id = pu.id
+            LEFT JOIN moq_units mu ON p.moq_unit_id = mu.id
+            LEFT JOIN countries co ON p.country_id = co.id
+            LEFT JOIN cities ct ON p.city_id = ct.id
+            WHERE p.supplier_id = :supplier_id
+              AND (p.status = 'PUBLISHED' OR p.status = 'ACTIVE')
+              AND p.approval_status = 'APPROVED'
+            ORDER BY p.is_featured DESC, p.id DESC
+        ", [':supplier_id' => $supplierId]);
+    }
 }
+
 

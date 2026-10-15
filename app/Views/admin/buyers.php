@@ -119,7 +119,7 @@ $csrfToken = \App\Helpers\CSRF::generate();
 <div class="card card-premium">
     <div class="card-body p-3 p-md-4">
         <div class="table-responsive">
-            <table id="buyersTable" class="table table-hover align-middle w-100 mb-0">
+            <table id="buyersTable" class="table sj-table table-hover align-middle w-100 mb-0">
                 <thead class="table-light">
                     <tr>
                         <th style="width:70px;">Buyer ID</th>
@@ -226,7 +226,7 @@ $csrfToken = \App\Helpers\CSRF::generate();
 <div class="modal fade" id="editBuyerModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <form id="editBuyerForm" class="modal-content border-0 shadow-lg rounded-4">
-            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
+            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken ?? \App\Helpers\CSRF::token()) ?>">
             <input type="hidden" name="buyer_id" id="ebId">
             <div class="modal-header border-bottom bg-light px-4 py-3">
                 <div>
@@ -300,7 +300,7 @@ $csrfToken = \App\Helpers\CSRF::generate();
 <?php ob_start(); ?>
 <script>
 const BASE_URL = <?= json_encode($baseUrl) ?>;
-const CSRF_TOKEN = <?= json_encode($csrfToken) ?>;
+const CSRF_TOKEN = <?= json_encode($csrfToken ?? \App\Helpers\CSRF::token()) ?>;
 let buyersTable;
 
 function escapeHtml(str) {

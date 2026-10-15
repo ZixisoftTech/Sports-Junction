@@ -25,7 +25,7 @@ class ProductApprovalController extends Controller
 
     public function data(): void
     {
-        $filter = (string)$this->request->query('filter', 'ALL');
+        $filter = (string)($this->request->get('filter') ?? $this->request->input('filter') ?? 'ALL');
         $records = Product::getPendingApprovals($filter);
         $this->json([
             'draw'            => 1,

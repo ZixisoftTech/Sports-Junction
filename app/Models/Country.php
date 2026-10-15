@@ -13,6 +13,10 @@ class Country extends Model
     {
         return self::fetch("SELECT * FROM countries WHERE id = :id LIMIT 1", [':id' => $id]);
     }
+    public static function all(): array
+    {
+        return self::fetchAll("SELECT id, name, iso_alpha2, iso_alpha3, phone_code, status FROM countries ORDER BY name ASC");
+    }
 
     public static function allActive(): array
     {

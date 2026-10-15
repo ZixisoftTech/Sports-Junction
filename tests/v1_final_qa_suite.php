@@ -15,6 +15,7 @@ $suites = [
     '4. Authentication, Static OTP (123456) & Approval Suite' => __DIR__ . '/auth_and_approval_workflow_test.php',
     '5. Buyer Portal, Seller Portal & Product Revision Suite' => __DIR__ . '/buyer_seller_admin_test.php',
     '6. Super Admin Buyer Management & Centralized Enquiry Suite' => __DIR__ . '/buyer_enquiry_management_test.php',
+    '7. Real-Time Chat, Negotiation & Deal Management Suite' => __DIR__ . '/chat_negotiation_module_test.php',
 ];
 
 echo "=======================================================================\n";
@@ -69,6 +70,15 @@ $requiredFiles = [
     'app/Views/frontend/contact.php',
     'app/Views/supplier/product_form.php',
     'app/Views/products/form.php',
+    'app/Controllers/ChatApiController.php',
+    'app/Controllers/BuyerMessagesController.php',
+    'app/Controllers/SupplierMessagesController.php',
+    'app/Controllers/AdminCommunicationController.php',
+    'app/Views/buyer/messages.php',
+    'app/Views/supplier/messages.php',
+    'app/Views/admin/communication.php',
+    'app/Views/admin/communication_detail.php',
+    'app/Views/components/chat_popup.php',
 ];
 
 $structuralPass = true;

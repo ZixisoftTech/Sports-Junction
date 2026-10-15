@@ -28,46 +28,47 @@ $baseUrl = Response::baseUrl();
     </div>
 </div>
 
-<div class="sj-card">
-    <div class="sj-card-header bg-white py-3">
-        <div class="row align-items-center w-100 g-2">
-            <div class="col-sm-4">
-                <h6 class="m-0 fw-bold text-dark">Enterprise Product Inventory</h6>
-            </div>
-            <div class="col-sm-8 d-flex justify-content-sm-end align-items-center gap-2 flex-wrap">
-                <label for="prodCategoryFilter" class="small text-muted text-nowrap m-0">Category:</label>
-                <select id="prodCategoryFilter" class="form-select form-select-sm" style="max-width: 170px;">
-                    <option value="">All Categories</option>
-                    <?php foreach ($categories as $cat): ?>
-                        <option value="<?= $cat['id'] ?>"><?= htmlspecialchars($cat['name']) ?></option>
-                    <?php endforeach; ?>
-                </select>
+<div class="sj-table-card mb-4">
+    <div class="sj-table-header d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+        <div>
+            <h6 class="m-0 fw-bold text-dark d-flex align-items-center gap-2">
+                <i class="bi bi-box-seam-fill text-primary"></i> Enterprise Product Catalog
+            </h6>
+            <span class="text-muted small">Live factory equipment, supplier catalogs, wholesale pricing &amp; status</span>
+        </div>
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+            <label for="prodCategoryFilter" class="small text-muted text-nowrap m-0 fw-semibold">Category:</label>
+            <select id="prodCategoryFilter" class="form-select form-select-sm" style="min-width: 170px;">
+                <option value="">All Categories</option>
+                <?php foreach ($categories as $cat): ?>
+                    <option value="<?= $cat['id'] ?>"><?= htmlspecialchars($cat['name']) ?></option>
+                <?php endforeach; ?>
+            </select>
 
-                <label for="prodStatusFilter" class="small text-muted text-nowrap m-0">Status:</label>
-                <select id="prodStatusFilter" class="form-select form-select-sm" style="max-width: 130px;">
-                    <option value="">All Statuses</option>
-                    <option value="PUBLISHED">Published</option>
-                    <option value="DRAFT">Draft</option>
-                    <option value="INACTIVE">Inactive</option>
-                </select>
-            </div>
+            <label for="prodStatusFilter" class="small text-muted text-nowrap m-0 fw-semibold">Status:</label>
+            <select id="prodStatusFilter" class="form-select form-select-sm" style="min-width: 130px;">
+                <option value="">All Statuses</option>
+                <option value="PUBLISHED">Published</option>
+                <option value="DRAFT">Draft</option>
+                <option value="INACTIVE">Inactive</option>
+            </select>
         </div>
     </div>
-    <div class="card-body p-0">
-        <div class="table-responsive p-3">
-            <table id="productsTable" class="table table-hover align-middle w-100">
+    <div class="p-0">
+        <div class="table-responsive">
+            <table id="productsTable" class="table sj-table table-hover align-middle w-100">
                 <thead>
                     <tr>
-                        <th style="width: 50px;">ID</th>
-                        <th style="width: 70px;">Photo</th>
-                        <th>Product Title</th>
-                        <th>Category / Subcategory</th>
-                        <th style="width: 140px;">Supplier / Factory</th>
-                        <th style="width: 120px;">Price Range</th>
-                        <th style="width: 90px;">MOQ</th>
-                        <th style="width: 80px;" class="text-center">Featured</th>
-                        <th style="width: 90px;" class="text-center">Status</th>
-                        <th style="width: 120px;" class="text-end">Actions</th>
+                        <th style="width: 55px;" class="text-center">ID</th>
+                        <th style="width: 65px;" class="text-center">Photo</th>
+                        <th style="min-width: 260px;">Product Details</th>
+                        <th style="min-width: 170px;">Category</th>
+                        <th style="min-width: 160px;">Manufacturer / Supplier</th>
+                        <th style="min-width: 140px;">Wholesale Price</th>
+                        <th style="min-width: 90px;">MOQ</th>
+                        <th style="min-width: 100px;" class="text-center">Featured</th>
+                        <th style="min-width: 110px;" class="text-center">Status</th>
+                        <th style="min-width: 140px;" class="text-end pe-3">Actions</th>
                     </tr>
                 </thead>
                 <tbody></tbody>
@@ -119,7 +120,8 @@ document.addEventListener('DOMContentLoaded', function () {
     productsDataTable = $('#productsTable').DataTable({
         processing: true,
         serverSide: true,
-        responsive: true,
+        responsive: false,
+        autoWidth: false,
         ajax: {
             url: `${baseUrl}/api/products/data`,
             type: 'GET',
@@ -129,19 +131,25 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         },
         columns: [
-            { data: 'id', width: '50px' },
+            {
+                data: 'id',
+                width: '55px',
+                className: 'text-center align-middle',
+                render: function (data) {
+                    return `<span class="fw-bold font-monospace text-secondary" style="font-size: 12px;">#${data}</span>`;
+                }
+            },
             {
                 data: 'primary_image',
-                width: '70px',
+                width: '65px',
                 orderable: false,
                 searchable: false,
-                render: function (data) {
+                className: 'text-center align-middle',
+                render: function (data, type, row) {
                     const defaultLogo = window.SportsJunction.defaultLogo;
                     const imgSrc = window.SportsJunction.formatImageUrl(data);
                     return `
-                        <div class="sj-table-thumb">
-                            <img src="${imgSrc}" alt="Thumbnail" class="rounded border" style="width: 48px; height: 48px; object-fit: cover;" onerror="this.onerror=null;this.src='${defaultLogo}';">
-                        </div>
+                        <img src="${imgSrc}" alt="${row.title || 'Product'}" class="table-product-thumb" onerror="this.onerror=null;this.src='${defaultLogo}';">
                     `;
                 }
             },
@@ -149,99 +157,125 @@ document.addEventListener('DOMContentLoaded', function () {
                 data: 'title',
                 render: function (data, type, row) {
                     return `
-                        <div class="fw-bold text-dark">${data}</div>
-                        <div class="small text-muted font-monospace">${row.sku ? 'SKU: ' + row.sku : 'SKU: N/A'}</div>
+                        <div style="max-width: 320px;">
+                            <a href="${baseUrl}/admin/products/edit/${row.id}" class="text-decoration-none">
+                                <div class="table-product-title" title="${data}">${data}</div>
+                            </a>
+                            <div class="d-flex align-items-center gap-2 mt-0.5">
+                                <span class="table-product-sku">${row.sku ? 'SKU: ' + row.sku : 'SKU: N/A'}</span>
+                            </div>
+                        </div>
                     `;
                 }
             },
             {
                 data: 'category_name',
                 render: function (data, type, row) {
+                    const catName = data || 'Unassigned';
+                    const subcat = row.subcategory_name ? `<div class="small text-muted mt-1 d-flex align-items-center"><i class="bi bi-arrow-return-right text-primary me-1" style="font-size: 11px;"></i>${row.subcategory_name}</div>` : '';
                     return `
-                        <div><span class="badge bg-light text-dark border">${data || 'Unassigned'}</span></div>
-                        <div class="small text-muted mt-1"><i class="bi bi-arrow-return-right me-1"></i>${row.subcategory_name || 'None'}</div>
+                        <div>
+                            <span class="badge badge-soft-primary px-2.5 py-1 rounded-pill">${catName}</span>
+                            ${subcat}
+                        </div>
                     `;
                 }
             },
             {
                 data: 'supplier_name',
-                width: '140px',
                 render: function (data) {
-                    return `<span class="small fw-semibold text-secondary">${data || 'Sports Junction Direct'}</span>`;
+                    return `
+                        <div>
+                            <div class="fw-semibold text-dark text-truncate" style="max-width: 170px;">${data || 'Sports Junction Direct'}</div>
+                            <div class="small text-muted"><i class="bi bi-patch-check-fill text-primary me-1" style="font-size: 11px;"></i>Verified Supplier</div>
+                        </div>
+                    `;
                 }
             },
             {
                 data: 'min_price',
-                width: '120px',
                 render: function (data, type, row) {
-                    const sym = row.price_unit_symbol || '₹';
-                    const max = row.max_price ? parseFloat(row.max_price).toFixed(2) : parseFloat(data).toFixed(2);
+                    const minNum = parseFloat(data || 0);
+                    const minFormatted = minNum.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                    const maxNum = row.max_price ? parseFloat(row.max_price) : 0;
+                    const maxFormatted = maxNum > minNum ? maxNum.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : null;
+                    const unit = row.price_unit_symbol || row.price_unit_name || 'Unit';
+                    const priceStr = maxFormatted ? `₹${minFormatted} – ₹${maxFormatted}` : `₹${minFormatted}`;
                     return `
-                        <div class="fw-bold text-success">${sym}${parseFloat(data).toFixed(2)}</div>
-                        <div class="small text-muted">${sym}${max} / ${row.price_unit_name || 'Unit'}</div>
+                        <div>
+                            <div class="fw-bold text-success">${priceStr}</div>
+                            <div class="small text-muted">/ ${unit}</div>
+                        </div>
                     `;
                 }
             },
             {
                 data: 'moq_quantity',
-                width: '90px',
                 render: function (data, type, row) {
-                    return `${data} <span class="small text-muted">${row.moq_unit_symbol || 'pcs'}</span>`;
+                    const qty = parseInt(data || 0).toLocaleString('en-IN');
+                    const unit = row.moq_unit_symbol || row.moq_unit_name || 'pcs';
+                    return `
+                        <div>
+                            <span class="fw-bold text-dark">${qty}</span>
+                            <span class="small text-muted d-block">${unit}</span>
+                        </div>
+                    `;
                 }
             },
             {
                 data: 'is_featured',
-                width: '80px',
-                className: 'text-center',
+                className: 'text-center align-middle',
                 render: function (data, type, row) {
                     const isFeat = parseInt(data) === 1;
                     return `
                         <button type="button" class="btn btn-sm btn-link p-0 text-decoration-none btn-toggle-featured" data-id="${row.id}" data-featured="${isFeat ? 1 : 0}">
-                            ${isFeat ? '<span class="badge bg-warning text-dark"><i class="bi bi-star-fill me-1"></i>Featured</span>' : '<span class="badge bg-light text-muted border">Standard</span>'}
+                            ${isFeat ? '<span class="badge-pill-featured"><i class="bi bi-star-fill text-warning"></i>Featured</span>' : '<span class="badge badge-soft-secondary px-2.5 py-1 rounded-pill">Standard</span>'}
                         </button>
                     `;
                 }
             },
             {
                 data: 'status',
-                width: '110px',
-                className: 'text-center',
+                className: 'text-center align-middle',
                 render: function (data, type, row) {
-                    let badgeClass = 'bg-secondary';
-                    if (data === 'PUBLISHED' || data === 'ACTIVE') badgeClass = 'bg-success';
-                    else if (data === 'DRAFT') badgeClass = 'bg-warning text-dark';
-                    else if (data === 'INACTIVE') badgeClass = 'bg-danger';
+                    let badge = '';
+                    if (data === 'PUBLISHED' || data === 'ACTIVE') {
+                        badge = '<span class="badge badge-soft-success px-2.5 py-1 rounded-pill"><i class="bi bi-check-circle-fill me-1"></i>Published</span>';
+                    } else if (data === 'DRAFT') {
+                        badge = '<span class="badge badge-soft-warning px-2.5 py-1 rounded-pill"><i class="bi bi-file-earmark-text me-1"></i>Draft</span>';
+                    } else {
+                        badge = '<span class="badge badge-soft-danger px-2.5 py-1 rounded-pill"><i class="bi bi-dash-circle me-1"></i>Inactive</span>';
+                    }
 
                     let appBadge = '';
                     if (row.approval_status === 'PENDING_APPROVAL' || row.pending_changes) {
-                        appBadge = '<div class="mt-1"><span class="badge bg-warning-subtle text-warning border border-warning-subtle" style="font-size: 10px;">Pending Approval</span></div>';
+                        appBadge = '<div class="mt-1"><span class="badge badge-soft-warning" style="font-size: 10px;"><i class="bi bi-hourglass-split me-1"></i>Audit Pending</span></div>';
                     } else if (row.approval_status === 'REJECTED') {
-                        appBadge = '<div class="mt-1"><span class="badge bg-danger-subtle text-danger border border-danger-subtle" style="font-size: 10px;">Rejected</span></div>';
+                        appBadge = '<div class="mt-1"><span class="badge badge-soft-danger" style="font-size: 10px;"><i class="bi bi-x-circle me-1"></i>Rejected</span></div>';
                     }
 
-                    return `<span class="badge ${badgeClass}">${data}</span>${appBadge}`;
+                    return `<div>${badge}${appBadge}</div>`;
                 }
             },
             {
                 data: null,
                 orderable: false,
                 searchable: false,
-                width: '150px',
-                className: 'text-end',
+                className: 'text-end align-middle pe-3',
                 render: function (data, type, row) {
                     const viewUrl = `${baseUrl}/product/${row.slug || row.id}`;
                     return `
-                        <div class="btn-group btn-group-sm">
-                            <button type="button" class="btn btn-outline-info btn-view-product" data-id="${row.id}" title="View all product details">
+                        <div class="d-flex align-items-center justify-content-end gap-1">
+                            <button type="button" class="btn-action-icon btn-action-view btn-view-product" data-id="${row.id}" title="Quick View" data-bs-toggle="tooltip">
                                 <i class="bi bi-eye"></i>
                             </button>
-                            <a href="${baseUrl}/admin/products/edit/${row.id}" class="btn btn-outline-primary" title="Edit all product details">
+                            <a href="${baseUrl}/admin/products/edit/${row.id}" class="btn-action-icon btn-action-edit" title="Edit Product" data-bs-toggle="tooltip">
                                 <i class="bi bi-pencil"></i>
                             </a>
-                            <a href="${viewUrl}" target="_blank" class="btn btn-outline-secondary" title="View live product storefront">
+                            <a href="${viewUrl}" target="_blank" class="btn-action-icon btn-action-external" title="Storefront View" data-bs-toggle="tooltip">
                                 <i class="bi bi-box-arrow-up-right"></i>
                             </a>
-                            <button type="button" class="btn btn-outline-danger btn-delete-product" data-id="${row.id}" data-name="${row.title || row.name}" title="Delete product">
+                            <button type="button" class="btn-action-icon btn-action-delete btn-delete-product" data-id="${row.id}" data-name="${row.title || row.name}" title="Delete Product" data-bs-toggle="tooltip">
                                 <i class="bi bi-trash"></i>
                             </button>
                         </div>

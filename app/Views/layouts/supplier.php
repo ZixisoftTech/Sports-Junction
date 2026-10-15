@@ -9,6 +9,16 @@ $user = Session::get('auth_user') ?? [];
 $supplier = Session::get('auth_supplier') ?? [];
 $flashSuccess = Session::flash('success');
 $flashError = Session::flash('error');
+
+$supplierUnreadCount = 0;
+if (!empty($user['id'])) {
+    try {
+        $supplierUnreadCount = \App\Models\ChatConversation::getTotalUnreadCountForUser((int)$user['id'], 'SUPPLIER');
+    } catch (\Throwable $e) {
+        $supplierUnreadCount = 0;
+    }
+}
+$isMessagesPage = strpos($_SERVER['REQUEST_URI'] ?? '', '/supplier/messages') !== false;
 ?>
 <!DOCTYPE html>
 <html lang="en" class="h-full bg-slate-50">
@@ -62,21 +72,50 @@ $flashError = Session::flash('error');
                     <span class="text-[10px] font-bold uppercase tracking-wider text-teal-700 bg-teal-50 border border-teal-200/80 px-2 py-0.5 rounded-full ml-1">Supplier Portal</span>
                 </a>
 
-                <nav class="hidden md:flex items-center gap-4 text-xs font-bold uppercase tracking-wider text-slate-600">
+                <nav class="hidden md:flex items-center gap-5 text-xs font-bold uppercase tracking-wider text-slate-600">
                     <a href="<?= htmlspecialchars($baseUrl) ?>/supplier/dashboard" class="hover:text-blue-900 transition-colors py-1">Dashboard</a>
-                    <a href="<?= htmlspecialchars($baseUrl) ?>/supplier/products" class="hover:text-blue-900 transition-colors py-1">My Products</a>
-                    <a href="<?= htmlspecialchars($baseUrl) ?>/supplier/products/add" class="hover:text-blue-900 transition-colors py-1">Add Product</a>
+                    
+                    <!-- Catalogue Dropdown -->
+                    <div class="relative group">
+                        <button type="button" class="flex items-center gap-1 hover:text-blue-900 transition-colors py-1 focus:outline-none">
+                            <span>Catalogue</span>
+                            <span class="material-symbols-outlined text-[16px] text-slate-400 group-hover:text-blue-900 transition-transform group-hover:rotate-180">expand_more</span>
+                        </button>
+                        <div class="absolute left-0 mt-1 w-44 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 hidden group-hover:block z-50 transition-all">
+                            <a href="<?= htmlspecialchars($baseUrl) ?>/supplier/products/add" class="flex items-center gap-2 px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-teal-50 hover:text-teal-800 transition-colors">
+                                <span class="material-symbols-outlined text-[16px] text-teal-600">add_circle</span>
+                                <span>Add Products</span>
+                            </a>
+                            <a href="<?= htmlspecialchars($baseUrl) ?>/supplier/products" class="flex items-center gap-2 px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-teal-50 hover:text-teal-800 transition-colors">
+                                <span class="material-symbols-outlined text-[16px] text-teal-600">inventory_2</span>
+                                <span>View Products</span>
+                            </a>
+                        </div>
+                    </div>
+
                     <a href="<?= htmlspecialchars($baseUrl) ?>/supplier/enquiries" class="hover:text-blue-900 transition-colors py-1">Customer Enquiries</a>
-                    <a href="<?= htmlspecialchars($baseUrl) ?>/supplier/profile" class="hover:text-blue-900 transition-colors py-1">My Profile</a>
+                    
+                    <a href="<?= htmlspecialchars($baseUrl) ?>/supplier/messages" class="hover:text-teal-800 text-teal-800 transition-colors py-1 flex items-center gap-1.5 font-extrabold relative">
+                        <span class="material-symbols-outlined text-[18px]">chat</span>
+                        <span>Messages & Deals</span>
+                        <?php if ($supplierUnreadCount > 0): ?>
+                            <span class="inline-flex items-center justify-center px-1.5 py-0.5 text-[10px] font-black leading-none text-white bg-red-600 rounded-full shadow-xs animate-pulse">
+                                <?= $supplierUnreadCount > 99 ? '99+' : $supplierUnreadCount ?>
+                            </span>
+                        <?php endif; ?>
+                    </a>
                 </nav>
             </div>
 
             <!-- User Menu -->
             <div class="flex items-center gap-3">
-                <div class="hidden sm:flex flex-col text-right">
-                    <span class="text-xs font-bold text-slate-900"><?= htmlspecialchars($supplier['company_name'] ?? $user['name'] ?? 'Supplier') ?></span>
-                    <span class="text-[10px] font-semibold text-teal-700">Verified Manufacturer</span>
-                </div>
+                <a href="<?= htmlspecialchars($baseUrl) ?>/supplier/profile" class="hidden sm:flex flex-col text-right group hover:opacity-90 transition cursor-pointer" title="Manage Supplier Profile">
+                    <span class="text-xs font-bold text-slate-900 group-hover:text-teal-800 transition flex items-center justify-end gap-1">
+                        <?= htmlspecialchars($supplier['company_name'] ?? $user['name'] ?? 'Supplier') ?>
+                        <span class="material-symbols-outlined text-[14px] text-slate-400 group-hover:text-teal-700">account_circle</span>
+                    </span>
+                    <span class="text-[10px] font-semibold text-teal-700 group-hover:underline">Verified Manufacturer</span>
+                </a>
                 <a href="<?= htmlspecialchars($baseUrl) ?>/logout" class="px-3 py-1.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-600 text-xs font-bold transition-colors">
                     Logout
                 </a>
@@ -85,7 +124,7 @@ $flashError = Session::flash('error');
     </header>
 
     <!-- Main Container -->
-    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 <?= $isMessagesPage ? 'py-2 sm:py-3' : 'py-8' ?>">
         <?php if ($flashSuccess): ?>
             <div class="mb-6 p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs sm:text-sm flex items-center gap-2.5 shadow-xs">
                 <span class="material-symbols-outlined text-emerald-600 text-[20px]">check_circle</span>
@@ -103,8 +142,10 @@ $flashError = Session::flash('error');
         <?= $content ?>
     </main>
 
+    <?php if (!$isMessagesPage): ?>
     <footer class="w-full py-6 border-t border-slate-200 bg-white text-center text-xs text-slate-500">
         &copy; <?= date('Y') ?> Sports Junction Supplier Portal. All product additions and modifications undergo strict Super Admin audit.
     </footer>
+    <?php endif; ?>
 </body>
 </html>

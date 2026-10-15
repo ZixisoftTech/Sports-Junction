@@ -167,22 +167,6 @@ class AuthController extends Controller
             return;
         }
 
-        // If admin-only route requested, enforce SUPER_ADMIN
-        if ($adminOnly && ($user['role'] ?? '') !== 'SUPER_ADMIN') {
-            RateLimiter::recordFailedAttempt($ip, $email);
-            Session::flash('error', 'Access restricted. Only authorized Super Administrators may sign in.');
-            $this->redirect($redirectBack);
-            return;
-        }
-
-        // If seller-only route requested, enforce SUPPLIER
-        if ($sellerOnly && ($user['role'] ?? '') !== 'SUPPLIER') {
-            RateLimiter::recordFailedAttempt($ip, $email);
-            Session::flash('error', 'Access restricted. Only registered Seller accounts can log in here. If you are a Buyer, please sign in through Buyer Login.');
-            $this->redirect($redirectBack);
-            return;
-        }
-
         // Check active / verification status
         $userStatus = $user['status'] ?? 'ACTIVE';
         if ($userStatus === 'INACTIVE') {
@@ -191,15 +175,51 @@ class AuthController extends Controller
             return;
         }
 
-        // If supplier, check supplier approval status & suspension
-        if (($user['role'] ?? '') === 'SUPPLIER') {
+        // If admin-only route requested, enforce SUPER_ADMIN
+        if ($adminOnly && ($user['role'] ?? '') !== 'SUPER_ADMIN') {
+            RateLimiter::recordFailedAttempt($ip, $email);
+            Session::flash('error', 'Access restricted. Only authorized Super Administrators may sign in.');
+            $this->redirect($redirectBack);
+            return;
+        }
+
+        // Support Dual Login: If seller-only route requested and user is BUYER, ensure supplier profile exists
+        if ($sellerOnly) {
             $supplierRecord = Supplier::findByUserId((int)$user['id']);
-            if ($supplierRecord) {
-                if (($supplierRecord['approval_status'] ?? '') === 'SUSPENDED' || ($supplierRecord['status'] ?? '') === 'INACTIVE') {
-                    Session::flash('error', 'Your manufacturer facility account has been suspended or disabled. Please contact administration.');
-                    $this->redirect($redirectBack);
-                    return;
-                }
+            if (!$supplierRecord) {
+                // Auto-provision supplier profile so the account can act as both Buyer and Supplier
+                try {
+                    $supplierId = Supplier::create([
+                        'user_id'          => (int)$user['id'],
+                        'business_type_id' => 1,
+                        'country_id'       => (int)($user['country_id'] ?? 1),
+                        'state_id'         => 1,
+                        'city_id'          => 1,
+                        'company_name'     => !empty($user['company_name']) ? $user['company_name'] : ($user['name'] . ' Enterprises'),
+                        'contact_person'   => $user['name'],
+                        'email'            => $user['email'],
+                        'phone'            => $user['phone'] ?? '+919876543210',
+                        'address'          => 'Sports Manufacturing Hub',
+                        'postal_code'      => '250001',
+                        'status'           => 'ACTIVE',
+                        'approval_status'  => 'APPROVED',
+                    ]);
+                    // Update user role if needed to allow supplier access
+                    $db = \App\Core\Database::getConnection();
+                    $db->prepare("UPDATE users SET role = 'SUPPLIER' WHERE id = :id AND role = 'BUYER'")
+                       ->execute([':id' => $user['id']]);
+                    $user['role'] = 'SUPPLIER';
+                } catch (\Throwable $e) {}
+            }
+        }
+
+        // If supplier, check supplier approval status & suspension
+        $supplierRecord = Supplier::findByUserId((int)$user['id']);
+        if ($supplierRecord) {
+            if (($supplierRecord['approval_status'] ?? '') === 'SUSPENDED' || ($supplierRecord['status'] ?? '') === 'INACTIVE') {
+                Session::flash('error', 'Your manufacturer facility account has been suspended or disabled. Please contact administration.');
+                $this->redirect($redirectBack);
+                return;
             }
         }
 
@@ -223,6 +243,10 @@ class AuthController extends Controller
             'status' => $user['status'] ?? 'ACTIVE',
         ]);
 
+        if ($supplierRecord) {
+            Session::set('auth_supplier', $supplierRecord);
+        }
+
         User::updateLastLogin((int)$user['id']);
 
         // Remember Me: set secure cookie token for 30 days
@@ -237,12 +261,20 @@ class AuthController extends Controller
             ]);
         }
 
-        // Redirect based on role
-        $role = $user['role'] ?? '';
-        if ($role === 'SUPER_ADMIN') {
+        // Redirect based on portal route and role
+        if ($adminOnly || ($user['role'] ?? '') === 'SUPER_ADMIN') {
             Session::flash('success', "Welcome back, {$user['name']}! Signed in as Super Administrator.");
             $this->redirect('/admin/dashboard');
-        } elseif ($role === 'SUPPLIER') {
+            return;
+        }
+
+        if ($sellerOnly) {
+            $this->redirect('/supplier/dashboard');
+            return;
+        }
+
+        // Standard /login route
+        if (($user['role'] ?? '') === 'SUPPLIER' && !$this->request->get('buyer_portal')) {
             $supplier = Supplier::findByUserId((int)$user['id']);
             if ($supplier && ($supplier['approval_status'] ?? '') === 'APPROVED') {
                 $this->redirect('/supplier/dashboard');

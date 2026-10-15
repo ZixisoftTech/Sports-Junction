@@ -89,15 +89,18 @@ $baseUrl = Response::baseUrl();
     </div>
 
     <!-- Product Submissions & Catalog Table Card -->
-    <div class="card shadow-sm border-0">
-        <div class="card-header bg-white border-bottom py-3 d-flex flex-wrap align-items-center justify-content-between gap-2">
+    <div class="sj-table-card mb-4">
+        <div class="sj-table-header d-flex flex-wrap align-items-center justify-content-between gap-3">
             <div class="d-flex align-items-center gap-2">
-                <i class="bi bi-inbox-fill text-primary"></i>
-                <span class="fw-bold small text-uppercase" id="queueHeaderTitle">All Product Submissions (Before &amp; After Approval)</span>
+                <i class="bi bi-inbox-fill text-primary fs-5"></i>
+                <div>
+                    <h6 class="m-0 fw-bold text-dark fs-6" id="queueHeaderTitle">All Product Submissions (Before &amp; After Approval)</h6>
+                    <span class="text-muted small">Manufacturer catalog audits, version approvals, and rejection controls</span>
+                </div>
             </div>
             <div class="d-flex align-items-center gap-2">
-                <label for="approvalStatusFilter" class="small text-muted text-nowrap m-0">Filter:</label>
-                <select id="approvalStatusFilter" class="form-select form-select-sm" style="width: auto; min-width: 200px;" onchange="onFilterSelectChange(this.value)">
+                <label for="approvalStatusFilter" class="small text-muted text-nowrap m-0 fw-semibold">Filter:</label>
+                <select id="approvalStatusFilter" class="form-select form-select-sm" style="width: auto; min-width: 220px;" onchange="onFilterSelectChange(this.value)">
                     <option value="ALL" selected>All Products (Before &amp; After Approve)</option>
                     <option value="PENDING">Awaiting Audit (Pending Approval)</option>
                     <option value="APPROVED">Approved &amp; Live</option>
@@ -109,18 +112,18 @@ $baseUrl = Response::baseUrl();
             </div>
         </div>
 
-        <div class="card-body p-3">
+        <div class="p-0">
             <div class="table-responsive">
-                <table id="productApprovalsTable" class="table table-hover align-middle w-100" style="font-size: 0.85rem;">
-                    <thead class="table-light">
+                <table id="productApprovalsTable" class="table sj-table table-hover align-middle w-100">
+                    <thead>
                         <tr>
-                            <th>Product</th>
-                            <th>Manufacturer / Supplier</th>
-                            <th>Category</th>
-                            <th>Wholesale Price</th>
-                            <th>MOQ</th>
-                            <th>Approval &amp; Status</th>
-                            <th class="text-end">View / Edit / Audit Actions</th>
+                            <th style="min-width: 280px;">Product Details</th>
+                            <th style="min-width: 180px;">Manufacturer / Supplier</th>
+                            <th style="min-width: 160px;">Category</th>
+                            <th style="min-width: 140px;">Wholesale Price</th>
+                            <th style="min-width: 90px;">MOQ</th>
+                            <th style="min-width: 150px;">Approval Status</th>
+                            <th style="min-width: 210px;" class="text-end pe-3">Actions</th>
                         </tr>
                     </thead>
                     <tbody></tbody>
@@ -205,6 +208,8 @@ function onFilterSelectChange(val) {
 document.addEventListener('DOMContentLoaded', function() {
     productAppDt = $('#productApprovalsTable').DataTable({
         processing: true,
+        responsive: false,
+        autoWidth: false,
         ajax: {
             url: `${baseUrl}/api/admin/product-approvals/data`,
             data: function(d) {
@@ -219,14 +224,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 render: function(data, type, row) {
                     const img = SportsJunction.formatImageUrl(row.primary_image);
                     const featBadge = parseInt(row.is_featured || 0) === 1
-                        ? `<span class="badge bg-warning text-dark ms-1" title="Featured Product"><i class="bi bi-star-fill"></i> Featured</span>`
+                        ? `<span class="badge-pill-featured ms-1" title="Featured Product"><i class="bi bi-star-fill text-warning"></i>Featured</span>`
                         : '';
                     return `
                         <div class="d-flex align-items-center gap-2.5">
-                            <img src="${img}" onerror="this.onerror=null;this.src='${SportsJunction.defaultLogo}';" class="rounded-3 border" style="width: 48px; height: 48px; object-fit: cover;">
-                            <div>
-                                <div class="fw-bold text-dark">${data} ${featBadge}</div>
-                                <small class="text-muted">SKU: ${row.sku || 'N/A'}</small>
+                            <img src="${img}" alt="${data || 'Product'}" class="table-product-thumb" onerror="this.onerror=null;this.src='${SportsJunction.defaultLogo}';">
+                            <div style="max-width: 300px;">
+                                <a href="${baseUrl}/admin/products/edit/${row.id}" class="text-decoration-none">
+                                    <div class="table-product-title" title="${data}">${data}</div>
+                                </a>
+                                <div class="d-flex align-items-center gap-2 mt-0.5">
+                                    <span class="table-product-sku">${row.sku ? 'SKU: ' + row.sku : 'SKU: N/A'}</span>
+                                    ${featBadge}
+                                </div>
                             </div>
                         </div>
                     `;
@@ -235,27 +245,55 @@ document.addEventListener('DOMContentLoaded', function() {
             {
                 data: 'supplier_name',
                 render: function(data, type, row) {
-                    return `<div class="fw-semibold text-dark">${data || 'Verified Supplier'}</div><small class="text-muted">${row.supplier_email || ''}</small>`;
+                    return `
+                        <div>
+                            <div class="fw-semibold text-dark text-truncate" style="max-width: 180px;">${data || 'Verified Supplier'}</div>
+                            <small class="text-muted text-truncate d-block" style="max-width: 180px;"><i class="bi bi-envelope me-1"></i>${row.supplier_email || 'N/A'}</small>
+                        </div>
+                    `;
                 }
             },
             {
                 data: 'category_name',
                 render: function(data, type, row) {
-                    return `<div>${data || '—'}</div><small class="text-muted">${row.subcategory_name || '—'}</small>`;
+                    const catName = data || 'Unassigned';
+                    const subcat = row.subcategory_name ? `<div class="small text-muted mt-1 d-flex align-items-center"><i class="bi bi-arrow-return-right text-primary me-1" style="font-size: 11px;"></i>${row.subcategory_name}</div>` : '';
+                    return `
+                        <div>
+                            <span class="badge badge-soft-primary px-2.5 py-1 rounded-pill">${catName}</span>
+                            ${subcat}
+                        </div>
+                    `;
                 }
             },
             {
                 data: 'min_price',
                 render: function(data, type, row) {
-                    const sym = row.price_unit_symbol || '₹';
-                    const max = row.max_price ? parseFloat(row.max_price).toFixed(2) : parseFloat(data).toFixed(2);
-                    return `<span class="fw-bold text-primary">${sym}${parseFloat(data).toFixed(2)} - ${sym}${max}</span>`;
+                    const minNum = parseFloat(data || 0);
+                    const minFormatted = minNum.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                    const maxNum = row.max_price ? parseFloat(row.max_price) : 0;
+                    const maxFormatted = maxNum > minNum ? maxNum.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : null;
+                    const unit = row.price_unit_symbol || row.price_unit_name || 'Unit';
+                    const priceStr = maxFormatted ? `₹${minFormatted} – ₹${maxFormatted}` : `₹${minFormatted}`;
+                    return `
+                        <div>
+                            <div class="fw-bold text-success">${priceStr}</div>
+                            <div class="small text-muted">/ ${unit}</div>
+                        </div>
+                    `;
                 }
             },
             {
                 data: 'moq_quantity',
                 render: function(data, type, row) {
-                    return `${data} ${row.moq_unit_name || 'units'}`;
+                    const qty = parseInt(data || 0).toLocaleString('en-IN');
+                    const unit = row.moq_unit_symbol || row.moq_unit_name || 'units';
+                    return `
+                        <div>
+                            <span class="fw-bold text-dark">${qty}</span>
+                            <span class="small text-muted d-block">${unit}</span>
+                        </div>
+                    `;
                 }
             },
             {
@@ -263,44 +301,46 @@ document.addEventListener('DOMContentLoaded', function() {
                 render: function(data, type, row) {
                     let badges = '';
                     if (row.pending_changes) {
-                        badges += '<span class="badge bg-warning-subtle text-warning border border-warning-subtle d-inline-block mb-1"><i class="bi bi-pencil-square me-1"></i>Edited Version Pending</span><br>';
+                        badges += '<div class="mb-1"><span class="badge badge-soft-warning px-2.5 py-1 rounded-pill"><i class="bi bi-pencil-square me-1"></i>Revision Pending</span></div>';
                     }
                     if (row.approval_status === 'APPROVED') {
-                        badges += '<span class="badge bg-success-subtle text-success border border-success-subtle"><i class="bi bi-check-circle me-1"></i>Approved</span>';
+                        badges += '<span class="badge badge-soft-success px-2.5 py-1 rounded-pill"><i class="bi bi-check-circle-fill me-1"></i>Approved & Live</span>';
                     } else if (row.approval_status === 'PENDING_APPROVAL') {
-                        badges += '<span class="badge bg-warning text-dark"><i class="bi bi-hourglass-split me-1"></i>Pending Approval</span>';
+                        badges += '<span class="badge badge-soft-warning px-2.5 py-1 rounded-pill"><i class="bi bi-hourglass-split me-1"></i>Pending Audit</span>';
                     } else if (row.approval_status === 'REJECTED') {
-                        badges += '<span class="badge bg-danger-subtle text-danger border border-danger-subtle"><i class="bi bi-x-circle me-1"></i>Rejected</span>';
+                        badges += '<span class="badge badge-soft-danger px-2.5 py-1 rounded-pill"><i class="bi bi-x-circle-fill me-1"></i>Rejected</span>';
                     } else {
-                        badges += `<span class="badge bg-secondary">${row.approval_status || 'DRAFT'}</span>`;
+                        badges += `<span class="badge badge-soft-secondary px-2.5 py-1 rounded-pill">${row.approval_status || 'DRAFT'}</span>`;
                     }
                     return badges;
                 }
             },
             {
                 data: null,
-                className: 'text-end text-nowrap',
+                className: 'text-end text-nowrap pe-3',
                 orderable: false,
                 render: function(data, type, row) {
                     const needsApprove = (row.approval_status !== 'APPROVED' || row.pending_changes);
                     const canReject = (row.approval_status !== 'REJECTED');
                     return `
-                        <button class="btn btn-sm btn-outline-primary py-1 px-2 me-1" onclick="reviewProduct(${row.id})" title="View All Product Details">
-                            <i class="bi bi-eye me-1"></i>View
-                        </button>
-                        <a href="${baseUrl}/admin/products/edit/${row.id}" class="btn btn-sm btn-outline-dark py-1 px-2 me-1" title="Edit All Product Details">
-                            <i class="bi bi-pencil-square me-1"></i>Edit
-                        </a>
-                        ${needsApprove ? `
-                            <button class="btn btn-sm btn-success py-1 px-2 me-1" onclick="approveProduct(${row.id})" title="Approve & Publish">
-                                <i class="bi bi-check-lg me-1"></i>Approve
+                        <div class="d-flex align-items-center justify-content-end gap-1.5">
+                            <button class="btn btn-sm btn-outline-primary py-1 px-2.5 rounded-2 d-inline-flex align-items-center gap-1" onclick="reviewProduct(${row.id})" title="View Complete Product Details">
+                                <i class="bi bi-eye"></i> View
                             </button>
-                        ` : ''}
-                        ${canReject ? `
-                            <button class="btn btn-sm btn-outline-danger py-1 px-2" onclick="openProductRejectModal(${row.id})" title="Reject">
-                                <i class="bi bi-x-lg me-1"></i>Reject
-                            </button>
-                        ` : ''}
+                            <a href="${baseUrl}/admin/products/edit/${row.id}" class="btn btn-sm btn-outline-secondary py-1 px-2.5 rounded-2 d-inline-flex align-items-center gap-1" title="Edit All Details">
+                                <i class="bi bi-pencil"></i> Edit
+                            </a>
+                            ${needsApprove ? `
+                                <button class="btn btn-sm btn-success py-1 px-2.5 rounded-2 d-inline-flex align-items-center gap-1 shadow-sm" onclick="approveProduct(${row.id})" title="Approve & Publish">
+                                    <i class="bi bi-check-lg"></i> Approve
+                                </button>
+                            ` : ''}
+                            ${canReject ? `
+                                <button class="btn btn-sm btn-outline-danger py-1 px-2.5 rounded-2 d-inline-flex align-items-center gap-1" onclick="openProductRejectModal(${row.id})" title="Reject Submission">
+                                    <i class="bi bi-x-lg"></i> Reject
+                                </button>
+                            ` : ''}
+                        </div>
                     `;
                 }
             }

@@ -125,6 +125,11 @@ class Request
         return $this->queryParams[$key] ?? $default;
     }
 
+    public function query(string $key, mixed $default = null): mixed
+    {
+        return $this->get($key, $default);
+    }
+
     public function post(string $key, mixed $default = null): mixed
     {
         return $this->postData[$key] ?? $this->jsonData[$key] ?? $default;

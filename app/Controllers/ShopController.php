@@ -381,4 +381,33 @@ class ShopController extends Controller
 
         echo '</urlset>';
     }
+
+    /**
+     * Public Dedicated Supplier Storefront Page
+     * Shows supplier verification, credentials, factory details, and all uploaded products
+     */
+    public function supplierProfile(array $params = []): void
+    {
+        $id = (int) ($params['id'] ?? $this->request->get('id', 0));
+        if ($id <= 0) {
+            $this->response->redirect('/products');
+            return;
+        }
+
+        $supplier = \App\Models\Supplier::findById($id);
+        if (!$supplier) {
+            $this->response->setStatusCode(404);
+            $this->render('errors/404', ['message' => 'Supplier storefront not found.'], 'frontend');
+            return;
+        }
+
+        $products = \App\Models\Product::getSupplierPublishedProducts($id);
+
+        $this->render('frontend/supplier_profile', [
+            'pageTitle' => ($supplier['company_name'] ?? 'Supplier') . ' — Factory Storefront & Catalog | Sports Junction',
+            'supplier'  => $supplier,
+            'products'  => $products,
+        ], 'frontend');
+    }
 }
+
