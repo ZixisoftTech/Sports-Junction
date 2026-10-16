@@ -18,7 +18,14 @@ $baseUrl = Response::baseUrl();
                         <?php foreach (array_slice($categories, 0, 8) as $cat): ?>
                             <a href="<?= htmlspecialchars($baseUrl) ?>/category/<?= htmlspecialchars($cat['slug']) ?>" class="flex items-center justify-between px-3 py-2 rounded-xl text-on-surface hover:bg-surface-container-low hover:text-primary transition-all text-xs font-semibold group">
                                 <span class="flex items-center gap-2.5 truncate">
-                                    <span class="material-symbols-outlined text-[18px] text-primary group-hover:scale-110 transition-transform"><?= htmlspecialchars($cat['icon'] ?? 'sports_tennis') ?></span>
+                                    <?php 
+                                    $catIcon = trim($cat['icon'] ?? 'sports_tennis');
+                                    $isImg = (str_starts_with($catIcon, '/') || str_starts_with($catIcon, 'http') || str_contains($catIcon, '.'));
+                                    if ($isImg): ?>
+                                        <img src="<?= htmlspecialchars(\App\Core\Response::formatImageUrl($catIcon)) ?>" class="w-4 h-4 object-contain rounded" alt="">
+                                    <?php else: ?>
+                                        <span class="material-symbols-outlined text-[18px] text-primary group-hover:scale-110 transition-transform"><?= htmlspecialchars($catIcon) ?></span>
+                                    <?php endif; ?>
                                     <span class="truncate"><?= htmlspecialchars($cat['name']) ?></span>
                                 </span>
                                 <span class="material-symbols-outlined text-[14px] text-outline group-hover:text-primary group-hover:translate-x-0.5 transition-all">chevron_right</span>
@@ -137,8 +144,15 @@ $baseUrl = Response::baseUrl();
             <?php foreach (array_slice($categories, 0, 8) as $idx => $cat): ?>
                 <a href="<?= htmlspecialchars($baseUrl) ?>/category/<?= htmlspecialchars($cat['slug']) ?>" class="group p-5 rounded-2xl bg-white border border-surface-container shadow-sm hover:shadow-md hover:border-blue-200 transition-all flex flex-col justify-between h-44 relative overflow-hidden">
                     <div class="flex items-center justify-between">
-                        <div class="w-12 h-12 rounded-xl bg-surface-container-low flex items-center justify-center text-primary group-hover:bg-blue-700 group-hover:text-white transition-colors">
-                            <span class="material-symbols-outlined text-[24px]"><?= htmlspecialchars($cat['icon'] ?? 'sports_tennis') ?></span>
+                        <div class="w-12 h-12 rounded-xl bg-surface-container-low flex items-center justify-center text-primary group-hover:bg-blue-700 group-hover:text-white transition-colors overflow-hidden p-2">
+                            <?php 
+                            $catIcon = trim($cat['icon'] ?? 'sports_tennis');
+                            $isImg = (str_starts_with($catIcon, '/') || str_starts_with($catIcon, 'http') || str_contains($catIcon, '.'));
+                            if ($isImg): ?>
+                                <img src="<?= htmlspecialchars(\App\Core\Response::formatImageUrl($catIcon)) ?>" class="w-full h-full object-contain" alt="">
+                            <?php else: ?>
+                                <span class="material-symbols-outlined text-[24px]"><?= htmlspecialchars($catIcon) ?></span>
+                            <?php endif; ?>
                         </div>
                         <span class="font-mono text-xs font-semibold text-outline">0<?= $idx + 1 ?></span>
                     </div>
@@ -212,9 +226,9 @@ $baseUrl = Response::baseUrl();
                                 <!-- Price Matrix -->
                                 <div class="mt-2 mb-3">
                                     <div class="font-headline font-extrabold text-base text-blue-900">
-                                        <?= htmlspecialchars($prod['price_unit_symbol'] ?? '₹') ?><?= number_format((float)$prod['min_price'], 2) ?>
+                                        $<?= number_format((float)$prod['min_price'], 2) ?>
                                         <?php if ((float)$prod['max_price'] > (float)$prod['min_price']): ?>
-                                            - <?= htmlspecialchars($prod['price_unit_symbol'] ?? '₹') ?><?= number_format((float)$prod['max_price'], 2) ?>
+                                            - $<?= number_format((float)$prod['max_price'], 2) ?>
                                         <?php endif; ?>
                                         <span class="text-xs font-normal text-outline">/ unit</span>
                                     </div>

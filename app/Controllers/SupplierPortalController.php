@@ -86,15 +86,19 @@ class SupplierPortalController extends Controller
         $moqUnits = MoqUnit::allActive();
         $countries = Country::allActive();
 
+        $certificates = \App\Models\ProductCertificate::allActive();
+
         $this->render('supplier/product_form', [
-            'pageTitle'   => 'Submit Product for Approval — Sports Junction',
-            'supplier'    => $supplier,
-            'categories'  => $categories,
-            'priceUnits'  => $priceUnits,
-            'moqUnits'    => $moqUnits,
-            'countries'   => $countries,
-            'product'     => null,
-            'isEdit'      => false,
+            'pageTitle'              => 'Submit Product for Approval — Sports Junction',
+            'supplier'               => $supplier,
+            'categories'             => $categories,
+            'priceUnits'             => $priceUnits,
+            'moqUnits'               => $moqUnits,
+            'countries'              => $countries,
+            'certificates'           => $certificates,
+            'assignedCertificateIds' => [],
+            'product'                => null,
+            'isEdit'                 => false,
         ], 'supplier');
     }
 
@@ -129,17 +133,21 @@ class SupplierPortalController extends Controller
         $priceUnits = PriceUnit::allActive();
         $moqUnits = MoqUnit::allActive();
         $countries = Country::allActive();
+        $certificates = \App\Models\ProductCertificate::allActive();
+        $assignedCertificateIds = \App\Models\ProductCertificate::getAssignedIds($id);
 
         $this->render('supplier/product_form', [
-            'pageTitle'     => 'Edit Product — ' . htmlspecialchars($product['title'] ?? $product['name'] ?? ''),
-            'supplier'      => $supplier,
-            'categories'    => $categories,
-            'subcategories' => $subcategories,
-            'priceUnits'    => $priceUnits,
-            'moqUnits'      => $moqUnits,
-            'countries'     => $countries,
-            'product'       => $product,
-            'isEdit'        => true,
+            'pageTitle'              => 'Edit Product — ' . htmlspecialchars($product['title'] ?? $product['name'] ?? ''),
+            'supplier'               => $supplier,
+            'categories'             => $categories,
+            'subcategories'          => $subcategories,
+            'priceUnits'             => $priceUnits,
+            'moqUnits'               => $moqUnits,
+            'countries'              => $countries,
+            'certificates'           => $certificates,
+            'assignedCertificateIds' => $assignedCertificateIds,
+            'product'                => $product,
+            'isEdit'                 => true,
         ], 'supplier');
     }
 
@@ -230,6 +238,13 @@ class SupplierPortalController extends Controller
 
         try {
             $id = Product::submitSupplierProduct($input, (int)$supplier['id'], $images);
+
+            // Sync product certificates if provided
+            if (isset($input['certificate_ids'])) {
+                $certIds = is_array($input['certificate_ids']) ? $input['certificate_ids'] : array_filter(explode(',', (string)$input['certificate_ids']));
+                \App\Models\ProductCertificate::syncForProduct($id, $certIds);
+            }
+
             Mailer::sendProductSubmitted($supplier['email'], $supplier['company_name'], (string)$input['name']);
 
             $msg = "Product submitted successfully! It is queued for Super Admin review before publishing.";
@@ -346,6 +361,13 @@ class SupplierPortalController extends Controller
 
         try {
             Product::saveSupplierEdit($id, (int)$supplier['id'], $input, $primaryImage, $galleryImages, $deletedImageIds);
+
+            // Sync product certificates if provided
+            if (isset($input['certificate_ids'])) {
+                $certIds = is_array($input['certificate_ids']) ? $input['certificate_ids'] : array_filter(explode(',', (string)$input['certificate_ids']));
+                \App\Models\ProductCertificate::syncForProduct($id, $certIds);
+            }
+
             Mailer::sendProductSubmitted($supplier['email'], $supplier['company_name'], (string)$input['name']);
 
             $msg = "Product modifications saved and queued for Super Admin review.";
@@ -472,8 +494,8 @@ class SupplierPortalController extends Controller
             'phone'            => 'required|max:30',
             'business_type_id' => 'required|integer',
             'country_id'       => 'required|integer',
-            'state_id'         => 'required|integer',
-            'city_id'          => 'required|integer',
+            'state'            => 'required|max:100',
+            'city'             => 'required|max:100',
         ];
 
         if (!$validator->validate($rules)) {
@@ -487,6 +509,17 @@ class SupplierPortalController extends Controller
             Session::flash('error', 'This email address is already in use by another account.');
             $this->redirect('/supplier/profile');
             return;
+        }
+
+        // Handle logo upload
+        if (!empty($_FILES['logo']['name']) && is_uploaded_file($_FILES['logo']['tmp_name'])) {
+            try {
+                $input['logo'] = \App\Helpers\Uploader::uploadImage($_FILES['logo'], 'suppliers');
+            } catch (\Throwable $e) {
+                Session::flash('error', 'Logo upload failed: ' . $e->getMessage());
+                $this->redirect('/supplier/profile');
+                return;
+            }
         }
 
         $emailChanged = strtolower(trim($supplier['email'])) !== $newEmail;

@@ -196,11 +196,11 @@ document.addEventListener('DOMContentLoaded', function () {
                 data: 'min_price',
                 render: function (data, type, row) {
                     const minNum = parseFloat(data || 0);
-                    const minFormatted = minNum.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                    const minFormatted = minNum.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                     const maxNum = row.max_price ? parseFloat(row.max_price) : 0;
-                    const maxFormatted = maxNum > minNum ? maxNum.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : null;
+                    const maxFormatted = maxNum > minNum ? maxNum.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : null;
                     const unit = row.price_unit_symbol || row.price_unit_name || 'Unit';
-                    const priceStr = maxFormatted ? `₹${minFormatted} – ₹${maxFormatted}` : `₹${minFormatted}`;
+                    const priceStr = maxFormatted ? `$${minFormatted} – $${maxFormatted}` : `$${minFormatted}`;
                     return `
                         <div>
                             <div class="fw-bold text-success">${priceStr}</div>
@@ -318,7 +318,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         return;
                     }
                     const p = res.data;
-                    const sym = p.price_unit_symbol || '₹';
+                    const sym = p.price_unit_symbol || '$';
                     const img = window.SportsJunction.formatImageUrl(p.primary_image);
                     $('#quickViewTitle').text(`Product Details: ${p.title}`);
 

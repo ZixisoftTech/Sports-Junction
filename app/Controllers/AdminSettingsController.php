@@ -149,6 +149,8 @@ class AdminSettingsController extends Controller
         $cat = trim((string) $this->request->post('column_category', 'ABOUT'));
         $content = trim((string) $this->request->post('content', ''));
         $url = trim((string) $this->request->post('external_url', ''));
+        $metaTitle = trim((string) $this->request->post('meta_title', ''));
+        $metaDesc = trim((string) $this->request->post('meta_description', ''));
         $order = (int) $this->request->post('sort_order', 0);
         $isActive = (int) $this->request->post('is_active', 1);
 
@@ -173,6 +175,8 @@ class AdminSettingsController extends Controller
             'column_category' => $cat,
             'content' => $content,
             'external_url' => $url,
+            'meta_title' => $metaTitle,
+            'meta_description' => $metaDesc,
             'sort_order' => $order,
             'is_active' => $isActive
         ]);
@@ -202,6 +206,8 @@ class AdminSettingsController extends Controller
         $cat = trim((string) $this->request->post('column_category', 'ABOUT'));
         $content = trim((string) $this->request->post('content', ''));
         $url = trim((string) $this->request->post('external_url', ''));
+        $metaTitle = trim((string) $this->request->post('meta_title', ''));
+        $metaDesc = trim((string) $this->request->post('meta_description', ''));
         $order = (int) $this->request->post('sort_order', 0);
         $isActive = (int) $this->request->post('is_active', 1);
 
@@ -227,6 +233,8 @@ class AdminSettingsController extends Controller
             'column_category' => $cat,
             'content' => $content,
             'external_url' => $url,
+            'meta_title' => $metaTitle,
+            'meta_description' => $metaDesc,
             'sort_order' => $order,
             'is_active' => $isActive
         ]);

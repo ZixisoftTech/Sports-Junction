@@ -43,20 +43,22 @@ class ProductController extends Controller
         $priceUnits = PriceUnit::allActive();
         $moqUnits = MoqUnit::allActive();
         $countries = Country::allActive();
-        $suppliers = \App\Models\Supplier::allApproved();
+        $certificates = \App\Models\ProductCertificate::allActive();
 
         $this->render('products/form', [
-            'pageTitle'       => 'Add New Product',
-            'activeMenu'      => 'products',
-            'categories'      => $categories,
-            'priceUnits'      => $priceUnits,
-            'moqUnits'        => $moqUnits,
-            'countries'       => $countries,
-            'suppliers'       => $suppliers,
-            'product'         => null,
-            'isEdit'          => false,
-            'subcategories'   => [],
-            'metaDescription' => 'Add new sports equipment catalog item.',
+            'pageTitle'              => 'Add New Product',
+            'activeMenu'             => 'products',
+            'categories'             => $categories,
+            'priceUnits'             => $priceUnits,
+            'moqUnits'               => $moqUnits,
+            'countries'              => $countries,
+            'suppliers'              => $suppliers,
+            'certificates'           => $certificates,
+            'assignedCertificateIds' => [],
+            'product'                => null,
+            'isEdit'                 => false,
+            'subcategories'          => [],
+            'metaDescription'        => 'Add new sports equipment catalog item.',
         ]);
     }
 
@@ -110,18 +112,23 @@ class ProductController extends Controller
             $subcategories = Subcategory::byCategory((int)$product['category_id']);
         }
 
+        $certificates = \App\Models\ProductCertificate::allActive();
+        $assignedCertificateIds = \App\Models\ProductCertificate::getAssignedIds($id);
+
         $this->render('products/form', [
-            'pageTitle'       => 'Edit Product: ' . ($product['name'] ?? 'Product #' . $id),
-            'activeMenu'      => 'products',
-            'categories'      => $categories,
-            'priceUnits'      => $priceUnits,
-            'moqUnits'        => $moqUnits,
-            'countries'       => $countries,
-            'suppliers'       => $suppliers,
-            'product'         => $product,
-            'isEdit'          => true,
-            'subcategories'   => $subcategories,
-            'metaDescription' => 'Edit sports equipment catalog item.',
+            'pageTitle'              => 'Edit Product: ' . ($product['name'] ?? 'Product #' . $id),
+            'activeMenu'             => 'products',
+            'categories'             => $categories,
+            'priceUnits'             => $priceUnits,
+            'moqUnits'               => $moqUnits,
+            'countries'              => $countries,
+            'suppliers'              => $suppliers,
+            'certificates'           => $certificates,
+            'assignedCertificateIds' => $assignedCertificateIds,
+            'product'                => $product,
+            'isEdit'                 => true,
+            'subcategories'          => $subcategories,
+            'metaDescription'        => 'Edit sports equipment catalog item.',
         ]);
     }
 
@@ -203,6 +210,13 @@ class ProductController extends Controller
 
         try {
             $id = Product::create($input, $images);
+
+            // Sync product certificates if provided
+            if (isset($input['certificate_ids'])) {
+                $certIds = is_array($input['certificate_ids']) ? $input['certificate_ids'] : array_filter(explode(',', (string)$input['certificate_ids']));
+                \App\Models\ProductCertificate::syncForProduct($id, $certIds);
+            }
+
             $this->json([
                 'success' => true,
                 'id'      => $id,
@@ -251,6 +265,18 @@ class ProductController extends Controller
         }
         $input['clear_pending_changes'] = 1;
 
+        // Supplier reassignment check
+        $oldSupplierId = (int)($product['supplier_id'] ?? 0);
+        $newSupplierId = (int)($input['supplier_id'] ?? 0);
+        $supplierChanged = ($oldSupplierId !== $newSupplierId && $oldSupplierId > 0 && $newSupplierId > 0);
+
+        if ($supplierChanged) {
+            $newSupplier = \App\Models\Supplier::findById($newSupplierId);
+            if ($newSupplier && !empty($newSupplier['user_id'])) {
+                $input['submitted_by'] = (int)$newSupplier['user_id'];
+            }
+        }
+
         // Primary image upload
         if (isset($_FILES['primary_image_file']) && $_FILES['primary_image_file']['error'] !== UPLOAD_ERR_NO_FILE) {
             try {
@@ -296,6 +322,17 @@ class ProductController extends Controller
 
         try {
             Product::update($id, $input, $newImages, $deletedImageIds);
+
+            // Sync product certificates if provided
+            if (isset($input['certificate_ids'])) {
+                $certIds = is_array($input['certificate_ids']) ? $input['certificate_ids'] : array_filter(explode(',', (string)$input['certificate_ids']));
+                \App\Models\ProductCertificate::syncForProduct($id, $certIds);
+            }
+
+            if ($supplierChanged) {
+                \App\Helpers\AuditLogger::log('UPDATE', 'Product', $id, $product['title'] ?? ('Product #' . $id), null, "Reassigned product supplier from #{$oldSupplierId} to #{$newSupplierId}");
+            }
+
             $this->json([
                 'success' => true,
                 'id'      => $id,

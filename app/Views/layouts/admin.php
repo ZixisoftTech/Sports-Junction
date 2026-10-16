@@ -64,12 +64,20 @@ $activeMenu = $activeMenu ?? 'dashboard';
             <span>Business Types</span>
         </a>
         <a href="<?= htmlspecialchars($baseUrl) ?>/admin/masters/price-units" class="sj-nav-item <?= $activeMenu === 'price_units' ? 'active' : '' ?>">
-            <i class="bi bi-currency-rupee"></i>
+            <i class="bi bi-tag"></i>
             <span>Price Units</span>
         </a>
         <a href="<?= htmlspecialchars($baseUrl) ?>/admin/masters/moq-units" class="sj-nav-item <?= $activeMenu === 'moq_units' ? 'active' : '' ?>">
             <i class="bi bi-boxes"></i>
             <span>MOQ Units</span>
+        </a>
+        <a href="<?= htmlspecialchars($baseUrl) ?>/admin/masters/product-certificates" class="sj-nav-item <?= $activeMenu === 'product_certificates' ? 'active' : '' ?>">
+            <i class="bi bi-patch-check"></i>
+            <span>Product Certificates</span>
+        </a>
+        <a href="<?= htmlspecialchars($baseUrl) ?>/admin/masters/certification-tags" class="sj-nav-item <?= $activeMenu === 'certification_tags' ? 'active' : '' ?>">
+            <i class="bi bi-tags"></i>
+            <span>Certification Tags</span>
         </a>
 
         <div class="sj-nav-section-title">Marketplace Catalog</div>

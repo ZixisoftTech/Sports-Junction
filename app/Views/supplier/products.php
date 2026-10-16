@@ -76,9 +76,9 @@ $baseUrl = Response::baseUrl();
                                     <div class="text-[11px] text-slate-400"><?= htmlspecialchars($p['subcategory_name'] ?? '—') ?></div>
                                 </td>
                                 <td class="py-4 px-4 text-blue-900 font-bold">
-                                    <?= htmlspecialchars($p['price_unit_symbol'] ?? '₹') ?><?= number_format((float)$p['min_price'], 2) ?>
+                                    $<?= number_format((float)$p['min_price'], 2) ?>
                                     <?php if ((float)$p['max_price'] > (float)$p['min_price']): ?>
-                                        - <?= htmlspecialchars($p['price_unit_symbol'] ?? '₹') ?><?= number_format((float)$p['max_price'], 2) ?>
+                                        - $<?= number_format((float)$p['max_price'], 2) ?>
                                     <?php endif; ?>
                                 </td>
                                 <td class="py-4 px-4 text-slate-700">

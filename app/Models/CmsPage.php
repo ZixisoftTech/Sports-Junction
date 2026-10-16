@@ -97,8 +97,8 @@ class CmsPage extends Model
     public static function create(array $data): int
     {
         $sql = "
-            INSERT INTO `cms_pages` (`title`, `slug`, `column_category`, `content`, `external_url`, `sort_order`, `is_active`, `created_at`)
-            VALUES (:title, :slug, :cat, :content, :url, :order, :active, NOW())
+            INSERT INTO `cms_pages` (`title`, `slug`, `column_category`, `content`, `external_url`, `meta_title`, `meta_description`, `sort_order`, `is_active`, `created_at`)
+            VALUES (:title, :slug, :cat, :content, :url, :meta_title, :meta_description, :order, :active, NOW())
         ";
 
         self::execute($sql, [
@@ -107,6 +107,8 @@ class CmsPage extends Model
             ':cat' => $data['column_category'] ?? 'ABOUT',
             ':content' => $data['content'] ?? null,
             ':url' => !empty($data['external_url']) ? $data['external_url'] : null,
+            ':meta_title' => !empty($data['meta_title']) ? trim((string)$data['meta_title']) : null,
+            ':meta_description' => !empty($data['meta_description']) ? trim((string)$data['meta_description']) : null,
             ':order' => (int) ($data['sort_order'] ?? 0),
             ':active' => !empty($data['is_active']) ? 1 : 0
         ]);
@@ -127,6 +129,8 @@ class CmsPage extends Model
                 `column_category` = :cat,
                 `content` = :content,
                 `external_url` = :url,
+                `meta_title` = :meta_title,
+                `meta_description` = :meta_description,
                 `sort_order` = :order,
                 `is_active` = :active,
                 `updated_at` = NOW()
@@ -140,6 +144,8 @@ class CmsPage extends Model
             ':cat' => $data['column_category'] ?? 'ABOUT',
             ':content' => $data['content'] ?? null,
             ':url' => !empty($data['external_url']) ? $data['external_url'] : null,
+            ':meta_title' => !empty($data['meta_title']) ? trim((string)$data['meta_title']) : null,
+            ':meta_description' => !empty($data['meta_description']) ? trim((string)$data['meta_description']) : null,
             ':order' => (int) ($data['sort_order'] ?? 0),
             ':active' => !empty($data['is_active']) ? 1 : 0
         ]);

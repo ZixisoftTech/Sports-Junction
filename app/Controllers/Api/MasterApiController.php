@@ -15,6 +15,8 @@ use App\Models\PriceUnit;
 use App\Models\MoqUnit;
 use App\Models\Category;
 use App\Models\Subcategory;
+use App\Models\ProductCertificate;
+use App\Models\SupplierCertificationTag;
 use App\Helpers\Uploader;
 
 class MasterApiController extends Controller
@@ -22,30 +24,34 @@ class MasterApiController extends Controller
     private function getModel(string $entity): ?string
     {
         return match (strtolower($entity)) {
-            'countries'                        => Country::class,
-            'states'                           => State::class,
-            'cities'                           => City::class,
-            'business-types', 'business_types' => BusinessType::class,
-            'price-units', 'price_units'       => PriceUnit::class,
-            'moq-units', 'moq_units'           => MoqUnit::class,
-            'categories'                       => Category::class,
-            'subcategories'                    => Subcategory::class,
-            default                            => null,
+            'countries'                                  => Country::class,
+            'states'                                     => State::class,
+            'cities'                                     => City::class,
+            'business-types', 'business_types'           => BusinessType::class,
+            'price-units', 'price_units'                 => PriceUnit::class,
+            'moq-units', 'moq_units'                     => MoqUnit::class,
+            'categories'                                 => Category::class,
+            'subcategories'                              => Subcategory::class,
+            'product-certificates', 'product_certificates' => ProductCertificate::class,
+            'certification-tags', 'certification_tags'   => SupplierCertificationTag::class,
+            default                                      => null,
         };
     }
 
     private function getEntityName(string $entity): string
     {
         return match (strtolower($entity)) {
-            'countries'                        => 'Country',
-            'states'                           => 'State',
-            'cities'                           => 'City',
-            'business-types', 'business_types' => 'Business Type',
-            'price-units', 'price_units'       => 'Price Unit',
-            'moq-units', 'moq_units'           => 'MOQ Unit',
-            'categories'                       => 'Category',
-            'subcategories'                    => 'Subcategory',
-            default                            => 'Record',
+            'countries'                                  => 'Country',
+            'states'                                     => 'State',
+            'cities'                                     => 'City',
+            'business-types', 'business_types'           => 'Business Type',
+            'price-units', 'price_units'                 => 'Price Unit',
+            'moq-units', 'moq_units'                     => 'MOQ Unit',
+            'categories'                                 => 'Category',
+            'subcategories'                              => 'Subcategory',
+            'product-certificates', 'product_certificates' => 'Product Certificate',
+            'certification-tags', 'certification_tags'   => 'Certification Tag',
+            default                                      => 'Record',
         };
     }
 
@@ -163,6 +169,22 @@ class MasterApiController extends Controller
                     'status'      => 'required|in:ACTIVE,INACTIVE',
                 ];
                 break;
+
+            case 'product-certificates':
+            case 'product_certificates':
+                $rules = [
+                    'name'   => 'required|max:150|unique:product_certificates,name',
+                    'status' => 'required|in:ACTIVE,INACTIVE',
+                ];
+                break;
+
+            case 'certification-tags':
+            case 'certification_tags':
+                $rules = [
+                    'name'   => 'required|max:150|unique:supplier_certification_tags,name',
+                    'status' => 'required|in:ACTIVE,INACTIVE',
+                ];
+                break;
         }
 
         // Handle image file upload if provided
@@ -172,6 +194,16 @@ class MasterApiController extends Controller
                 $input['image'] = Uploader::uploadImage($_FILES['image_file'], $subfolder);
             } catch (\Throwable $e) {
                 $this->json(['success' => false, 'message' => 'Image upload failed: ' . $e->getMessage()], 422);
+                return;
+            }
+        }
+
+        // Handle icon file upload if provided (e.g. for categories)
+        if (isset($_FILES['icon_file']) && $_FILES['icon_file']['error'] !== UPLOAD_ERR_NO_FILE) {
+            try {
+                $input['icon'] = Uploader::uploadImage($_FILES['icon_file'], 'categories/icons');
+            } catch (\Throwable $e) {
+                $this->json(['success' => false, 'message' => 'Icon upload failed: ' . $e->getMessage()], 422);
                 return;
             }
         }
@@ -312,6 +344,22 @@ class MasterApiController extends Controller
                     'status'      => 'required|in:ACTIVE,INACTIVE',
                 ];
                 break;
+
+            case 'product-certificates':
+            case 'product_certificates':
+                $rules = [
+                    'name'   => "required|max:150|unique:product_certificates,name,{$id}",
+                    'status' => 'required|in:ACTIVE,INACTIVE',
+                ];
+                break;
+
+            case 'certification-tags':
+            case 'certification_tags':
+                $rules = [
+                    'name'   => "required|max:150|unique:supplier_certification_tags,name,{$id}",
+                    'status' => 'required|in:ACTIVE,INACTIVE',
+                ];
+                break;
         }
 
         // Handle image file upload if provided
@@ -321,6 +369,16 @@ class MasterApiController extends Controller
                 $input['image'] = Uploader::uploadImage($_FILES['image_file'], $subfolder);
             } catch (\Throwable $e) {
                 $this->json(['success' => false, 'message' => 'Image upload failed: ' . $e->getMessage()], 422);
+                return;
+            }
+        }
+
+        // Handle icon file upload if provided (e.g. for categories)
+        if (isset($_FILES['icon_file']) && $_FILES['icon_file']['error'] !== UPLOAD_ERR_NO_FILE) {
+            try {
+                $input['icon'] = Uploader::uploadImage($_FILES['icon_file'], 'categories/icons');
+            } catch (\Throwable $e) {
+                $this->json(['success' => false, 'message' => 'Icon upload failed: ' . $e->getMessage()], 422);
                 return;
             }
         }

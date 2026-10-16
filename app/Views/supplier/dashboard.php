@@ -106,7 +106,7 @@ $baseUrl = Response::baseUrl();
                                 </td>
                                 <td class="py-3 px-4 text-slate-600"><?= htmlspecialchars($p['category_name'] ?? '—') ?></td>
                                 <td class="py-3 px-4 text-blue-900 font-bold">
-                                    <?= htmlspecialchars($p['price_unit_symbol'] ?? '₹') ?><?= number_format((float)$p['min_price'], 2) ?>
+                                    $<?= number_format((float)$p['min_price'], 2) ?>
                                 </td>
                                 <td class="py-3 px-4 text-slate-700"><?= (int)$p['moq_quantity'] ?> <?= htmlspecialchars($p['moq_unit_name'] ?? 'units') ?></td>
                                 <td class="py-3 px-4">

@@ -22,13 +22,15 @@ class SupplierApprovalController extends Controller
         $metrics = Supplier::getMetrics();
         $countries = Country::allActive();
         $businessTypes = BusinessType::allActive();
+        $certificationTags = \App\Models\SupplierCertificationTag::allActive();
 
         $this->render('admin/suppliers', [
-            'pageTitle'     => 'Supplier & Factory Management — Sports Junction',
-            'activeMenu'    => 'suppliers',
-            'metrics'       => $metrics,
-            'countries'     => $countries,
-            'businessTypes' => $businessTypes,
+            'pageTitle'         => 'Supplier & Factory Management — Sports Junction',
+            'activeMenu'        => 'suppliers',
+            'metrics'           => $metrics,
+            'countries'         => $countries,
+            'businessTypes'     => $businessTypes,
+            'certificationTags' => $certificationTags,
         ]);
     }
 
@@ -50,6 +52,7 @@ class SupplierApprovalController extends Controller
 
         $deps = Supplier::checkDependencies($id);
         $supplier['dependencies'] = $deps;
+        $supplier['assigned_tag_ids'] = \App\Models\SupplierCertificationTag::getAssignedIds($id);
 
         $this->json(['success' => true, 'data' => $supplier]);
     }
@@ -69,8 +72,8 @@ class SupplierApprovalController extends Controller
             'phone'            => 'required|max:30',
             'business_type_id' => 'required|integer',
             'country_id'       => 'required|integer',
-            'state_id'         => 'required|integer',
-            'city_id'          => 'required|integer',
+            'state'            => 'required|max:100',
+            'city'             => 'required|max:100',
         ];
 
         if (!$validator->validate($rules)) {
@@ -105,6 +108,8 @@ class SupplierApprovalController extends Controller
                 'phone'                => trim($input['phone']),
                 'country_code'         => $input['country_code'] ?? '+91',
                 'country_id'           => (int)$input['country_id'],
+                'state'                => trim($input['state']),
+                'city'                 => trim($input['city']),
                 'email_verified_at'    => ($initialApproval === 'APPROVED') ? date('Y-m-d H:i:s') : null,
             ]);
 
@@ -112,8 +117,10 @@ class SupplierApprovalController extends Controller
                 'user_id'          => $userId,
                 'business_type_id' => (int)$input['business_type_id'],
                 'country_id'       => (int)$input['country_id'],
-                'state_id'         => (int)$input['state_id'],
-                'city_id'          => (int)$input['city_id'],
+                'state_id'         => !empty($input['state_id']) ? (int)$input['state_id'] : null,
+                'city_id'          => !empty($input['city_id']) ? (int)$input['city_id'] : null,
+                'state'            => trim($input['state']),
+                'city'             => trim($input['city']),
                 'company_name'     => trim($input['company_name']),
                 'contact_person'   => trim($input['contact_person']),
                 'email'            => $email,
@@ -124,6 +131,10 @@ class SupplierApprovalController extends Controller
                 'status'           => ($initialApproval === 'APPROVED') ? 'ACTIVE' : 'INACTIVE',
                 'approval_status'  => $initialApproval,
             ]);
+
+            if (!empty($input['tag_ids']) && is_array($input['tag_ids'])) {
+                \App\Models\SupplierCertificationTag::syncForSupplier($supplierId, array_map('intval', $input['tag_ids']));
+            }
 
             AuditLogger::log('CREATE', 'Supplier', $supplierId, trim($input['company_name']), null, "Admin manually created supplier account with status {$initialApproval}");
 
@@ -159,8 +170,8 @@ class SupplierApprovalController extends Controller
             'phone'            => 'required|max:30',
             'business_type_id' => 'required|integer',
             'country_id'       => 'required|integer',
-            'state_id'         => 'required|integer',
-            'city_id'          => 'required|integer',
+            'state'            => 'required|max:100',
+            'city'             => 'required|max:100',
         ];
 
         if (!$validator->validate($rules)) {
@@ -176,6 +187,9 @@ class SupplierApprovalController extends Controller
 
         $ok = Supplier::updateProfile($id, $input);
         if ($ok) {
+            if (isset($input['tag_ids']) && is_array($input['tag_ids'])) {
+                \App\Models\SupplierCertificationTag::syncForSupplier($id, array_map('intval', $input['tag_ids']));
+            }
             AuditLogger::log('UPDATE', 'Supplier', $id, trim($input['company_name']), null, 'Super Admin edited supplier profile');
             $this->json(['success' => true, 'message' => "Supplier details updated successfully."]);
         } else {

@@ -355,6 +355,8 @@ class AuthController extends Controller
                 'phone'        => $input['phone'],
                 'country_code' => $input['country_code'] ?? '+91',
                 'country_id'   => (int)$input['country_id'],
+                'state'        => !empty($input['state']) ? trim($input['state']) : null,
+                'city'         => !empty($input['city']) ? trim($input['city']) : null,
             ]);
 
             // Generate 6-digit OTP
@@ -667,8 +669,8 @@ class AuthController extends Controller
             'business_type_id'      => 'required|integer',
             'address'               => 'required|max:255',
             'country_id'            => 'required|integer',
-            'state_id'              => 'required|integer',
-            'city_id'               => 'required|integer',
+            'state'                 => 'required|max:100',
+            'city'                  => 'required|max:100',
             'postal_code'           => 'required|max:20',
             'password'              => 'required|min:8',
             'password_confirmation' => 'required',
@@ -707,6 +709,8 @@ class AuthController extends Controller
                 'phone'        => $input['phone'],
                 'country_code' => $input['country_code'] ?? '+91',
                 'country_id'   => (int)$input['country_id'],
+                'state'        => trim($input['state']),
+                'city'         => trim($input['city']),
             ]);
 
             // 2. Create Supplier Profile
@@ -714,8 +718,10 @@ class AuthController extends Controller
                 'user_id'          => $userId,
                 'business_type_id' => (int)$input['business_type_id'],
                 'country_id'       => (int)$input['country_id'],
-                'state_id'         => (int)$input['state_id'],
-                'city_id'          => (int)$input['city_id'],
+                'state_id'         => !empty($input['state_id']) ? (int)$input['state_id'] : null,
+                'city_id'          => !empty($input['city_id']) ? (int)$input['city_id'] : null,
+                'state'            => trim($input['state']),
+                'city'             => trim($input['city']),
                 'company_name'     => $input['company_name'],
                 'contact_person'   => $input['contact_person'],
                 'email'            => $email,

@@ -86,6 +86,8 @@ use App\Controllers\AdminCommunicationController;
 use App\Controllers\ChatApiController;
 use App\Controllers\AdminSettingsController;
 use App\Controllers\CmsPageController;
+use App\Controllers\ProductCertificateController;
+use App\Controllers\CertificationTagController;
 
 $request = new Request();
 $response = new Response();
@@ -272,6 +274,8 @@ $router->get('/admin/masters/cities', [CityController::class, 'index'], [AuthMid
 $router->get('/admin/masters/business-types', [BusinessTypeController::class, 'index'], [AuthMiddleware::class]);
 $router->get('/admin/masters/price-units', [PriceUnitController::class, 'index'], [AuthMiddleware::class]);
 $router->get('/admin/masters/moq-units', [MoqUnitController::class, 'index'], [AuthMiddleware::class]);
+$router->get('/admin/masters/product-certificates', [ProductCertificateController::class, 'index'], [AuthMiddleware::class]);
+$router->get('/admin/masters/certification-tags', [CertificationTagController::class, 'index'], [AuthMiddleware::class]);
 
 // Categories & Subcategories Admin Routes
 $router->get('/admin/categories', [CategoryController::class, 'index'], [AuthMiddleware::class]);

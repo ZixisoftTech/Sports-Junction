@@ -93,6 +93,8 @@ class BuyerManagementController extends Controller
             'phone'               => $this->request->post('phone', ''),
             'country_code'        => $this->request->post('country_code', '+91'),
             'country_id'          => $this->request->post('country_id', null),
+            'state'               => $this->request->post('state', ''),
+            'city'                => $this->request->post('city', ''),
             'status'              => $this->request->post('status', $buyer['status']),
             'mark_email_verified' => (bool) $this->request->post('mark_email_verified', false),
         ];

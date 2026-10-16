@@ -66,7 +66,14 @@ $sort = $filters['sort'] ?? 'featured';
                             <div>
                                 <a href="<?= htmlspecialchars($baseUrl) ?>/category/<?= htmlspecialchars($cat['slug']) ?>" class="flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-semibold <?= $isCatActive && empty($selectedSubSlug) ? 'bg-blue-100 text-primary font-bold' : 'text-on-surface hover:bg-surface-container-low' ?>">
                                     <span class="flex items-center gap-1.5 truncate">
-                                        <span class="material-symbols-outlined text-[16px] text-primary"><?= htmlspecialchars($cat['icon'] ?? 'sports_tennis') ?></span>
+                                        <?php 
+                                        $catIcon = trim($cat['icon'] ?? 'sports_tennis');
+                                        $isImg = (str_starts_with($catIcon, '/') || str_starts_with($catIcon, 'http') || str_contains($catIcon, '.'));
+                                        if ($isImg): ?>
+                                            <img src="<?= htmlspecialchars(\App\Core\Response::formatImageUrl($catIcon)) ?>" class="w-3.5 h-3.5 object-contain rounded" alt="">
+                                        <?php else: ?>
+                                            <span class="material-symbols-outlined text-[16px] text-primary"><?= htmlspecialchars($catIcon) ?></span>
+                                        <?php endif; ?>
                                         <span class="truncate"><?= htmlspecialchars($cat['name']) ?></span>
                                     </span>
                                     <span class="text-[10px] text-outline"><?= (int)($cat['product_count'] ?? 0) ?></span>
@@ -91,7 +98,7 @@ $sort = $filters['sort'] ?? 'featured';
 
                 <!-- Price Range Filter -->
                 <div class="pt-4 border-t border-surface-container">
-                    <h4 class="text-xs font-bold uppercase tracking-wider text-outline mb-2">Price Range (₹)</h4>
+                    <h4 class="text-xs font-bold uppercase tracking-wider text-outline mb-2">Price Range ($)</h4>
                     <div class="grid grid-cols-2 gap-2 mb-2">
                         <input type="number" name="min_price" value="<?= htmlspecialchars((string)$minPrice) ?>" placeholder="Min" class="w-full px-2.5 py-1.5 text-xs bg-white border border-outline-variant rounded-lg outline-none focus:border-primary">
                         <input type="number" name="max_price" value="<?= htmlspecialchars((string)$maxPrice) ?>" placeholder="Max" class="w-full px-2.5 py-1.5 text-xs bg-white border border-outline-variant rounded-lg outline-none focus:border-primary">
@@ -205,9 +212,9 @@ $sort = $filters['sort'] ?? 'featured';
                                     <!-- Price Range -->
                                     <div class="mt-2 mb-3">
                                         <div class="font-headline font-extrabold text-base text-blue-900">
-                                            <?= htmlspecialchars($prod['price_unit_symbol'] ?? '₹') ?><?= number_format((float)$prod['min_price'], 2) ?>
+                                            $<?= number_format((float)$prod['min_price'], 2) ?>
                                             <?php if ((float)$prod['max_price'] > (float)$prod['min_price']): ?>
-                                                - <?= htmlspecialchars($prod['price_unit_symbol'] ?? '₹') ?><?= number_format((float)$prod['max_price'], 2) ?>
+                                                - $<?= number_format((float)$prod['max_price'], 2) ?>
                                             <?php endif; ?>
                                             <span class="text-xs font-normal text-outline">/ unit</span>
                                         </div>

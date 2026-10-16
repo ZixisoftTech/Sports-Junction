@@ -40,9 +40,9 @@ $baseUrl = Response::baseUrl();
                         <h3 class="font-bold text-sm text-slate-900 line-clamp-2 mb-1"><?= htmlspecialchars($fav['name']) ?></h3>
                         <div class="text-xs text-slate-500 font-semibold mb-2"><?= htmlspecialchars($fav['supplier_name'] ?? 'Verified Factory') ?></div>
                         <div class="font-bold text-blue-900 text-base">
-                            <?= htmlspecialchars($fav['price_unit_symbol'] ?? '₹') ?><?= number_format((float)$fav['min_price'], 2) ?>
+                            $<?= number_format((float)$fav['min_price'], 2) ?>
                             <?php if ((float)$fav['max_price'] > (float)$fav['min_price']): ?>
-                                - <?= htmlspecialchars($fav['price_unit_symbol'] ?? '₹') ?><?= number_format((float)$fav['max_price'], 2) ?>
+                                - $<?= number_format((float)$fav['max_price'], 2) ?>
                             <?php endif; ?>
                         </div>
                         <div class="text-xs text-slate-500 mt-0.5">MOQ: <strong><?= (int)$fav['moq_quantity'] ?> <?= htmlspecialchars($fav['moq_unit_name'] ?? 'units') ?></strong></div>

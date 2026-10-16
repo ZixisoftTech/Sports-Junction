@@ -78,13 +78,26 @@ $info = Session::flash('info');
 
                 <div>
                     <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Country / Region *</label>
-                    <select name="country_id" required class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:bg-white focus:border-blue-700 focus:ring-2 focus:ring-blue-100 outline-none transition-all">
+                    <select name="country_id" required data-country-picker class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:bg-white focus:border-blue-700 focus:ring-2 focus:ring-blue-100 outline-none transition-all">
                         <?php foreach ($countries as $c): ?>
-                            <option value="<?= $c['id'] ?>" <?= ((int)($buyer['country_id'] ?? 1) === (int)$c['id']) ? 'selected' : '' ?>>
-                                <?= htmlspecialchars($c['name']) ?>
+                            <option value="<?= $c['id'] ?>" 
+                                    data-flag="<?= htmlspecialchars($c['flag'] ?? '🌐') ?>" 
+                                    data-phone="<?= htmlspecialchars($c['phone_code'] ?? '') ?>"
+                                    <?= ((int)($buyer['country_id'] ?? 1) === (int)$c['id']) ? 'selected' : '' ?>>
+                                <?= $c['flag'] ?> <?= htmlspecialchars($c['name']) ?> (<?= htmlspecialchars($c['phone_code'] ?? '') ?>)
                             </option>
                         <?php endforeach; ?>
                     </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">State / Province</label>
+                    <input type="text" name="state" value="<?= htmlspecialchars($buyer['state'] ?? '') ?>" placeholder="e.g. California / Maharashtra" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:bg-white focus:border-blue-700 focus:ring-2 focus:ring-blue-100 outline-none transition-all">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">City</label>
+                    <input type="text" name="city" value="<?= htmlspecialchars($buyer['city'] ?? '') ?>" placeholder="e.g. Los Angeles / Mumbai" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:bg-white focus:border-blue-700 focus:ring-2 focus:ring-blue-100 outline-none transition-all">
                 </div>
             </div>
 
@@ -129,3 +142,4 @@ $info = Session::flash('info');
         </form>
     </div>
 </div>
+<script src="<?= htmlspecialchars($baseUrl) ?>/assets/js/country-picker.js"></script>

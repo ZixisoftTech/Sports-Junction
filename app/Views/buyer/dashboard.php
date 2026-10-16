@@ -151,7 +151,7 @@ $baseUrl = Response::baseUrl();
                             <h3 class="font-bold text-xs text-slate-900 line-clamp-2 mb-1"><?= htmlspecialchars($fav['name']) ?></h3>
                             <div class="text-[11px] text-slate-500 font-semibold mb-2"><?= htmlspecialchars($fav['supplier_name'] ?? 'Verified Factory') ?></div>
                             <div class="font-bold text-blue-900 text-sm">
-                                <?= htmlspecialchars($fav['price_unit_symbol'] ?? '₹') ?><?= number_format((float)$fav['min_price'], 2) ?>
+                                $<?= number_format((float)$fav['min_price'], 2) ?>
                             </div>
                             <div class="text-[10px] text-slate-400">MOQ: <?= (int)$fav['moq_quantity'] ?> <?= htmlspecialchars($fav['moq_unit_name'] ?? 'units') ?></div>
                         </div>

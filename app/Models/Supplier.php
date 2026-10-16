@@ -13,8 +13,9 @@ class Supplier extends Model
             SELECT s.*, 
                    bt.name AS business_type_name,
                    c.name AS country_name,
-                   st.name AS state_name,
-                   ct.name AS city_name,
+                   c.iso_alpha2 AS country_iso,
+                   COALESCE(s.state, st.name) AS state_name,
+                   COALESCE(s.city, ct.name) AS city_name,
                    u.email_verified_at,
                    u.status AS user_status,
                    u.last_login_at
@@ -35,8 +36,9 @@ class Supplier extends Model
             SELECT s.*, 
                    bt.name AS business_type_name,
                    c.name AS country_name,
-                   st.name AS state_name,
-                   ct.name AS city_name
+                   c.iso_alpha2 AS country_iso,
+                   COALESCE(s.state, st.name) AS state_name,
+                   COALESCE(s.city, ct.name) AS city_name
             FROM suppliers s
             LEFT JOIN business_types bt ON s.business_type_id = bt.id
             LEFT JOIN countries c ON s.country_id = c.id
@@ -90,11 +92,13 @@ class Supplier extends Model
         self::execute("
             INSERT INTO suppliers (
                 user_id, business_type_id, country_id, state_id, city_id,
+                state, city, logo, description,
                 company_name, contact_person, email, phone, country_code,
                 address, postal_code, status, approval_status, terms_accepted_at,
                 created_at, updated_at
             ) VALUES (
                 :user_id, :business_type_id, :country_id, :state_id, :city_id,
+                :state, :city, :logo, :description,
                 :company_name, :contact_person, :email, :phone, :country_code,
                 :address, :postal_code, :status, :approval_status, NOW(),
                 NOW(), NOW()
@@ -103,8 +107,12 @@ class Supplier extends Model
             ':user_id'          => !empty($data['user_id']) ? (int)$data['user_id'] : null,
             ':business_type_id' => (int)$data['business_type_id'],
             ':country_id'       => (int)$data['country_id'],
-            ':state_id'         => (int)$data['state_id'],
-            ':city_id'          => (int)$data['city_id'],
+            ':state_id'         => !empty($data['state_id']) ? (int)$data['state_id'] : null,
+            ':city_id'          => !empty($data['city_id']) ? (int)$data['city_id'] : null,
+            ':state'            => !empty($data['state']) ? trim($data['state']) : null,
+            ':city'             => !empty($data['city']) ? trim($data['city']) : null,
+            ':logo'             => !empty($data['logo']) ? trim($data['logo']) : null,
+            ':description'      => !empty($data['description']) ? trim($data['description']) : null,
             ':company_name'     => trim($data['company_name']),
             ':contact_person'   => trim($data['contact_person']),
             ':email'            => strtolower(trim($data['email'])),
@@ -201,8 +209,9 @@ class Supplier extends Model
             SELECT s.*, 
                    bt.name AS business_type_name,
                    c.name AS country_name,
-                   st.name AS state_name,
-                   ct.name AS city_name,
+                   c.iso_alpha2 AS country_iso,
+                   COALESCE(s.state, st.name) AS state_name,
+                   COALESCE(s.city, ct.name) AS city_name,
                    u.email_verified_at,
                    (SELECT COUNT(*) FROM products p WHERE p.supplier_id = s.id) AS product_count
             FROM suppliers s
@@ -244,6 +253,28 @@ class Supplier extends Model
             return false;
         }
 
+        $logoSql = !empty($data['logo']) ? ", logo = :logo" : "";
+        $bindings = [
+            ':company_name'     => trim($data['company_name']),
+            ':contact_person'   => trim($data['contact_person']),
+            ':email'            => strtolower(trim($data['email'])),
+            ':phone'            => trim($data['phone'] ?? ''),
+            ':country_code'     => trim($data['country_code'] ?? '+91'),
+            ':business_type_id' => (int)$data['business_type_id'],
+            ':address'          => trim($data['address'] ?? ''),
+            ':country_id'       => (int)$data['country_id'],
+            ':state_id'         => !empty($data['state_id']) ? (int)$data['state_id'] : null,
+            ':city_id'          => !empty($data['city_id']) ? (int)$data['city_id'] : null,
+            ':state'            => !empty($data['state']) ? trim($data['state']) : null,
+            ':city'             => !empty($data['city']) ? trim($data['city']) : null,
+            ':description'      => isset($data['description']) ? trim($data['description']) : ($supplier['description'] ?? null),
+            ':postal_code'      => trim($data['postal_code'] ?? ''),
+            ':id'               => $id,
+        ];
+        if (!empty($data['logo'])) {
+            $bindings[':logo'] = trim($data['logo']);
+        }
+
         self::execute("
             UPDATE suppliers SET
                 company_name     = :company_name,
@@ -256,23 +287,13 @@ class Supplier extends Model
                 country_id       = :country_id,
                 state_id         = :state_id,
                 city_id          = :city_id,
-                postal_code      = :postal_code,
+                state            = :state,
+                city             = :city,
+                description      = :description,
+                postal_code      = :postal_code{$logoSql},
                 updated_at       = NOW()
             WHERE id = :id
-        ", [
-            ':company_name'     => trim($data['company_name']),
-            ':contact_person'   => trim($data['contact_person']),
-            ':email'            => strtolower(trim($data['email'])),
-            ':phone'            => trim($data['phone'] ?? ''),
-            ':country_code'     => trim($data['country_code'] ?? '+91'),
-            ':business_type_id' => (int)$data['business_type_id'],
-            ':address'          => trim($data['address'] ?? ''),
-            ':country_id'       => (int)$data['country_id'],
-            ':state_id'         => (int)$data['state_id'],
-            ':city_id'          => (int)$data['city_id'],
-            ':postal_code'      => trim($data['postal_code'] ?? ''),
-            ':id'               => $id,
-        ]);
+        ", $bindings);
 
         // Keep associated user updated
         if (!empty($supplier['user_id'])) {
@@ -283,6 +304,8 @@ class Supplier extends Model
                 ':phone'        => trim($data['phone'] ?? ''),
                 ':country_code' => trim($data['country_code'] ?? '+91'),
                 ':country_id'   => (int)$data['country_id'],
+                ':state'        => !empty($data['state']) ? trim($data['state']) : null,
+                ':city'         => !empty($data['city']) ? trim($data['city']) : null,
                 ':user_id'      => (int)$supplier['user_id'],
             ];
             
@@ -297,7 +320,9 @@ class Supplier extends Model
                     email = :email,
                     phone = :phone,
                     country_code = :country_code,
-                    country_id = :country_id{$emailReverifySql},
+                    country_id = :country_id,
+                    state = :state,
+                    city = :city{$emailReverifySql},
                     updated_at = NOW()
                 WHERE id = :user_id
             ", $userUpdate);

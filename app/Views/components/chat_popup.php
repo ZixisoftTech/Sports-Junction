@@ -135,7 +135,7 @@ $currentUserId = (int) ($authUser['id'] ?? 0);
                             <div class="overflow-hidden">
                                 <h6 id="popupProductTitle" class="font-bold text-xs text-slate-900 truncate max-w-[240px]">Product Inquiry</h6>
                                 <div class="flex items-center gap-2 text-[10px] text-slate-500">
-                                    <span id="popupProductPrice" class="font-bold text-blue-900">₹0.00</span>
+                                    <span id="popupProductPrice" class="font-bold text-blue-900">$0.00</span>
                                     <span>•</span>
                                     <span id="popupProductMoq">MOQ: 1 unit</span>
                                 </div>
@@ -459,7 +459,7 @@ function updateProductCardUI(data) {
 
     card.style.display = 'flex';
     document.getElementById('popupProductTitle').innerText = title;
-    document.getElementById('popupProductPrice').innerText = data.price ? ('₹' + parseFloat(data.price).toLocaleString('en-IN', {minimumFractionDigits: 2})) : 'Wholesale Quote';
+    document.getElementById('popupProductPrice').innerText = data.price ? ('$' + parseFloat(data.price).toLocaleString('en-US', {minimumFractionDigits: 2})) : 'Wholesale Quote';
     document.getElementById('popupProductMoq').innerText = 'MOQ: ' + (data.moq || data.moq_quantity || 1) + ' units';
 
     const imgEl = document.getElementById('popupProductImg');

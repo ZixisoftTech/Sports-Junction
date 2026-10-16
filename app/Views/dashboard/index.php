@@ -159,14 +159,14 @@ $baseUrl = Response::baseUrl();
                     <div class="list-group-item d-flex justify-content-between align-items-center px-0">
                         <div>
                             <span class="fw-bold text-dark d-block">Grade-A English Willow Cricket Bat</span>
-                            <span class="text-muted">Price: ₹4,500 / Piece • MOQ: 25 Pieces</span>
+                            <span class="text-muted">Price: $55.00 / Piece • MOQ: 25 Pieces</span>
                         </div>
                         <span class="badge bg-success">ACTIVE</span>
                     </div>
                     <div class="list-group-item d-flex justify-content-between align-items-center px-0">
                         <div>
                             <span class="fw-bold text-dark d-block">FIFA Quality Pro Synthetic Leather Football</span>
-                            <span class="text-muted">Price: ₹850 / Piece • MOQ: 100 Pieces</span>
+                            <span class="text-muted">Price: $12.50 / Piece • MOQ: 100 Pieces</span>
                         </div>
                         <span class="badge bg-success">ACTIVE</span>
                     </div>

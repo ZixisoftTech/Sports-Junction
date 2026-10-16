@@ -79,13 +79,13 @@ $old = Session::flash('old_input') ?? [];
                 <div>
                     <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Mobile Number <span class="text-red-500">*</span></label>
                     <div class="flex gap-2">
-                        <select name="country_code" class="w-28 shrink-0 py-2.5 px-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:bg-white focus:border-blue-700 outline-none">
-                            <option value="+91" <?= ($old['country_code'] ?? '+91') === '+91' ? 'selected' : '' ?>>+91 (IN)</option>
-                            <option value="+1" <?= ($old['country_code'] ?? '') === '+1' ? 'selected' : '' ?>>+1 (US)</option>
-                            <option value="+44" <?= ($old['country_code'] ?? '') === '+44' ? 'selected' : '' ?>>+44 (UK)</option>
-                            <option value="+971" <?= ($old['country_code'] ?? '') === '+971' ? 'selected' : '' ?>>+971 (AE)</option>
-                            <option value="+61" <?= ($old['country_code'] ?? '') === '+61' ? 'selected' : '' ?>>+61 (AU)</option>
-                            <option value="+49" <?= ($old['country_code'] ?? '') === '+49' ? 'selected' : '' ?>>+49 (DE)</option>
+                        <select name="country_code" id="buyerCountryCode" class="w-32 shrink-0 py-2.5 px-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:bg-white focus:border-blue-700 outline-none">
+                            <option value="+91" <?= ($old['country_code'] ?? '+91') === '+91' ? 'selected' : '' ?>>+91</option>
+                            <?php foreach ($countries as $c): if (!empty($c['phone_code'])): ?>
+                                <option value="<?= htmlspecialchars($c['phone_code']) ?>" <?= (($old['country_code'] ?? '+91') === $c['phone_code']) ? 'selected' : '' ?>>
+                                    <?= $c['flag'] ?> <?= htmlspecialchars($c['phone_code']) ?>
+                                </option>
+                            <?php endif; endforeach; ?>
                         </select>
                         <div class="relative flex-1">
                             <input type="tel" name="phone" required value="<?= htmlspecialchars($old['phone'] ?? '') ?>" placeholder="98765 43210" class="w-full pl-3.5 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:bg-white focus:border-blue-700 focus:ring-2 focus:ring-blue-100 outline-none transition-all">
@@ -95,19 +95,40 @@ $old = Session::flash('old_input') ?? [];
                 </div>
             </div>
 
-            <!-- Row 3: Procurement Country / HQ Region -->
+            <!-- Row 3: Procurement Country / HQ Region (Searchable with Flags) -->
             <div>
                 <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Procurement Country / HQ Region <span class="text-red-500">*</span></label>
                 <div class="relative">
-                    <select name="country_id" required class="w-full pl-3.5 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:bg-white focus:border-blue-700 focus:ring-2 focus:ring-blue-100 outline-none transition-all appearance-none cursor-pointer">
+                    <select name="country_id" id="buyerCountrySelect" required data-country-picker class="w-full pl-3.5 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:bg-white focus:border-blue-700 focus:ring-2 focus:ring-blue-100 outline-none transition-all">
                         <option value="">Select registered country location</option>
                         <?php foreach ($countries as $c): ?>
-                            <option value="<?= (int)$c['id'] ?>" <?= ((int)($old['country_id'] ?? 1) === (int)$c['id']) ? 'selected' : '' ?>>
-                                <?= htmlspecialchars($c['name']) ?> (<?= htmlspecialchars($c['iso_alpha2']) ?>)
+                            <option value="<?= (int)$c['id'] ?>" 
+                                    data-flag="<?= htmlspecialchars($c['flag'] ?? '🌐') ?>" 
+                                    data-phone="<?= htmlspecialchars($c['phone_code'] ?? '') ?>"
+                                    <?= ((int)($old['country_id'] ?? 1) === (int)$c['id']) ? 'selected' : '' ?>>
+                                <?= $c['flag'] ?> <?= htmlspecialchars($c['name']) ?> (<?= htmlspecialchars($c['phone_code'] ?? '') ?>)
                             </option>
                         <?php endforeach; ?>
                     </select>
-                    <span class="material-symbols-outlined absolute right-3 top-2.5 text-slate-400 text-[18px] pointer-events-none">public</span>
+                </div>
+            </div>
+
+            <!-- Row 4: State / Province & City (Text Inputs) -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">State / Province</label>
+                    <div class="relative">
+                        <input type="text" name="state" value="<?= htmlspecialchars($old['state'] ?? '') ?>" placeholder="e.g. California / Maharashtra" class="w-full pl-3.5 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:bg-white focus:border-blue-700 focus:ring-2 focus:ring-blue-100 outline-none transition-all">
+                        <span class="material-symbols-outlined absolute right-3 top-2.5 text-slate-400 text-[18px]">location_city</span>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">City</label>
+                    <div class="relative">
+                        <input type="text" name="city" value="<?= htmlspecialchars($old['city'] ?? '') ?>" placeholder="e.g. Los Angeles / Mumbai" class="w-full pl-3.5 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:bg-white focus:border-blue-700 focus:ring-2 focus:ring-blue-100 outline-none transition-all">
+                        <span class="material-symbols-outlined absolute right-3 top-2.5 text-slate-400 text-[18px]">apartment</span>
+                    </div>
                 </div>
             </div>
 
@@ -174,6 +195,7 @@ $old = Session::flash('old_input') ?? [];
     </div>
 </div>
 
+<script src="<?= htmlspecialchars($baseUrl) ?>/assets/js/country-picker.js"></script>
 <script>
 function togglePassVisibility(inputId, btn) {
     const el = document.getElementById(inputId);

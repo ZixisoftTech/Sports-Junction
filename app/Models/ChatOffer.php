@@ -25,7 +25,7 @@ class ChatOffer extends Model
         $quantity = (int) ($data['quantity'] ?? 1);
         $unit = trim($data['unit'] ?? 'Pieces');
         $unitPrice = (float) ($data['unit_price'] ?? 0.0);
-        $currency = trim($data['currency'] ?? 'INR');
+        $currency = trim($data['currency'] ?? 'USD');
         $totalAmount = $quantity * $unitPrice;
 
         $deliveryLocation = trim($data['delivery_location'] ?? '');
@@ -103,7 +103,7 @@ class ChatOffer extends Model
         ChatConversation::updateStatus($conversationId, 'OFFER_PENDING', 'OFFER_MADE');
 
         // Create structured chat message representing this offer
-        $offerSummary = ($parentOfferId ? "Counteroffer (v{$version})" : "Formal Offer (v{$version})") . ": {$quantity} {$unit} @ ₹" . number_format($unitPrice, 2) . " (Total: ₹" . number_format($totalAmount, 2) . ")";
+        $offerSummary = ($parentOfferId ? "Counteroffer (v{$version})" : "Formal Offer (v{$version})") . ": {$quantity} {$unit} @ $" . number_format($unitPrice, 2) . " (Total: $" . number_format($totalAmount, 2) . ")";
         if ($leadTime) {
             $offerSummary .= " | Lead Time: {$leadTime}";
         }
@@ -166,7 +166,7 @@ class ChatOffer extends Model
         ChatConversation::updateStatus((int) $offer['conversation_id'], 'DEAL_AGREED', 'DEAL_ACCEPTED');
 
         // Insert System Message
-        $systemMessage = "Offer (v{$offer['offer_version']}) accepted! Deal agreed for {$offer['quantity']} {$offer['unit']} at ₹" . number_format((float) $offer['unit_price'], 2) . "/unit (Total: ₹" . number_format((float) $offer['total_amount'], 2) . ").";
+        $systemMessage = "Offer (v{$offer['offer_version']}) accepted! Deal agreed for {$offer['quantity']} {$offer['unit']} at $" . number_format((float) $offer['unit_price'], 2) . "/unit (Total: $" . number_format((float) $offer['total_amount'], 2) . ").";
         ChatMessage::create([
             'conversation_id' => (int) $offer['conversation_id'],
             'sender_user_id' => $userId,

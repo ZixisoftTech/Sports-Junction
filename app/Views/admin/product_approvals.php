@@ -28,7 +28,7 @@ $baseUrl = Response::baseUrl();
                 <div class="card-body p-3">
                     <div class="d-flex align-items-center justify-content-between">
                         <div>
-                            <span class="text-warning small fw-bold text-uppercase">Awaiting Audit</span>
+                            <span class="text-warning small fw-bold text-uppercase">Awaiting Approval</span>
                             <h3 class="fw-bold m-0 mt-1 text-warning"><?= (int)($metrics['pending'] ?? 0) ?></h3>
                         </div>
                         <div class="bg-warning-subtle text-warning p-2.5 rounded-3">
@@ -102,7 +102,7 @@ $baseUrl = Response::baseUrl();
                 <label for="approvalStatusFilter" class="small text-muted text-nowrap m-0 fw-semibold">Filter:</label>
                 <select id="approvalStatusFilter" class="form-select form-select-sm" style="width: auto; min-width: 220px;" onchange="onFilterSelectChange(this.value)">
                     <option value="ALL" selected>All Products (Before &amp; After Approve)</option>
-                    <option value="PENDING">Awaiting Audit (Pending Approval)</option>
+                    <option value="PENDING">Awaiting Approval</option>
                     <option value="APPROVED">Approved &amp; Live</option>
                     <option value="REJECTED">Rejected Submissions</option>
                 </select>
@@ -133,12 +133,12 @@ $baseUrl = Response::baseUrl();
     </div>
 </div>
 
-<!-- Full Product View & Audit Modal -->
+<!-- Full Product View & Approval Modal -->
 <div class="modal fade" id="productReviewModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content border-0 shadow">
             <div class="modal-header bg-light border-bottom py-3">
-                <h5 class="modal-title fw-bold fs-6" id="reviewModalTitle">Product Details &amp; Audit</h5>
+                <h5 class="modal-title fw-bold fs-6" id="reviewModalTitle">Product Details &amp; Approval</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body p-4" id="reviewModalBody">
@@ -270,11 +270,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 data: 'min_price',
                 render: function(data, type, row) {
                     const minNum = parseFloat(data || 0);
-                    const minFormatted = minNum.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                    const minFormatted = minNum.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                     const maxNum = row.max_price ? parseFloat(row.max_price) : 0;
-                    const maxFormatted = maxNum > minNum ? maxNum.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : null;
+                    const maxFormatted = maxNum > minNum ? maxNum.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : null;
                     const unit = row.price_unit_symbol || row.price_unit_name || 'Unit';
-                    const priceStr = maxFormatted ? `₹${minFormatted} – ₹${maxFormatted}` : `₹${minFormatted}`;
+                    const priceStr = maxFormatted ? `$${minFormatted} – $${maxFormatted}` : `$${minFormatted}`;
                     return `
                         <div>
                             <div class="fw-bold text-success">${priceStr}</div>
@@ -306,7 +306,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (row.approval_status === 'APPROVED') {
                         badges += '<span class="badge badge-soft-success px-2.5 py-1 rounded-pill"><i class="bi bi-check-circle-fill me-1"></i>Approved & Live</span>';
                     } else if (row.approval_status === 'PENDING_APPROVAL') {
-                        badges += '<span class="badge badge-soft-warning px-2.5 py-1 rounded-pill"><i class="bi bi-hourglass-split me-1"></i>Pending Audit</span>';
+                        badges += '<span class="badge badge-soft-warning px-2.5 py-1 rounded-pill"><i class="bi bi-hourglass-split me-1"></i>Awaiting Approval</span>';
                     } else if (row.approval_status === 'REJECTED') {
                         badges += '<span class="badge badge-soft-danger px-2.5 py-1 rounded-pill"><i class="bi bi-x-circle-fill me-1"></i>Rejected</span>';
                     } else {
@@ -350,8 +350,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
 function ynBadge(val, label) {
     const active = parseInt(val || 0) === 1;
-    return `<span class="badge ${active ? 'bg-success-subtle text-success border border-success-subtle' : 'bg-light text-muted border'} me-1 mb-1">
-        <i class="bi ${active ? 'bi-check-circle-fill' : 'bi-dash-circle'} me-1"></i>${label}: ${active ? 'Yes' : 'No'}
+    if (!active) return '';
+    return `<span class="badge bg-success-subtle text-success border border-success-subtle me-1.5 mb-1 py-1 px-2.5">
+        <i class="bi bi-check-circle-fill me-1"></i>${label}
     </span>`;
 }
 
@@ -371,7 +372,7 @@ function reviewProduct(id) {
             const p = res.data;
             const changes = p.decoded_pending_changes;
             const img = SportsJunction.formatImageUrl(p.primary_image);
-            const sym = p.price_unit_symbol || '₹';
+            const sym = p.price_unit_symbol || '$';
 
             $('#reviewModalTitle').text(`Product Complete Details: ${p.title}`);
 
@@ -475,12 +476,22 @@ function reviewProduct(id) {
                                 <div class="col-md-6"><strong>Unit Weight:</strong> ${p.weight || '—'}</div>
                                 <div class="col-12 mt-2">
                                     <strong class="d-block mb-1">OEM / ODM Capabilities:</strong>
-                                    ${ynBadge(p.custom_logo, 'Custom Logo')}
-                                    ${ynBadge(p.custom_color, 'Custom Color')}
-                                    ${ynBadge(p.custom_packaging, 'Custom Packaging')}
-                                    ${ynBadge(p.oem_available, 'OEM Service')}
-                                    ${ynBadge(p.odm_available, 'ODM Design')}
-                                    ${ynBadge(p.private_label, 'Private Label')}
+                                    ${[
+                                        ynBadge(p.custom_logo, 'Custom Logo'),
+                                        ynBadge(p.custom_color, 'Custom Color'),
+                                        ynBadge(p.custom_packaging, 'Custom Packaging'),
+                                        ynBadge(p.oem_available, 'OEM Service'),
+                                        ynBadge(p.odm_available, 'ODM Design'),
+                                        ynBadge(p.private_label, 'Private Label')
+                                    ].filter(Boolean).join('') || '<span class="text-muted">None specified</span>'}
+                                </div>
+                                <div class="col-12 mt-2">
+                                    <strong class="d-block mb-1">Product Certificates:</strong>
+                                    ${(p.certificates && p.certificates.length > 0) ? p.certificates.map(c => `
+                                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle me-1.5 mb-1 py-1 px-2.5">
+                                            <i class="bi bi-patch-check-fill me-1"></i>${c.name} ${c.code ? `(${c.code})` : ''}
+                                        </span>
+                                    `).join('') : '<span class="text-muted">No certificates assigned</span>'}
                                 </div>
                                 <div class="col-12 mt-2"><strong>Customization Details:</strong><div class="text-muted">${p.customization_details || '—'}</div></div>
                             </div>

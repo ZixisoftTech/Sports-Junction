@@ -206,7 +206,7 @@ $currentPrimaryImg = !empty($product['primary_image']) ? Uploader::imageUrl($pro
                     <div class="md:col-span-4">
                         <label for="prodMinPrice" class="block text-xs font-bold text-slate-700 mb-1.5">Min Wholesale Price (Tier 1) <span class="text-red-500">*</span></label>
                         <div class="flex">
-                            <span class="inline-flex items-center px-3 rounded-l-xl border border-r-0 border-slate-200 bg-slate-100 text-slate-600 font-bold text-sm">&#8377;</span>
+                            <span class="inline-flex items-center px-3 rounded-l-xl border border-r-0 border-slate-200 bg-slate-100 text-slate-600 font-bold text-sm">$</span>
                             <input type="number" step="0.01" min="0" class="sj-input w-full rounded-l-none" id="prodMinPrice" name="min_price" required placeholder="0.00" value="<?= htmlspecialchars((string)($product['min_price'] ?? '')) ?>">
                         </div>
                         <div class="invalid-msg hidden text-[11px] text-red-600 font-semibold mt-1">Valid min price (&gt; 0) is required.</div>
@@ -215,16 +215,16 @@ $currentPrimaryImg = !empty($product['primary_image']) ? Uploader::imageUrl($pro
                     <div class="md:col-span-4">
                         <label for="prodMaxPrice" class="block text-xs font-bold text-slate-700 mb-1.5">Max Wholesale Price (Tier 2) <span class="text-red-500">*</span></label>
                         <div class="flex">
-                            <span class="inline-flex items-center px-3 rounded-l-xl border border-r-0 border-slate-200 bg-slate-100 text-slate-600 font-bold text-sm">&#8377;</span>
+                            <span class="inline-flex items-center px-3 rounded-l-xl border border-r-0 border-slate-200 bg-slate-100 text-slate-600 font-bold text-sm">$</span>
                             <input type="number" step="0.01" min="0" class="sj-input w-full rounded-l-none" id="prodMaxPrice" name="max_price" required placeholder="0.00" value="<?= htmlspecialchars((string)($product['max_price'] ?? '')) ?>">
                         </div>
                         <div class="invalid-msg hidden text-[11px] text-red-600 font-semibold mt-1">Max price must be greater than or equal to min price.</div>
                     </div>
 
                     <div class="md:col-span-4">
-                        <label for="prodPriceUnit" class="block text-xs font-bold text-slate-700 mb-1.5">Price Currency / Unit <span class="text-red-500">*</span></label>
+                        <label for="prodPriceUnit" class="block text-xs font-bold text-slate-700 mb-1.5">Unit <span class="text-red-500">*</span></label>
                         <select class="sj-input w-full" id="prodPriceUnit" name="price_unit_id" required>
-                            <option value="">Select Price Unit...</option>
+                            <option value="">Select Unit...</option>
                             <?php foreach ($priceUnits as $pu): ?>
                                 <option value="<?= (int)$pu['id'] ?>" <?= ((int)($product['price_unit_id'] ?? 1) === (int)$pu['id']) ? 'selected' : '' ?>>
                                     <?= htmlspecialchars($pu['name']) ?> (<?= htmlspecialchars($pu['symbol'] ?? '') ?>)
@@ -270,7 +270,7 @@ $currentPrimaryImg = !empty($product['primary_image']) ? Uploader::imageUrl($pro
                     <div class="md:col-span-6" id="samplePriceWrapper">
                         <label for="prodSamplePrice" class="block text-xs font-bold text-slate-700 mb-1.5">Sample Price Per Unit</label>
                         <div class="flex">
-                            <span class="inline-flex items-center px-3 rounded-l-xl border border-r-0 border-slate-200 bg-slate-100 text-slate-600 font-bold text-sm">&#8377;</span>
+                            <span class="inline-flex items-center px-3 rounded-l-xl border border-r-0 border-slate-200 bg-slate-100 text-slate-600 font-bold text-sm">$</span>
                             <input type="number" step="0.01" min="0" class="sj-input w-full rounded-l-none" id="prodSamplePrice" name="sample_price" placeholder="0.00" value="<?= htmlspecialchars((string)($product['sample_price'] ?? '')) ?>">
                         </div>
                     </div>
@@ -354,6 +354,35 @@ $currentPrimaryImg = !empty($product['primary_image']) ? Uploader::imageUrl($pro
                     <div class="md:col-span-12">
                         <label for="prodCustomDetails" class="block text-xs font-bold text-slate-700 mb-1.5">Customization MOQ &amp; Production Details</label>
                         <textarea class="sj-input w-full" id="prodCustomDetails" name="customization_details" rows="3" placeholder="e.g. Silk-screen logo min order 100 pcs; custom debossed valve min order 500 pcs; branded presentation polybags included..."><?= htmlspecialchars($product['customization_details'] ?? '') ?></textarea>
+                    </div>
+
+                    <!-- Product Certificates Assignment -->
+                    <div class="md:col-span-12">
+                        <label class="block text-xs font-bold text-slate-800 mb-2 flex items-center gap-1.5">
+                            <span class="material-symbols-outlined text-emerald-600 text-[18px]">verified</span>
+                            <span>Product Certificates &amp; Compliance Standards</span>
+                        </label>
+                        <div class="p-4 bg-slate-50 rounded-2xl border border-slate-200">
+                            <?php if (!empty($certificates)): ?>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
+                                    <?php foreach ($certificates as $cert): ?>
+                                        <?php $isAssigned = in_array((int)$cert['id'], array_map('intval', $assignedCertificateIds ?? [])); ?>
+                                        <label class="flex items-center gap-2 p-2.5 bg-white rounded-xl border border-slate-200 cursor-pointer hover:border-blue-400 transition-colors">
+                                            <input type="checkbox" name="certificate_ids[]" value="<?= (int)$cert['id'] ?>" class="w-4 h-4 accent-blue-900 rounded" <?= $isAssigned ? 'checked' : '' ?>>
+                                            <div class="truncate">
+                                                <?php if (!empty($cert['code'])): ?>
+                                                    <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-50 text-blue-800 border border-blue-200 uppercase"><?= htmlspecialchars($cert['code']) ?></span>
+                                                <?php endif; ?>
+                                                <span class="text-xs font-semibold text-slate-800"><?= htmlspecialchars($cert['name']) ?></span>
+                                            </div>
+                                        </label>
+                                    <?php endforeach; ?>
+                                </div>
+                                <div class="text-[11px] text-slate-400 mt-2">Assigned certificates display under "Factory Audit &amp; Quality Control" on your live product page.</div>
+                            <?php else: ?>
+                                <div class="text-xs text-slate-400">No product certificates available.</div>
+                            <?php endif; ?>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -444,7 +473,16 @@ $currentPrimaryImg = !empty($product['primary_image']) ? Uploader::imageUrl($pro
                     <div>
                         <label for="prodGalleryFiles" class="block text-xs font-bold text-slate-700 mb-1.5">Add Additional Gallery Angles (Multi-Select)</label>
                         <input type="file" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-slate-700 file:text-white hover:file:bg-slate-800" id="prodGalleryFiles" name="gallery_images[]" multiple accept="image/jpeg,image/png,image/webp">
-                        <div class="text-[11px] text-slate-400 mt-1">Select multiple files at once. These will be added to the product gallery showcase.</div>
+                        <div class="text-[11px] text-slate-400 mt-1">Select multiple files at once (JPG, PNG, WEBP, max 8MB each). Live thumbnails appear below.</div>
+                        
+                        <!-- New Gallery Images Live Preview Container -->
+                        <div id="newGalleryPreviewContainer" class="hidden mt-3 p-3.5 bg-slate-50 border border-slate-200 rounded-2xl">
+                            <div class="text-[11px] font-bold text-slate-700 mb-2 flex items-center justify-between">
+                                <span>Newly Selected Photos (<span id="newGalleryCount">0</span>):</span>
+                                <span class="text-slate-400 font-normal">Click &times; to remove before saving</span>
+                            </div>
+                            <div class="flex flex-wrap gap-3" id="newGalleryThumbnails"></div>
+                        </div>
                     </div>
 
                     <!-- Existing Gallery Images -->
@@ -860,6 +898,89 @@ document.addEventListener('DOMContentLoaded', function () {
             item.remove();
         });
     });
+
+    // Live Gallery Images Preview with DataTransfer
+    const galleryInput = document.getElementById('prodGalleryFiles');
+    const newGalleryContainer = document.getElementById('newGalleryPreviewContainer');
+    const newGalleryThumbnails = document.getElementById('newGalleryThumbnails');
+    const newGalleryCount = document.getElementById('newGalleryCount');
+    let galleryDataTransfer = new DataTransfer();
+
+    if (galleryInput && newGalleryThumbnails) {
+        galleryInput.addEventListener('change', function () {
+            const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+            const maxSize = 8 * 1024 * 1024; // 8MB
+
+            Array.from(this.files).forEach(file => {
+                if (!allowedTypes.includes(file.type)) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Invalid Format',
+                        text: `"${file.name}" is not a supported JPG, PNG, or WEBP image.`
+                    });
+                    return;
+                }
+                if (file.size > maxSize) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'File Too Large',
+                        text: `"${file.name}" exceeds the 8MB limit.`
+                    });
+                    return;
+                }
+                galleryDataTransfer.items.add(file);
+            });
+
+            galleryInput.files = galleryDataTransfer.files;
+            renderNewGalleryPreviews();
+        });
+
+        function renderNewGalleryPreviews() {
+            newGalleryThumbnails.innerHTML = '';
+            const files = Array.from(galleryDataTransfer.files);
+            if (files.length === 0) {
+                newGalleryContainer.classList.add('hidden');
+                return;
+            }
+
+            newGalleryContainer.classList.remove('hidden');
+            if (newGalleryCount) newGalleryCount.textContent = files.length;
+
+            files.forEach((file, index) => {
+                const thumbWrapper = document.createElement('div');
+                thumbWrapper.className = 'relative w-24 h-24 border border-slate-200 rounded-xl overflow-hidden bg-white shadow-2xs group';
+
+                const img = document.createElement('img');
+                img.className = 'w-full h-full object-cover';
+                img.alt = file.name;
+
+                const reader = new FileReader();
+                reader.onload = e => {
+                    img.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+
+                const removeBtn = document.createElement('button');
+                removeBtn.type = 'button';
+                removeBtn.className = 'absolute top-1 right-1 w-6 h-6 rounded-full bg-red-600 hover:bg-red-700 text-white flex items-center justify-center shadow-xs transition-transform hover:scale-110';
+                removeBtn.title = 'Remove ' + file.name;
+                removeBtn.innerHTML = '<span class="material-symbols-outlined text-[14px]">close</span>';
+                removeBtn.addEventListener('click', function () {
+                    const dt = new DataTransfer();
+                    Array.from(galleryDataTransfer.files).forEach((f, i) => {
+                        if (i !== index) dt.items.add(f);
+                    });
+                    galleryDataTransfer = dt;
+                    galleryInput.files = galleryDataTransfer.files;
+                    renderNewGalleryPreviews();
+                });
+
+                thumbWrapper.appendChild(img);
+                thumbWrapper.appendChild(removeBtn);
+                newGalleryThumbnails.appendChild(thumbWrapper);
+            });
+        }
+    }
 
     // Auto slug from title
     const prodTitle = document.getElementById('prodTitle');

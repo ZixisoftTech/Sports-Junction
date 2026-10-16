@@ -159,7 +159,7 @@ class ChatConversation extends Model
             $params[':search'] = '%' . trim($filters['search']) . '%';
         }
 
-        $sql .= " ORDER BY COALESCE(c.last_message_at, c.created_at) DESC";
+        $sql .= " ORDER BY (unread_count > 0) DESC, COALESCE(c.last_message_at, c.created_at) DESC";
 
         return self::fetchAll($sql, $params);
     }
@@ -277,7 +277,7 @@ class ChatConversation extends Model
             $params[':search'] = '%' . trim($filters['search']) . '%';
         }
 
-        $sql .= " ORDER BY COALESCE(c.last_message_at, c.created_at) DESC";
+        $sql .= " ORDER BY (unread_count > 0) DESC, COALESCE(c.last_message_at, c.created_at) DESC";
 
         return self::fetchAll($sql, $params);
     }

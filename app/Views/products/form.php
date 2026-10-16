@@ -155,7 +155,7 @@ $subcategories = $subcategories ?? [];
 
                     <div class="col-md-6">
                         <label for="prodSupplier" class="form-label fw-semibold small">Supplier / Manufacturer <span class="text-danger">*</span></label>
-                        <select class="form-select" id="prodSupplier" name="supplier_id" required>
+                        <select class="form-select" id="prodSupplier" name="supplier_id" data-original-supplier="<?= (int)($product['supplier_id'] ?? 0) ?>" required>
                             <option value="">Select Approved Manufacturer...</option>
                             <?php if (!empty($suppliers)): foreach ($suppliers as $sup): ?>
                                 <option value="<?= $sup['id'] ?>" <?= ((int)($product['supplier_id'] ?? 0) === (int)$sup['id']) ? 'selected' : '' ?>>
@@ -229,7 +229,7 @@ $subcategories = $subcategories ?? [];
                     <div class="col-md-4">
                         <label for="prodMinPrice" class="form-label fw-semibold small">Min Wholesale Price (Tier 1) <span class="text-danger">*</span></label>
                         <div class="input-group">
-                            <span class="input-group-text bg-light fw-bold text-muted">&#8377;</span>
+                            <span class="input-group-text bg-light fw-bold text-muted">$</span>
                             <input type="number" step="0.01" min="0" class="form-control" id="prodMinPrice" name="min_price" required placeholder="0.00" value="<?= htmlspecialchars((string)($product['min_price'] ?? '')) ?>">
                             <div class="invalid-feedback">Valid min price (> 0) is required.</div>
                         </div>
@@ -238,16 +238,16 @@ $subcategories = $subcategories ?? [];
                     <div class="col-md-4">
                         <label for="prodMaxPrice" class="form-label fw-semibold small">Max Wholesale Price (Tier 2) <span class="text-danger">*</span></label>
                         <div class="input-group">
-                            <span class="input-group-text bg-light fw-bold text-muted">&#8377;</span>
+                            <span class="input-group-text bg-light fw-bold text-muted">$</span>
                             <input type="number" step="0.01" min="0" class="form-control" id="prodMaxPrice" name="max_price" required placeholder="0.00" value="<?= htmlspecialchars((string)($product['max_price'] ?? '')) ?>">
                             <div class="invalid-feedback">Max price must be greater than or equal to min price.</div>
                         </div>
                     </div>
 
                     <div class="col-md-4">
-                        <label for="prodPriceUnit" class="form-label fw-semibold small">Price Currency / Unit <span class="text-danger">*</span></label>
+                        <label for="prodPriceUnit" class="form-label fw-semibold small">Unit <span class="text-danger">*</span></label>
                         <select class="form-select" id="prodPriceUnit" name="price_unit_id" required>
-                            <option value="">Select Price Unit...</option>
+                            <option value="">Select Unit...</option>
                             <?php foreach ($priceUnits as $pu): ?>
                                 <option value="<?= $pu['id'] ?>" <?= ((int)($product['price_unit_id'] ?? 1) === (int)$pu['id']) ? 'selected' : '' ?>>
                                     <?= htmlspecialchars($pu['name']) ?> (<?= htmlspecialchars($pu['symbol'] ?? '') ?>)
@@ -295,7 +295,7 @@ $subcategories = $subcategories ?? [];
                     <div class="col-md-6" id="samplePriceWrapper">
                         <label for="prodSamplePrice" class="form-label fw-semibold small">Sample Price Per Unit</label>
                         <div class="input-group">
-                            <span class="input-group-text bg-light fw-bold text-muted">&#8377;</span>
+                            <span class="input-group-text bg-light fw-bold text-muted">$</span>
                             <input type="number" step="0.01" min="0" class="form-control" id="prodSamplePrice" name="sample_price" placeholder="0.00" value="<?= htmlspecialchars((string)($product['sample_price'] ?? '')) ?>">
                         </div>
                     </div>
@@ -376,6 +376,34 @@ $subcategories = $subcategories ?? [];
                     <div class="col-12">
                         <label for="prodCustomDetails" class="form-label fw-semibold small">Customization MOQ &amp; Production Details</label>
                         <textarea class="form-control" id="prodCustomDetails" name="customization_details" rows="3" placeholder="e.g. Silk-screen logo min order 100 pcs; custom debossed valve min order 500 pcs; branded presentation polybags included..."><?= htmlspecialchars($product['customization_details'] ?? '') ?></textarea>
+                    </div>
+
+                    <!-- Product Certificates Assignment -->
+                    <div class="col-12 mt-3">
+                        <label class="form-label fw-semibold small mb-2"><i class="bi bi-patch-check-fill text-success me-1.5"></i>Product Certificates &amp; Compliance Standards</label>
+                        <div class="p-3 bg-light rounded-3 border">
+                            <?php if (!empty($certificates)): ?>
+                                <div class="row g-2">
+                                    <?php foreach ($certificates as $cert): ?>
+                                        <?php $isAssigned = in_array((int)$cert['id'], array_map('intval', $assignedCertificateIds ?? [])); ?>
+                                        <div class="col-sm-6 col-md-4">
+                                            <div class="form-check p-2 bg-white rounded border d-flex align-items-center">
+                                                <input class="form-check-input ms-0 me-2 flex-shrink-0" type="checkbox" name="certificate_ids[]" value="<?= (int)$cert['id'] ?>" id="cert_<?= (int)$cert['id'] ?>" <?= $isAssigned ? 'checked' : '' ?>>
+                                                <label class="form-check-label small fw-semibold text-dark cursor-pointer text-truncate" for="cert_<?= (int)$cert['id'] ?>">
+                                                    <?php if (!empty($cert['code'])): ?>
+                                                        <span class="badge bg-primary-subtle text-primary border me-1"><?= htmlspecialchars($cert['code']) ?></span>
+                                                    <?php endif; ?>
+                                                    <?= htmlspecialchars($cert['name']) ?>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    <?php endforeach; ?>
+                                </div>
+                                <div class="form-text small text-muted mt-2">Selected certificates will be dynamically displayed under the "Factory Audit &amp; Quality Control" tab on this product's marketplace page.</div>
+                            <?php else: ?>
+                                <div class="text-muted small">No product certificates configured. You can manage them in Super Admin &rarr; Product Certificates.</div>
+                            <?php endif; ?>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -488,7 +516,16 @@ $subcategories = $subcategories ?? [];
                     <div class="col-12">
                         <label for="prodGalleryFiles" class="form-label fw-semibold small mb-1">Add Additional Gallery Angles (Multi-Select)</label>
                         <input type="file" class="form-control" id="prodGalleryFiles" name="gallery_images[]" multiple accept="image/jpeg,image/png,image/webp">
-                        <div class="text-muted small mt-1" style="font-size: 11px;">Select multiple files at once. These will be added to the product gallery showcase.</div>
+                        <div class="text-muted small mt-1" style="font-size: 11px;">Select multiple files at once (JPG, PNG, WEBP, max 8MB each). Live previews appear below.</div>
+
+                        <!-- New Gallery Images Live Preview Container -->
+                        <div id="newGalleryPreviewContainer" class="d-none mt-2 p-3 bg-light rounded-3 border">
+                            <div class="small fw-bold text-secondary mb-2 d-flex justify-content-between">
+                                <span>Newly Selected Photos (<span id="newGalleryCount">0</span>):</span>
+                                <span class="text-muted fw-normal" style="font-size: 11px;">Click &times; to remove before saving</span>
+                            </div>
+                            <div class="d-flex flex-wrap gap-2" id="newGalleryThumbnails"></div>
+                        </div>
                     </div>
 
                     <!-- Existing Gallery Images -->
@@ -839,6 +876,34 @@ document.addEventListener('DOMContentLoaded', function () {
         loadSubcategories(this.value);
     });
 
+    // Supplier Reassignment Warning Confirmation
+    const supplierSelect = document.getElementById('prodSupplier');
+    if (supplierSelect) {
+        let originalSupplierVal = supplierSelect.getAttribute('data-original-supplier') || supplierSelect.value;
+        supplierSelect.addEventListener('change', function () {
+            const newVal = this.value;
+            if (originalSupplierVal && originalSupplierVal !== '0' && newVal && newVal !== originalSupplierVal) {
+                const selectedText = this.options[this.selectedIndex].text;
+                Swal.fire({
+                    title: 'Reassign Product Supplier?',
+                    text: `Are you sure you want to transfer ownership of this product to "${selectedText}"? It will appear in their catalog and be removed from the previous supplier. Existing enquiries and chat messages remain preserved.`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#00288e',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'Yes, Reassign Supplier',
+                    cancelButtonText: 'Cancel'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        originalSupplierVal = newVal;
+                    } else {
+                        supplierSelect.value = originalSupplierVal;
+                    }
+                });
+            }
+        });
+    }
+
     // Live Primary Image Preview
     const primaryImgInput = document.getElementById('prodPrimaryImgFile');
     const primaryUrlInput = document.getElementById('prodPrimaryImgUrl');
@@ -880,6 +945,93 @@ document.addEventListener('DOMContentLoaded', function () {
             item.remove();
         });
     });
+
+    // Live Gallery Images Preview with DataTransfer
+    const galleryInput = document.getElementById('prodGalleryFiles');
+    const newGalleryContainer = document.getElementById('newGalleryPreviewContainer');
+    const newGalleryThumbnails = document.getElementById('newGalleryThumbnails');
+    const newGalleryCount = document.getElementById('newGalleryCount');
+    let galleryDataTransfer = new DataTransfer();
+
+    if (galleryInput && newGalleryThumbnails) {
+        galleryInput.addEventListener('change', function () {
+            const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+            const maxSize = 8 * 1024 * 1024; // 8MB
+
+            Array.from(this.files).forEach(file => {
+                if (!allowedTypes.includes(file.type)) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Invalid Format',
+                        text: `"${file.name}" is not a supported JPG, PNG, or WEBP image.`
+                    });
+                    return;
+                }
+                if (file.size > maxSize) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'File Too Large',
+                        text: `"${file.name}" exceeds the 8MB limit.`
+                    });
+                    return;
+                }
+                galleryDataTransfer.items.add(file);
+            });
+
+            galleryInput.files = galleryDataTransfer.files;
+            renderNewGalleryPreviews();
+        });
+
+        function renderNewGalleryPreviews() {
+            newGalleryThumbnails.innerHTML = '';
+            const files = Array.from(galleryDataTransfer.files);
+            if (files.length === 0) {
+                newGalleryContainer.classList.add('d-none');
+                return;
+            }
+
+            newGalleryContainer.classList.remove('d-none');
+            if (newGalleryCount) newGalleryCount.textContent = files.length;
+
+            files.forEach((file, index) => {
+                const thumbWrapper = document.createElement('div');
+                thumbWrapper.className = 'position-relative border rounded-3 overflow-hidden bg-white shadow-xs';
+                thumbWrapper.style.width = '80px';
+                thumbWrapper.style.height = '80px';
+
+                const img = document.createElement('img');
+                img.className = 'w-100 h-100 object-fit-cover';
+                img.alt = file.name;
+
+                const reader = new FileReader();
+                reader.onload = e => {
+                    img.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+
+                const removeBtn = document.createElement('button');
+                removeBtn.type = 'button';
+                removeBtn.className = 'btn btn-danger btn-sm p-0 position-absolute top-0 end-0 m-1 rounded-circle d-flex align-items-center justify-content-center';
+                removeBtn.style.width = '20px';
+                removeBtn.style.height = '20px';
+                removeBtn.title = 'Remove ' + file.name;
+                removeBtn.innerHTML = '<i class="bi bi-x fs-6"></i>';
+                removeBtn.addEventListener('click', function () {
+                    const dt = new DataTransfer();
+                    Array.from(galleryDataTransfer.files).forEach((f, i) => {
+                        if (i !== index) dt.items.add(f);
+                    });
+                    galleryDataTransfer = dt;
+                    galleryInput.files = galleryDataTransfer.files;
+                    renderNewGalleryPreviews();
+                });
+
+                thumbWrapper.appendChild(img);
+                thumbWrapper.appendChild(removeBtn);
+                newGalleryThumbnails.appendChild(thumbWrapper);
+            });
+        }
+    }
 
     // Auto slug from title
     const prodTitle = document.getElementById('prodTitle');

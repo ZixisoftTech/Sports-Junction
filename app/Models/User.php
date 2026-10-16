@@ -42,11 +42,13 @@ class User extends Model
             INSERT INTO users (
                 name, company_name, email, password, role, status, 
                 must_change_password, phone, country_code, country_id, 
+                state, city,
                 email_verified_at, terms_accepted_at, terms_version, created_at, updated_at
             )
             VALUES (
                 :name, :company_name, :email, :password, :role, :status, 
                 :must_change_password, :phone, :country_code, :country_id,
+                :state, :city,
                 :email_verified_at, :terms_accepted_at, :terms_version, NOW(), NOW()
             )
         ", [
@@ -60,6 +62,8 @@ class User extends Model
             ':phone'                => $data['phone'] ?? null,
             ':country_code'         => $data['country_code'] ?? '+91',
             ':country_id'           => !empty($data['country_id']) ? (int) $data['country_id'] : null,
+            ':state'                => !empty($data['state']) ? trim($data['state']) : null,
+            ':city'                 => !empty($data['city']) ? trim($data['city']) : null,
             ':email_verified_at'    => $data['email_verified_at'] ?? null,
             ':terms_accepted_at'    => !empty($data['terms_accepted']) ? date('Y-m-d H:i:s') : null,
             ':terms_version'        => $data['terms_version'] ?? 'v1.0',
@@ -164,7 +168,9 @@ class User extends Model
                 email        = :email,
                 phone        = :phone,
                 country_code = :country_code,
-                country_id   = :country_id{$emailReverifySql},
+                country_id   = :country_id,
+                state        = :state,
+                city         = :city{$emailReverifySql},
                 updated_at   = NOW()
             WHERE id = :id
         ", [
@@ -174,6 +180,8 @@ class User extends Model
             ':phone'        => !empty($data['phone']) ? trim($data['phone']) : null,
             ':country_code' => $data['country_code'] ?? '+91',
             ':country_id'   => !empty($data['country_id']) ? (int)$data['country_id'] : null,
+            ':state'        => !empty($data['state']) ? trim($data['state']) : null,
+            ':city'         => !empty($data['city']) ? trim($data['city']) : null,
             ':id'           => $id,
         ]);
 
@@ -255,6 +263,7 @@ class User extends Model
 
         $rows = self::fetchAll("
             SELECT u.id, u.name, u.company_name, u.email, u.phone, u.country_code, u.country_id,
+                   u.state, u.city,
                    u.status, u.email_verified_at, u.last_login_at, u.created_at, u.updated_at,
                    c.name AS country_name,
                    (SELECT COUNT(*) FROM product_inquiries pi WHERE pi.buyer_user_id = u.id OR (pi.enquiry_source != 'CONTACT_US' AND LOWER(pi.buyer_email) = LOWER(u.email))) AS total_enquiries
@@ -277,6 +286,7 @@ class User extends Model
     {
         return self::fetch("
             SELECT u.id, u.name, u.company_name, u.email, u.phone, u.country_code, u.country_id,
+                   u.state, u.city,
                    u.role, u.status, u.email_verified_at, u.terms_accepted_at, u.terms_version,
                    u.last_login_at, u.created_at, u.updated_at,
                    c.name AS country_name,
@@ -324,6 +334,8 @@ class User extends Model
                 phone        = :phone,
                 country_code = :country_code,
                 country_id   = :country_id,
+                state        = :state,
+                city         = :city,
                 status       = :status{$emailVerifiedSql},
                 updated_at   = NOW()
             WHERE id = :id AND role = 'BUYER'
@@ -334,6 +346,8 @@ class User extends Model
             ':phone'        => !empty($data['phone']) ? trim($data['phone']) : null,
             ':country_code' => !empty($data['country_code']) ? trim($data['country_code']) : ($buyer['country_code'] ?? '+91'),
             ':country_id'   => !empty($data['country_id']) ? (int) $data['country_id'] : null,
+            ':state'        => !empty($data['state']) ? trim($data['state']) : null,
+            ':city'         => !empty($data['city']) ? trim($data['city']) : null,
             ':status'       => $status,
             ':id'           => $id,
         ]);

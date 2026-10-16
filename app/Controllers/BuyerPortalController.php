@@ -265,6 +265,8 @@ class BuyerPortalController extends Controller
             'phone'        => $input['phone'],
             'country_code' => $input['country_code'] ?? '+91',
             'country_id'   => $input['country_id'],
+            'state'        => !empty($input['state']) ? trim($input['state']) : null,
+            'city'         => !empty($input['city']) ? trim($input['city']) : null,
         ]);
 
         if ($emailChanged) {

@@ -58,7 +58,7 @@ if (!empty($messages)) {
                 <div class="text-muted small fw-semibold text-uppercase" style="font-size: 10px;">Product / Item</div>
                 <?php if (!empty($conversation['product_title'])): ?>
                     <h6 class="fw-bold text-primary mb-0 text-truncate" style="font-size: 12px;"><?= htmlspecialchars($conversation['product_title']) ?></h6>
-                    <div class="text-slate-700 small font-monospace" style="font-size: 11px;">₹<?= number_format((float)($conversation['product_price'] ?? 0), 2) ?> | MOQ: <?= (int)($conversation['product_moq'] ?? 1) ?></div>
+                    <div class="text-slate-700 small font-monospace" style="font-size: 11px;">$<?= number_format((float)($conversation['product_price'] ?? 0), 2) ?> | MOQ: <?= (int)($conversation['product_moq'] ?? 1) ?></div>
                     <?php if (!empty($conversation['product_slug'])): ?>
                         <a href="<?= $baseUrl ?>/product/<?= htmlspecialchars($conversation['product_slug']) ?>" target="_blank" class="text-decoration-none" style="font-size: 10px;">
                             <i class="bi bi-box-arrow-up-right me-1"></i> View Live Product
@@ -354,8 +354,8 @@ if (!empty($messages)) {
                                     </div>
                                     <div class="small text-slate-700" style="font-size: 11px;">
                                         <div><strong>Qty:</strong> <?= number_format((int)$off['quantity']) ?> <?= htmlspecialchars($off['unit']) ?></div>
-                                        <div><strong>Unit Price:</strong> ₹<?= number_format((float)$off['unit_price'], 2) ?></div>
-                                        <div class="fw-bold text-primary mt-0.5">Total: ₹<?= number_format((float)$off['total_amount'], 2) ?></div>
+                                        <div><strong>Unit Price:</strong> $<?= number_format((float)$off['unit_price'], 2) ?></div>
+                                        <div class="fw-bold text-primary mt-0.5">Total: $<?= number_format((float)$off['total_amount'], 2) ?></div>
                                         <?php if (!empty($off['lead_time'])): ?>
                                             <div class="text-muted mt-0.5" style="font-size: 10px;">Lead Time: <?= htmlspecialchars($off['lead_time']) ?></div>
                                         <?php endif; ?>

@@ -13,6 +13,7 @@ $address = htmlspecialchars($supplier['address'] ?? '');
 $contactPerson = htmlspecialchars($supplier['contact_person'] ?? 'Factory Representative');
 $supplierId = (int) ($supplier['id'] ?? 0);
 $productCount = count($products);
+$supplierTags = !empty($supplierId) ? \App\Models\SupplierCertificationTag::getForSupplier($supplierId) : [];
 ?>
 
 <div class="bg-surface-container-lowest min-h-screen py-8">
@@ -44,11 +45,15 @@ $productCount = count($products);
             <div class="px-6 pb-6 pt-0 relative">
                 <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4 -mt-12 sm:-mt-14 mb-4">
                     <div class="flex items-end gap-4">
-                        <!-- Factory Avatar Badge -->
-                        <div class="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-white p-1.5 shadow-xl border border-surface-container flex-shrink-0">
-                            <div class="w-full h-full rounded-xl bg-gradient-to-br from-blue-900 to-teal-800 text-white flex items-center justify-center font-headline font-extrabold text-2xl sm:text-3xl shadow-inner">
-                                <?= strtoupper(substr($supplier['company_name'] ?? 'M', 0, 1)) ?>
-                            </div>
+                        <!-- Factory Avatar / Logo Badge -->
+                        <div class="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-white p-1.5 shadow-xl border border-surface-container flex-shrink-0 flex items-center justify-center overflow-hidden">
+                            <?php if (!empty($supplier['logo'])): ?>
+                                <img src="<?= htmlspecialchars(str_starts_with($supplier['logo'], '/') ? ($baseUrl . $supplier['logo']) : $supplier['logo']) ?>" alt="<?= $supplierName ?>" class="w-full h-full object-contain rounded-xl">
+                            <?php else: ?>
+                                <div class="w-full h-full rounded-xl bg-gradient-to-br from-blue-900 to-teal-800 text-white flex items-center justify-center font-headline font-extrabold text-2xl sm:text-3xl shadow-inner">
+                                    <?= strtoupper(substr($supplier['company_name'] ?? 'M', 0, 1)) ?>
+                                </div>
+                            <?php endif; ?>
                         </div>
 
                         <div>
@@ -83,7 +88,7 @@ $productCount = count($products);
                 </div>
 
                 <!-- Credibility & Trust Bar -->
-                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-4 border-t border-surface-container text-xs">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-4 border-t border-surface-container text-xs">
                     <div class="p-3 bg-slate-50/70 rounded-xl border border-slate-200/70">
                         <span class="text-[10px] font-bold uppercase text-slate-400 block mb-0.5">Response SLA</span>
                         <div class="font-bold text-slate-900 flex items-center gap-1">
@@ -99,13 +104,6 @@ $productCount = count($products);
                         </div>
                     </div>
                     <div class="p-3 bg-slate-50/70 rounded-xl border border-slate-200/70">
-                        <span class="text-[10px] font-bold uppercase text-slate-400 block mb-0.5">Escrow Protection</span>
-                        <div class="font-bold text-slate-900 flex items-center gap-1">
-                            <span class="material-symbols-outlined text-[16px] text-emerald-600">security</span>
-                            <span>Quality Inspected Escrow</span>
-                        </div>
-                    </div>
-                    <div class="p-3 bg-slate-50/70 rounded-xl border border-slate-200/70">
                         <span class="text-[10px] font-bold uppercase text-slate-400 block mb-0.5">Verification Status</span>
                         <div class="font-bold text-teal-800 flex items-center gap-1">
                             <span class="material-symbols-outlined text-[16px] text-teal-600">verified_user</span>
@@ -113,6 +111,19 @@ $productCount = count($products);
                         </div>
                     </div>
                 </div>
+
+                <!-- Dynamic Supplier Certification Tags -->
+                <?php if (!empty($supplierTags)): ?>
+                    <div class="mt-4 pt-3 border-t border-slate-100 flex items-center gap-2 flex-wrap">
+                        <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Certifications & Audits:</span>
+                        <?php foreach ($supplierTags as $tag): ?>
+                            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-teal-50 text-teal-800 border border-teal-200 text-xs font-semibold" title="<?= htmlspecialchars($tag['description'] ?? '') ?>">
+                                <span class="material-symbols-outlined text-[15px] text-teal-600"><?= htmlspecialchars($tag['icon'] ?: 'verified') ?></span>
+                                <span><?= htmlspecialchars($tag['name']) ?></span>
+                            </span>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
 
                 <!-- Description / Address if available -->
                 <?php if (!empty($supplier['description']) || $address): ?>
@@ -160,7 +171,7 @@ $productCount = count($products);
                     <?php foreach ($products as $p): ?>
                         <?php 
                             $imgSrc = !empty($p['primary_image']) ? ($baseUrl . $p['primary_image']) : ($baseUrl . '/assets/images/placeholder-product.jpg');
-                            $priceStr = '₹' . number_format((float)($p['min_price'] ?? $p['price'] ?? 0), 2);
+                            $priceStr = '$' . number_format((float)($p['min_price'] ?? $p['price'] ?? 0), 2);
                             $moqStr = (int)($p['moq_quantity'] ?? 1) . ' ' . htmlspecialchars($p['moq_unit_symbol'] ?? $p['moq_unit_name'] ?? 'Units');
                         ?>
                         <div class="bg-white rounded-2xl border border-surface-container overflow-hidden shadow-xs hover:shadow-md transition-all flex flex-col group">

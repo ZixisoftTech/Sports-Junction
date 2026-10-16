@@ -168,7 +168,7 @@ $baseUrl = \App\Core\Response::baseUrl();
                                     <td>
                                         <?php if (!empty($c['product_title'])): ?>
                                             <div class="fw-semibold text-primary text-truncate" style="max-width: 200px;"><?= htmlspecialchars($c['product_title']) ?></div>
-                                            <div class="text-muted small">₹<?= number_format((float)($c['product_price'] ?? 0), 2) ?></div>
+                                            <div class="text-muted small">$<?= number_format((float)($c['product_price'] ?? 0), 2) ?></div>
                                         <?php else: ?>
                                             <span class="text-muted small fst-italic">General Sourcing Inquiry</span>
                                         <?php endif; ?>

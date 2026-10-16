@@ -13,14 +13,39 @@ class Country extends Model
     {
         return self::fetch("SELECT * FROM countries WHERE id = :id LIMIT 1", [':id' => $id]);
     }
+    public static function getFlagEmoji(?string $code): string
+    {
+        if (empty($code)) {
+            return '🌐';
+        }
+        $code = strtoupper(trim($code));
+        if (strlen($code) !== 2) {
+            return '🌐';
+        }
+        $first = ord($code[0]) - 65;
+        $second = ord($code[1]) - 65;
+        if ($first < 0 || $first > 25 || $second < 0 || $second > 25) {
+            return '🌐';
+        }
+        return mb_chr(0x1F1E6 + $first) . mb_chr(0x1F1E6 + $second);
+    }
+
     public static function all(): array
     {
-        return self::fetchAll("SELECT id, name, iso_alpha2, iso_alpha3, phone_code, status FROM countries ORDER BY name ASC");
+        $countries = self::fetchAll("SELECT id, name, iso_alpha2, iso_alpha3, phone_code, status FROM countries ORDER BY name ASC");
+        foreach ($countries as &$c) {
+            $c['flag'] = self::getFlagEmoji($c['iso_alpha2'] ?? '');
+        }
+        return $countries;
     }
 
     public static function allActive(): array
     {
-        return self::fetchAll("SELECT id, name, iso_alpha2, phone_code FROM countries WHERE status = 'ACTIVE' ORDER BY name ASC");
+        $countries = self::fetchAll("SELECT id, name, iso_alpha2, iso_alpha3, phone_code FROM countries WHERE status = 'ACTIVE' ORDER BY name ASC");
+        foreach ($countries as &$c) {
+            $c['flag'] = self::getFlagEmoji($c['iso_alpha2'] ?? '');
+        }
+        return $countries;
     }
 
     public static function create(array $data): int

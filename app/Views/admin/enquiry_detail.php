@@ -124,7 +124,7 @@ $status = $enquiry['status'] ?? 'SUBMITTED';
                     <div class="col-md-3">
                         <div class="text-slate-500 small">Target Price</div>
                         <div class="fw-bold text-slate-900">
-                            <?= !empty($enquiry['target_price']) ? '₹' . number_format((float)$enquiry['target_price'], 2) : 'Market Quote' ?>
+                            <?= !empty($enquiry['target_price']) ? '$' . number_format((float)$enquiry['target_price'], 2) : 'Market Quote' ?>
                         </div>
                     </div>
                     <div class="col-md-6">

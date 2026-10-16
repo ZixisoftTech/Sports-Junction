@@ -87,11 +87,13 @@ $old = Session::flash('old_input') ?? [];
                     <div>
                         <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Mobile / Phone Number <span class="text-red-500">*</span></label>
                         <div class="flex gap-2">
-                            <select name="country_code" class="w-28 shrink-0 py-2.5 px-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:bg-white focus:border-blue-700 outline-none">
-                                <option value="+91" selected>+91 (IN)</option>
-                                <option value="+1">+1 (US)</option>
-                                <option value="+44">+44 (UK)</option>
-                                <option value="+971">+971 (AE)</option>
+                            <select name="country_code" id="supCountryCode" class="w-32 shrink-0 py-2.5 px-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:bg-white focus:border-blue-700 outline-none">
+                                <option value="+91" selected>+91</option>
+                                <?php foreach ($countries as $c): if (!empty($c['phone_code'])): ?>
+                                    <option value="<?= htmlspecialchars($c['phone_code']) ?>" <?= (($old['country_code'] ?? '+91') === $c['phone_code']) ? 'selected' : '' ?>>
+                                        <?= $c['flag'] ?> <?= htmlspecialchars($c['phone_code']) ?>
+                                    </option>
+                                <?php endif; endforeach; ?>
                             </select>
                             <input type="tel" name="phone" required value="<?= htmlspecialchars($old['phone'] ?? '') ?>" placeholder="98970 12345" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:bg-white focus:border-blue-700 focus:ring-2 focus:ring-blue-100 outline-none transition-all">
                         </div>
@@ -115,11 +117,14 @@ $old = Session::flash('old_input') ?? [];
                     <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
                         <div>
                             <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Country <span class="text-red-500">*</span></label>
-                            <select name="country_id" id="supCountrySelect" required onchange="onCountryChange(this.value)" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 focus:bg-white focus:border-blue-700 outline-none">
+                            <select name="country_id" id="supCountrySelect" required data-country-picker class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 focus:bg-white focus:border-blue-700 outline-none">
                                 <option value="">Select Country</option>
                                 <?php foreach ($countries as $c): ?>
-                                    <option value="<?= (int)$c['id'] ?>" <?= ((int)($old['country_id'] ?? 1) === (int)$c['id']) ? 'selected' : '' ?>>
-                                        <?= htmlspecialchars($c['name']) ?>
+                                    <option value="<?= (int)$c['id'] ?>" 
+                                            data-flag="<?= htmlspecialchars($c['flag'] ?? '🌐') ?>" 
+                                            data-phone="<?= htmlspecialchars($c['phone_code'] ?? '') ?>"
+                                            <?= ((int)($old['country_id'] ?? 1) === (int)$c['id']) ? 'selected' : '' ?>>
+                                        <?= $c['flag'] ?> <?= htmlspecialchars($c['name']) ?> (<?= htmlspecialchars($c['phone_code'] ?? '') ?>)
                                     </option>
                                 <?php endforeach; ?>
                             </select>
@@ -127,16 +132,12 @@ $old = Session::flash('old_input') ?? [];
 
                         <div>
                             <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">State / Province <span class="text-red-500">*</span></label>
-                            <select name="state_id" id="supStateSelect" required onchange="onStateChange(this.value)" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 focus:bg-white focus:border-blue-700 outline-none">
-                                <option value="">Select State</option>
-                            </select>
+                            <input type="text" name="state" id="supStateInput" required value="<?= htmlspecialchars($old['state'] ?? '') ?>" placeholder="e.g. Uttar Pradesh" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 focus:bg-white focus:border-blue-700 outline-none">
                         </div>
 
                         <div>
                             <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">City <span class="text-red-500">*</span></label>
-                            <select name="city_id" id="supCitySelect" required class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 focus:bg-white focus:border-blue-700 outline-none">
-                                <option value="">Select City</option>
-                            </select>
+                            <input type="text" name="city" id="supCityInput" required value="<?= htmlspecialchars($old['city'] ?? '') ?>" placeholder="e.g. Meerut" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 focus:bg-white focus:border-blue-700 outline-none">
                         </div>
 
                         <div>
@@ -203,85 +204,8 @@ $old = Session::flash('old_input') ?? [];
     </div>
 </div>
 
+<script src="<?= htmlspecialchars($baseUrl) ?>/assets/js/country-picker.js"></script>
 <script>
-const baseUrl = '<?= htmlspecialchars($baseUrl) ?>';
-
-function onCountryChange(countryId, selectedStateId = null, selectedCityId = null) {
-    const stateSelect = document.getElementById('supStateSelect');
-    const citySelect = document.getElementById('supCitySelect');
-    if (!stateSelect || !citySelect) return;
-
-    stateSelect.innerHTML = '<option value="">Loading states...</option>';
-    citySelect.innerHTML = '<option value="">Select City</option>';
-
-    if (!countryId) {
-        stateSelect.innerHTML = '<option value="">Select State</option>';
-        return;
-    }
-
-    fetch(`${baseUrl}/api/public/states-by-country/${countryId}`)
-        .then(r => r.json())
-        .then(res => {
-            stateSelect.innerHTML = '<option value="">Select State</option>';
-            if (res.data && res.data.length > 0) {
-                res.data.forEach(s => {
-                    const isSel = selectedStateId && parseInt(selectedStateId) === parseInt(s.id);
-                    stateSelect.innerHTML += `<option value="${s.id}" ${isSel ? 'selected' : ''}>${s.name}</option>`;
-                });
-                if (selectedStateId) {
-                    onStateChange(selectedStateId, selectedCityId);
-                }
-            } else {
-                stateSelect.innerHTML = '<option value="">No states available</option>';
-            }
-        })
-        .catch(err => {
-            console.error('Failed to load states:', err);
-            stateSelect.innerHTML = '<option value="">Select State</option>';
-        });
-}
-
-function onStateChange(stateId, selectedCityId = null) {
-    const citySelect = document.getElementById('supCitySelect');
-    if (!citySelect) return;
-
-    citySelect.innerHTML = '<option value="">Loading cities...</option>';
-
-    if (!stateId) {
-        citySelect.innerHTML = '<option value="">Select City</option>';
-        return;
-    }
-
-    fetch(`${baseUrl}/api/public/cities-by-state/${stateId}`)
-        .then(r => r.json())
-        .then(res => {
-            citySelect.innerHTML = '<option value="">Select City</option>';
-            if (res.data && res.data.length > 0) {
-                res.data.forEach(c => {
-                    const isSel = selectedCityId && parseInt(selectedCityId) === parseInt(c.id);
-                    citySelect.innerHTML += `<option value="${c.id}" ${isSel ? 'selected' : ''}>${c.name}</option>`;
-                });
-            } else {
-                citySelect.innerHTML = '<option value="">No cities available</option>';
-            }
-        })
-        .catch(err => {
-            console.error('Failed to load cities:', err);
-            citySelect.innerHTML = '<option value="">Select City</option>';
-        });
-}
-
-// Initial load when DOM is ready
-document.addEventListener('DOMContentLoaded', function () {
-    const countryEl = document.getElementById('supCountrySelect');
-    const oldStateId = <?= json_encode($old['state_id'] ?? null) ?>;
-    const oldCityId = <?= json_encode($old['city_id'] ?? null) ?>;
-
-    if (countryEl && countryEl.value) {
-        onCountryChange(countryEl.value, oldStateId, oldCityId);
-    }
-});
-
 function togglePassVisibility(inputId, btn) {
     const el = document.getElementById(inputId);
     const icon = btn.querySelector('.material-symbols-outlined');

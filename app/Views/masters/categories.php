@@ -94,27 +94,83 @@ $baseUrl = Response::baseUrl();
                             <input type="text" class="form-control form-control-sm" id="catSlug" name="slug" placeholder="e.g. sports-and-fitness" maxlength="160">
                         </div>
 
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <label for="catOrder" class="form-label fw-semibold small">Display Priority Order</label>
                             <input type="number" class="form-control form-control-sm" id="catOrder" name="display_order" value="0" min="0">
                             <div class="form-text small text-muted">Lower numbers appear first (0, 1, 2...)</div>
                         </div>
-                        <div class="col-md-4">
-                            <label for="catIcon" class="form-label fw-semibold small">Material Icon Name</label>
-                            <div class="input-group input-group-sm">
-                                <span class="input-group-text bg-white" id="catIconPreviewWrapper">
-                                    <span class="material-symbols-outlined text-primary fs-5" id="catIconPreview">fitness_center</span>
-                                </span>
-                                <input type="text" class="form-control" id="catIcon" name="icon" value="fitness_center" placeholder="e.g. fitness_center, sports_cricket">
-                            </div>
-                            <div class="form-text small text-muted">e.g. sports_cricket, sports_soccer, hiking, fitness_center</div>
-                        </div>
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <label for="catStatus" class="form-label fw-semibold small">Status <span class="text-danger">*</span></label>
                             <select class="form-select form-select-sm" id="catStatus" name="status" required>
                                 <option value="ACTIVE">Active (Published)</option>
                                 <option value="INACTIVE">Inactive (Hidden)</option>
                             </select>
+                        </div>
+
+                        <!-- Icon Selection (Searchable Library OR Custom File Upload) -->
+                        <div class="col-12">
+                            <label class="form-label fw-semibold small mb-1">Category Icon</label>
+                            
+                            <ul class="nav nav-pills nav-fill mb-2 p-1 bg-light rounded border" id="catIconTabs" role="tablist">
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link active py-1.5 px-3 small fw-semibold" id="tab-icon-library" data-bs-toggle="pill" data-bs-target="#pane-icon-library" type="button" role="tab">
+                                        <i class="bi bi-grid-3x3-gap-fill me-1.5"></i> Searchable Icon Library
+                                    </button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link py-1.5 px-3 small fw-semibold" id="tab-icon-upload" data-bs-toggle="pill" data-bs-target="#pane-icon-upload" type="button" role="tab">
+                                        <i class="bi bi-cloud-arrow-up-fill me-1.5"></i> Upload Custom Icon File
+                                    </button>
+                                </li>
+                            </ul>
+
+                            <div class="tab-content border rounded p-3 bg-white" id="catIconTabContent">
+                                <!-- Tab 1: Icon Library -->
+                                <div class="tab-pane fade show active" id="pane-icon-library" role="tabpanel">
+                                    <div class="row g-2 align-items-center mb-2">
+                                        <div class="col-sm-7">
+                                            <div class="input-group input-group-sm">
+                                                <span class="input-group-text bg-white"><i class="bi bi-search text-muted"></i></span>
+                                                <input type="text" class="form-control" id="catIconSearch" placeholder="Search icon (e.g. soccer, tennis, bike, gym)...">
+                                            </div>
+                                        </div>
+                                        <div class="col-sm-5">
+                                            <div class="input-group input-group-sm">
+                                                <span class="input-group-text bg-white" id="catIconPreviewWrapper">
+                                                    <span class="material-symbols-outlined text-primary fs-5" id="catIconPreview">fitness_center</span>
+                                                </span>
+                                                <input type="text" class="form-control font-monospace" id="catIcon" name="icon" value="fitness_center" placeholder="icon_name">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="d-flex flex-wrap gap-1 p-2 bg-light rounded border overflow-auto" id="catIconLibraryGrid" style="max-height: 130px;">
+                                        <!-- Rendered dynamically by JS -->
+                                    </div>
+                                    <div class="form-text small text-muted mt-1" style="font-size: 11px;">
+                                        Click any icon above or type any valid Google Material Symbol name.
+                                    </div>
+                                </div>
+
+                                <!-- Tab 2: Upload Icon File -->
+                                <div class="tab-pane fade" id="pane-icon-upload" role="tabpanel">
+                                    <div class="d-flex align-items-center gap-3">
+                                        <div class="border rounded bg-light p-1 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 50px; height: 50px;">
+                                            <img id="catCustomIconPreview" src="" alt="Icon" class="d-none w-100 h-100 object-fit-contain">
+                                            <i class="bi bi-image text-muted fs-4" id="catCustomIconPlaceholder"></i>
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <input type="file" class="form-control form-control-sm mb-1" id="catIconFile" name="icon_file" accept="image/svg+xml,image/png,image/webp,image/jpeg">
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <span class="text-muted" style="font-size: 11px;">SVG or PNG, 64×64px or 128×128px (Max 2MB).</span>
+                                                <button type="button" class="btn btn-link btn-sm text-danger p-0 text-decoration-none small" id="btnResetCustomIcon" style="font-size: 11px;">
+                                                    <i class="bi bi-x-circle me-1"></i>Clear Upload
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         <!-- Modern Image Upload & Preview Section -->
@@ -171,13 +227,113 @@ document.addEventListener('DOMContentLoaded', function () {
     const previewImg = document.getElementById('catImagePreview');
     const placeholder = document.getElementById('catImagePlaceholder');
     const resetBtn = document.getElementById('btnResetCatImage');
+    
+    // Icon selection elements
     const iconInput = document.getElementById('catIcon');
     const iconPreview = document.getElementById('catIconPreview');
+    const iconSearch = document.getElementById('catIconSearch');
+    const iconGrid = document.getElementById('catIconLibraryGrid');
+    const iconFileInput = document.getElementById('catIconFile');
+    const customIconPreview = document.getElementById('catCustomIconPreview');
+    const customIconPlaceholder = document.getElementById('catCustomIconPlaceholder');
+    const resetCustomIconBtn = document.getElementById('btnResetCustomIcon');
+    const tabLibraryBtn = document.getElementById('tab-icon-library');
+    const tabUploadBtn = document.getElementById('tab-icon-upload');
 
-    // Live icon preview
+    // Sports & Ecommerce icon library
+    const popularIcons = [
+        'sports_soccer', 'sports_cricket', 'sports_tennis', 'sports_basketball', 'sports_football', 
+        'sports_baseball', 'sports_volleyball', 'sports_golf', 'sports_hockey', 'sports_martial_arts', 
+        'sports_rugby', 'sports_handball', 'sports_gymnastics', 'sports_motorsports', 'fitness_center', 
+        'directions_bike', 'directions_run', 'pool', 'hiking', 'skateboarding', 'surfing', 'snowboarding', 
+        'downhill_skiing', 'kayaking', 'rowing', 'scuba_diving', 'sailing', 'sports_kabaddi', 'sports_mma', 
+        'ice_skating', 'roller_skating', 'kitesurfing', 'sledding', 'sports', 'sports_score', 'trophy', 
+        'military_tech', 'exercise', 'scoreboard', 'timer', 'stadium', 'shield', 'award_star', 'verified', 
+        'bolt', 'category', 'local_mall', 'storefront', 'inventory_2', 'check_circle'
+    ];
+
+    function renderIconGrid(filterText = '') {
+        if (!iconGrid) return;
+        iconGrid.innerHTML = '';
+        const query = filterText.toLowerCase().trim();
+        const filtered = popularIcons.filter(ic => ic.toLowerCase().includes(query));
+
+        if (filtered.length === 0) {
+            iconGrid.innerHTML = `<span class="text-muted small p-2">No matching icons found. You can type any icon name directly above.</span>`;
+            return;
+        }
+
+        filtered.forEach(iconName => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = `btn btn-sm ${iconInput.value === iconName ? 'btn-primary' : 'btn-outline-secondary'} d-flex align-items-center justify-content-center p-2`;
+            btn.style.width = '38px';
+            btn.style.height = '38px';
+            btn.title = iconName;
+            btn.innerHTML = `<span class="material-symbols-outlined fs-5">${iconName}</span>`;
+            btn.addEventListener('click', function () {
+                iconInput.value = iconName;
+                if (iconPreview) iconPreview.textContent = iconName;
+                // Clear custom icon input when selecting from library
+                if (iconFileInput) iconFileInput.value = '';
+                if (customIconPreview) {
+                    customIconPreview.src = '';
+                    customIconPreview.classList.add('d-none');
+                }
+                if (customIconPlaceholder) customIconPlaceholder.classList.remove('d-none');
+                renderIconGrid(iconSearch ? iconSearch.value : '');
+            });
+            iconGrid.appendChild(btn);
+        });
+    }
+
+    renderIconGrid();
+
+    if (iconSearch) {
+        iconSearch.addEventListener('input', function () {
+            renderIconGrid(this.value);
+        });
+    }
+
+    // Live icon text input preview
     if (iconInput && iconPreview) {
         iconInput.addEventListener('input', function () {
-            iconPreview.textContent = this.value.trim() || 'category';
+            iconPreview.textContent = this.value.trim() || 'fitness_center';
+            renderIconGrid(iconSearch ? iconSearch.value : '');
+        });
+    }
+
+    // Custom Icon file preview
+    if (iconFileInput) {
+        iconFileInput.addEventListener('change', function () {
+            if (this.files && this.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    if (customIconPreview) {
+                        customIconPreview.src = e.target.result;
+                        customIconPreview.classList.remove('d-none');
+                    }
+                    if (customIconPlaceholder) customIconPlaceholder.classList.add('d-none');
+                    // Set iconInput placeholder
+                    if (iconInput) iconInput.value = 'custom_uploaded_icon';
+                };
+                reader.readAsDataURL(this.files[0]);
+            }
+        });
+    }
+
+    if (resetCustomIconBtn) {
+        resetCustomIconBtn.addEventListener('click', function () {
+            if (iconFileInput) iconFileInput.value = '';
+            if (customIconPreview) {
+                customIconPreview.src = '';
+                customIconPreview.classList.add('d-none');
+            }
+            if (customIconPlaceholder) customIconPlaceholder.classList.remove('d-none');
+            if (iconInput && iconInput.value === 'custom_uploaded_icon') {
+                iconInput.value = 'fitness_center';
+                if (iconPreview) iconPreview.textContent = 'fitness_center';
+            }
         });
     }
 
@@ -248,10 +404,14 @@ document.addEventListener('DOMContentLoaded', function () {
             { 
                 data: 'name',
                 render: function (data, type, row) {
-                    const iconName = (row.icon && row.icon.trim()) ? row.icon.trim() : 'sports_tennis';
+                    const iconVal = (row.icon && row.icon.trim()) ? row.icon.trim() : 'sports_tennis';
+                    const isImageIcon = iconVal.includes('/') || iconVal.startsWith('http') || iconVal.startsWith('data:') || iconVal.includes('.');
+                    const iconHtml = isImageIcon
+                        ? `<img src="${window.SportsJunction.formatImageUrl(iconVal)}" class="rounded object-fit-contain border bg-white p-0.5 me-2 flex-shrink-0" style="width: 24px; height: 24px;" alt="Icon" onerror="this.onerror=null;this.replaceWith(document.createElement('span'));">`
+                        : `<span class="material-symbols-outlined text-primary fs-5 me-2 flex-shrink-0">${iconVal}</span>`;
                     return `
                         <div class="d-flex align-items-center">
-                            <span class="material-symbols-outlined text-primary fs-5 me-2 flex-shrink-0">${iconName}</span>
+                            ${iconHtml}
                             <span class="fw-bold">${data}</span>
                         </div>
                     `;
@@ -330,12 +490,41 @@ document.addEventListener('DOMContentLoaded', function () {
             document.getElementById('catName').value = data.name || '';
             document.getElementById('catSlug').value = data.slug || '';
             document.getElementById('catOrder').value = data.display_order ?? 0;
+            
             const iconVal = data.icon || 'fitness_center';
             document.getElementById('catIcon').value = iconVal;
-            if (iconPreview) iconPreview.textContent = iconVal;
+            
+            const isImageIcon = iconVal.includes('/') || iconVal.startsWith('http') || iconVal.includes('.');
+            if (isImageIcon) {
+                // Switch to upload tab and show preview
+                const triggerEl = document.getElementById('tab-icon-upload');
+                if (triggerEl) {
+                    bootstrap.Tab.getOrCreateInstance(triggerEl).show();
+                }
+                if (customIconPreview) {
+                    customIconPreview.src = window.SportsJunction.formatImageUrl(iconVal);
+                    customIconPreview.classList.remove('d-none');
+                }
+                if (customIconPlaceholder) customIconPlaceholder.classList.add('d-none');
+            } else {
+                // Switch to library tab
+                const triggerEl = document.getElementById('tab-icon-library');
+                if (triggerEl) {
+                    bootstrap.Tab.getOrCreateInstance(triggerEl).show();
+                }
+                if (iconPreview) iconPreview.textContent = iconVal;
+                if (customIconPreview) {
+                    customIconPreview.src = '';
+                    customIconPreview.classList.add('d-none');
+                }
+                if (customIconPlaceholder) customIconPlaceholder.classList.remove('d-none');
+            }
+            renderIconGrid(iconSearch ? iconSearch.value : '');
+
             document.getElementById('catStatus').value = data.status || 'ACTIVE';
             document.getElementById('catImageUrl').value = data.image || '';
             if (fileInput) fileInput.value = '';
+            if (iconFileInput) iconFileInput.value = '';
             document.getElementById('catDescription').value = data.description || '';
             updatePreview(data.image);
         }
@@ -344,7 +533,19 @@ document.addEventListener('DOMContentLoaded', function () {
     // Reset preview on Add New
     document.getElementById('btnAddNewCategory').addEventListener('click', function () {
         if (fileInput) fileInput.value = '';
+        if (iconFileInput) iconFileInput.value = '';
+        if (customIconPreview) {
+            customIconPreview.src = '';
+            customIconPreview.classList.add('d-none');
+        }
+        if (customIconPlaceholder) customIconPlaceholder.classList.remove('d-none');
+        const triggerEl = document.getElementById('tab-icon-library');
+        if (triggerEl) {
+            bootstrap.Tab.getOrCreateInstance(triggerEl).show();
+        }
+        document.getElementById('catIcon').value = 'fitness_center';
         if (iconPreview) iconPreview.textContent = 'fitness_center';
+        renderIconGrid();
         updatePreview('');
     });
 });

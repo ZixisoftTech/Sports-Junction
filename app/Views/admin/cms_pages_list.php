@@ -128,11 +128,29 @@ $baseUrl = $baseUrl ?? '';
     </div>
 </div>
 
+<!-- Include Quill Rich Text Editor Stylesheet -->
+<link href="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.snow.css" rel="stylesheet">
+<style>
+.ql-toolbar.ql-snow {
+    border-top-left-radius: 0.375rem;
+    border-top-right-radius: 0.375rem;
+    background-color: #f8fafc;
+    border-color: #e2e8f0;
+}
+.ql-container.ql-snow {
+    border-bottom-left-radius: 0.375rem;
+    border-bottom-right-radius: 0.375rem;
+    border-color: #e2e8f0;
+    font-size: 14px;
+    font-family: inherit;
+}
+</style>
+
 <!-- Modal: Create New Page -->
 <div class="modal fade" id="createPageModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content rounded-4 border-0 shadow-lg">
-            <form method="POST" action="<?= $baseUrl ?>/admin/pages/create">
+            <form id="createPageForm" method="POST" action="<?= $baseUrl ?>/admin/pages/create">
                 <div class="modal-header border-bottom py-3">
                     <h5 class="modal-title fw-bold text-slate-900 d-flex align-items-center gap-2">
                         <i class="bi bi-file-earmark-plus text-primary"></i>
@@ -144,7 +162,7 @@ $baseUrl = $baseUrl ?? '';
                     <div class="row g-3">
                         <div class="col-md-8">
                             <label class="form-label fw-bold small text-slate-800">Page Title *</label>
-                            <input type="text" name="title" required placeholder="e.g. Export Compliance & Customs Guide" class="form-control form-control-sm">
+                            <input type="text" name="title" id="createPageTitle" required placeholder="e.g. Export Compliance & Customs Guide" class="form-control form-control-sm">
                         </div>
                         <div class="col-md-4">
                             <label class="form-label fw-bold small text-slate-800">Footer Column Category *</label>
@@ -156,7 +174,7 @@ $baseUrl = $baseUrl ?? '';
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-bold small text-slate-800">URL Slug (leave blank to auto-generate)</label>
-                            <input type="text" name="slug" placeholder="e.g. export-compliance-guide" class="form-control form-control-sm">
+                            <input type="text" name="slug" id="createPageSlug" placeholder="e.g. export-compliance-guide" class="form-control form-control-sm">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-bold small text-slate-800">Custom Redirection URL (Optional)</label>
@@ -175,8 +193,26 @@ $baseUrl = $baseUrl ?? '';
                             </select>
                         </div>
                         <div class="col-12">
-                            <label class="form-label fw-bold small text-slate-800">Page Content (HTML / Rich Text)</label>
-                            <textarea name="content" rows="8" placeholder="<h2>Your Page Title</h2><p>Provide detailed guidance or policy documentation here...</p>" class="form-control text-sm font-monospace"></textarea>
+                            <div class="card border border-light-subtle bg-light bg-opacity-50 p-3 rounded-3">
+                                <h6 class="fw-bold small text-slate-800 mb-2 d-flex align-items-center gap-1.5">
+                                    <i class="bi bi-search text-primary"></i> SEO Meta Information (Optional)
+                                </h6>
+                                <div class="row g-2">
+                                    <div class="col-md-12">
+                                        <label class="form-label small text-muted mb-1">SEO Meta Title</label>
+                                        <input type="text" name="meta_title" placeholder="e.g. Export Compliance Guide | Sports Junction Global" class="form-control form-control-sm">
+                                    </div>
+                                    <div class="col-md-12">
+                                        <label class="form-label small text-muted mb-1">SEO Meta Description</label>
+                                        <textarea name="meta_description" rows="2" placeholder="Brief 150-160 character description of this page for search engines..." class="form-control form-control-sm"></textarea>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-bold small text-slate-800">Page Content (WYSIWYG Editor)</label>
+                            <div id="createQuillContainer" style="height: 260px;"></div>
+                            <input type="hidden" name="content" id="createPageContent">
                         </div>
                     </div>
                 </div>
@@ -237,23 +273,115 @@ $baseUrl = $baseUrl ?? '';
                             </select>
                         </div>
                         <div class="col-12">
-                            <label class="form-label fw-bold small text-slate-800">Page Content (HTML / Rich Text)</label>
-                            <textarea name="content" id="editPageContent" rows="9" class="form-control text-sm font-monospace"></textarea>
+                            <div class="card border border-light-subtle bg-light bg-opacity-50 p-3 rounded-3">
+                                <h6 class="fw-bold small text-slate-800 mb-2 d-flex align-items-center gap-1.5">
+                                    <i class="bi bi-search text-primary"></i> SEO Meta Information (Optional)
+                                </h6>
+                                <div class="row g-2">
+                                    <div class="col-md-12">
+                                        <label class="form-label small text-muted mb-1">SEO Meta Title</label>
+                                        <input type="text" name="meta_title" id="editPageMetaTitle" class="form-control form-control-sm">
+                                    </div>
+                                    <div class="col-md-12">
+                                        <label class="form-label small text-muted mb-1">SEO Meta Description</label>
+                                        <textarea name="meta_description" id="editPageMetaDesc" rows="2" class="form-control form-control-sm"></textarea>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-bold small text-slate-800">Page Content (WYSIWYG Editor)</label>
+                            <div id="editQuillContainer" style="height: 280px;"></div>
+                            <input type="hidden" name="content" id="editPageContent">
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer border-top py-2.5">
-                    <button type="button" class="btn btn-light btn-sm fw-bold" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary btn-sm fw-bold px-4">
-                        <i class="bi bi-check-lg me-1"></i> Update Page
-                    </button>
+                <div class="modal-footer border-top py-2.5 d-flex justify-content-between">
+                    <div>
+                        <button type="button" class="btn btn-outline-info btn-sm fw-bold" id="btnLivePreview">
+                            <i class="bi bi-box-arrow-up-right me-1"></i> Preview Page
+                        </button>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-light btn-sm fw-bold" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary btn-sm fw-bold px-4">
+                            <i class="bi bi-check-lg me-1"></i> Update Page
+                        </button>
+                    </div>
                 </div>
             </form>
         </div>
     </div>
 </div>
 
+<!-- Include Quill Rich Text Editor Script -->
+<script src="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.js"></script>
 <script>
+let createQuill = null;
+let editQuill = null;
+
+const quillToolbarOptions = [
+    [{ 'header': [1, 2, 3, 4, false] }],
+    ['bold', 'italic', 'underline', 'strike'],
+    [{ 'color': [] }, { 'background': [] }],
+    [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+    [{ 'align': [] }],
+    ['link', 'blockquote', 'code-block'],
+    ['clean']
+];
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize Create Quill
+    createQuill = new Quill('#createQuillContainer', {
+        theme: 'snow',
+        placeholder: 'Compose rich page content here, include headings, formatted text, and bullet points...',
+        modules: {
+            toolbar: quillToolbarOptions
+        }
+    });
+
+    // Initialize Edit Quill
+    editQuill = new Quill('#editQuillContainer', {
+        theme: 'snow',
+        placeholder: 'Edit page content here...',
+        modules: {
+            toolbar: quillToolbarOptions
+        }
+    });
+
+    // Sync Create Form
+    const createForm = document.getElementById('createPageForm');
+    if (createForm) {
+        createForm.addEventListener('submit', function() {
+            document.getElementById('createPageContent').value = createQuill.root.innerHTML;
+        });
+    }
+
+    // Sync Edit Form
+    const editForm = document.getElementById('editPageForm');
+    if (editForm) {
+        editForm.addEventListener('submit', function() {
+            document.getElementById('editPageContent').value = editQuill.root.innerHTML;
+        });
+    }
+
+    // Live Preview Button in Edit Modal
+    const previewBtn = document.getElementById('btnLivePreview');
+    if (previewBtn) {
+        previewBtn.addEventListener('click', function() {
+            const slug = document.getElementById('editPageSlug').value;
+            const extUrl = document.getElementById('editPageUrl').value;
+            if (extUrl && extUrl.trim().length > 0) {
+                window.open(extUrl, '_blank');
+            } else if (slug && slug.trim().length > 0) {
+                window.open('<?= $baseUrl ?>/page/' + encodeURIComponent(slug), '_blank');
+            } else {
+                alert('Please provide a slug or save the page to preview.');
+            }
+        });
+    }
+});
+
 function openEditModal(page) {
     const form = document.getElementById('editPageForm');
     form.action = `<?= $baseUrl ?>/admin/pages/edit/${page.id}`;
@@ -263,7 +391,15 @@ function openEditModal(page) {
     document.getElementById('editPageUrl').value = page.external_url || '';
     document.getElementById('editPageOrder').value = page.sort_order || 0;
     document.getElementById('editPageActive').value = page.is_active ? '1' : '0';
-    document.getElementById('editPageContent').value = page.content || '';
+    document.getElementById('editPageMetaTitle').value = page.meta_title || '';
+    document.getElementById('editPageMetaDesc').value = page.meta_description || '';
+    
+    // Set Quill HTML content
+    if (editQuill) {
+        editQuill.root.innerHTML = page.content || '';
+    } else {
+        document.getElementById('editPageContent').value = page.content || '';
+    }
 
     const modal = new bootstrap.Modal(document.getElementById('editPageModal'));
     modal.show();

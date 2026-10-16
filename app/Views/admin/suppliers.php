@@ -195,29 +195,42 @@ $baseUrl = Response::baseUrl();
 
                         <div class="col-md-4">
                             <label class="form-label small fw-bold">Country *</label>
-                            <select id="inpCountry" class="form-select form-select-sm" required onchange="loadStates(this.value)">
+                            <select id="inpCountry" class="form-select form-select-sm" required onchange="const p = $(this).find(':selected').data('phone'); if (p) $('#inpCountryCode').val(p);">
                                 <option value="">Select Country...</option>
                                 <?php if (!empty($countries)): foreach ($countries as $c): ?>
-                                    <option value="<?= $c['id'] ?>"><?= htmlspecialchars($c['name']) ?></option>
+                                    <option value="<?= $c['id'] ?>" data-flag="<?= htmlspecialchars($c['flag'] ?? '🌐') ?>" data-phone="<?= htmlspecialchars($c['phone_code'] ?? '') ?>">
+                                        <?= $c['flag'] ?? '🌐' ?> <?= htmlspecialchars($c['name']) ?> (<?= htmlspecialchars($c['phone_code'] ?? '') ?>)
+                                    </option>
                                 <?php endforeach; endif; ?>
                             </select>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label small fw-bold">State / Province *</label>
-                            <select id="inpState" class="form-select form-select-sm" required onchange="loadCities(this.value)">
-                                <option value="">Select State...</option>
-                            </select>
+                            <input type="text" id="inpState" class="form-control form-control-sm" required placeholder="e.g. Uttar Pradesh">
                         </div>
                         <div class="col-md-4">
                             <label class="form-label small fw-bold">City *</label>
-                            <select id="inpCity" class="form-select form-select-sm" required>
-                                <option value="">Select City...</option>
-                            </select>
+                            <input type="text" id="inpCity" class="form-control form-control-sm" required placeholder="e.g. Meerut">
                         </div>
 
                         <div class="col-md-4">
                             <label class="form-label small fw-bold">Postal Code</label>
                             <input type="text" id="inpPostalCode" class="form-control form-control-sm" placeholder="250001">
+                        </div>
+
+                        <!-- Certification Tags Assignment -->
+                        <div class="col-12 mt-2">
+                            <label class="form-label small fw-bold">Supplier Certification Tags</label>
+                            <div class="p-2.5 rounded-3 bg-light border d-flex flex-wrap gap-2">
+                                <?php if (!empty($certificationTags)): foreach ($certificationTags as $tag): ?>
+                                    <label class="form-check-label badge border rounded-pill d-inline-flex align-items-center gap-1.5 px-2.5 py-1.5 text-dark fw-semibold" style="cursor:pointer;background:#fff;">
+                                        <input type="checkbox" class="form-check-input supplier-tag-check mt-0 me-1" value="<?= $tag['id'] ?>" id="supTag_<?= $tag['id'] ?>">
+                                        <span><?= htmlspecialchars($tag['icon'] ?? '🏷️') ?> <?= htmlspecialchars($tag['name']) ?></span>
+                                    </label>
+                                <?php endforeach; else: ?>
+                                    <span class="text-muted small">No active certification tags found. Manage them in Masters.</span>
+                                <?php endif; ?>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -443,10 +456,11 @@ function openAddSupplierModal() {
     $('#inpBusinessType').val('');
     $('#inpAddress').val('');
     $('#inpCountry').val('');
-    $('#inpState').html('<option value="">Select State...</option>');
-    $('#inpCity').html('<option value="">Select City...</option>');
+    $('#inpState').val('');
+    $('#inpCity').val('');
     $('#inpPostalCode').val('');
     $('#inpInitialApproval').val('APPROVED');
+    $('.supplier-tag-check').prop('checked', false);
 
     const modal = new bootstrap.Modal(document.getElementById('supplierFormModal'));
     modal.show();
@@ -476,10 +490,15 @@ function editSupplier(id) {
             $('#inpAddress').val(s.address || '');
             $('#inpPostalCode').val(s.postal_code || '');
             $('#inpCountry').val(s.country_id);
+            $('#inpState').val(s.state || s.state_name || '');
+            $('#inpCity').val(s.city || s.city_name || '');
 
-            loadStates(s.country_id, s.state_id, function() {
-                loadCities(s.state_id, s.city_id);
-            });
+            $('.supplier-tag-check').prop('checked', false);
+            if (s.assigned_tag_ids && Array.isArray(s.assigned_tag_ids)) {
+                s.assigned_tag_ids.forEach(tId => {
+                    $(`#supTag_${tId}`).prop('checked', true);
+                });
+            }
 
             const modal = new bootstrap.Modal(document.getElementById('supplierFormModal'));
             modal.show();
@@ -491,6 +510,10 @@ function submitSupplierForm(e) {
     const id = $('#formSupplierId').val();
     const isEdit = Boolean(id);
 
+    const tagIds = $('.supplier-tag-check:checked').map(function() {
+        return parseInt($(this).val());
+    }).get();
+
     const payload = {
         company_name: $('#inpCompanyName').val(),
         contact_person: $('#inpContactPerson').val(),
@@ -500,9 +523,10 @@ function submitSupplierForm(e) {
         business_type_id: $('#inpBusinessType').val(),
         address: $('#inpAddress').val(),
         country_id: $('#inpCountry').val(),
-        state_id: $('#inpState').val(),
-        city_id: $('#inpCity').val(),
+        state: $('#inpState').val(),
+        city: $('#inpCity').val(),
         postal_code: $('#inpPostalCode').val(),
+        tag_ids: tagIds,
         _csrf: csrfToken,
     };
 
@@ -581,7 +605,7 @@ function viewSupplier(id) {
                     </div>
                     <div class="col-12">
                         <label class="text-muted small fw-bold">Factory Street Address</label>
-                        <div>${s.address || 'N/A'}, ${s.city_name || ''}, ${s.state_name || ''}, ${s.country_name || ''} - ${s.postal_code || ''}</div>
+                        <div>${s.address || 'N/A'}, ${s.city_name || s.city || ''}, ${s.state_name || s.state || ''}, ${s.country_name || ''} - ${s.postal_code || ''}</div>
                     </div>
                     ${s.rejection_reason ? `
                     <div class="col-12">

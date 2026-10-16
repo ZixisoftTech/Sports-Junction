@@ -446,6 +446,7 @@ class Product extends Model
             self::execute("
                 UPDATE products SET
                     supplier_id = :supplier_id,
+                    submitted_by = :submitted_by,
                     category_id = :category_id,
                     subcategory_id = :subcategory_id,
                     title = :title,
@@ -487,6 +488,7 @@ class Product extends Model
                 WHERE id = :id
             ", [
                 ':supplier_id'          => !empty($data['supplier_id']) ? (int) $data['supplier_id'] : (int) ($existing['supplier_id'] ?? 1),
+                ':submitted_by'         => !empty($data['submitted_by']) ? (int) $data['submitted_by'] : ($existing['submitted_by'] ?? null),
                 ':category_id'          => (int) ($data['category_id'] ?? $existing['category_id']),
                 ':subcategory_id'       => (int) ($data['subcategory_id'] ?? $existing['subcategory_id']),
                 ':title'                => $name,

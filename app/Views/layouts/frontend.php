@@ -40,7 +40,7 @@ $footerColumns = CmsPage::getByColumns(true);
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
 
     <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.tailwindcss.com?plugins=typography,forms,aspect-ratio"></script>
     <script>
         tailwind.config = {
             darkMode: "class",
@@ -146,7 +146,7 @@ $footerColumns = CmsPage::getByColumns(true);
                 <?php endif; ?>
                 <div class="hidden md:flex items-center gap-1 text-on-surface-variant hover:text-on-surface cursor-pointer py-1 pl-2">
                     <span class="material-symbols-outlined text-[18px]">language</span>
-                    <span class="text-xs font-semibold">IN (₹)</span>
+                    <span class="text-xs font-semibold">USD ($)</span>
                 </div>
             </div>
         </div>
@@ -168,7 +168,14 @@ $footerColumns = CmsPage::getByColumns(true);
                                 <?php foreach ($categories as $catItem): ?>
                                     <a href="<?= htmlspecialchars($baseUrl) ?>/category/<?= htmlspecialchars($catItem['slug']) ?>" class="flex items-center justify-between px-3 py-2 rounded-lg text-on-surface hover:bg-surface-container-low hover:text-primary text-xs font-semibold transition-all">
                                         <span class="flex items-center gap-2">
-                                            <span class="material-symbols-outlined text-[18px] text-primary"><?= htmlspecialchars($catItem['icon'] ?? 'sports_tennis') ?></span>
+                                            <?php 
+                                            $catIcon = trim($catItem['icon'] ?? 'sports_tennis');
+                                            $isImageIcon = (str_starts_with($catIcon, '/') || str_starts_with($catIcon, 'http') || str_contains($catIcon, '.'));
+                                            if ($isImageIcon): ?>
+                                                <img src="<?= htmlspecialchars(Response::formatImageUrl($catIcon)) ?>" class="w-4 h-4 object-contain rounded" alt="">
+                                            <?php else: ?>
+                                                <span class="material-symbols-outlined text-[18px] text-primary"><?= htmlspecialchars($catIcon) ?></span>
+                                            <?php endif; ?>
                                             <span><?= htmlspecialchars($catItem['name']) ?></span>
                                         </span>
                                         <span class="material-symbols-outlined text-[14px] text-outline">chevron_right</span>

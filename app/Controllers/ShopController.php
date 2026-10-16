@@ -182,6 +182,23 @@ class ShopController extends Controller
         $input = $this->request->all();
 
         $user = $this->authUser();
+        if ($user && ($user['role'] ?? '') === 'SUPPLIER') {
+            $supplierRecord = \App\Models\Supplier::findByUserId((int)$user['id']);
+            if ($supplierRecord) {
+                if (!empty($input['product_id'])) {
+                    $prodCheck = Product::findById((int)$input['product_id']);
+                    if ($prodCheck && (int)($prodCheck['supplier_id'] ?? 0) === (int)$supplierRecord['id']) {
+                        $this->json(['success' => false, 'message' => 'You cannot submit inquiries on your own products.'], 403);
+                        return;
+                    }
+                }
+                if (!empty($input['supplier_id']) && (int)$input['supplier_id'] === (int)$supplierRecord['id']) {
+                    $this->json(['success' => false, 'message' => 'You cannot submit inquiries to your own supplier store.'], 403);
+                    return;
+                }
+            }
+        }
+
         if ($user && ($user['role'] ?? '') === 'BUYER') {
             $liveUser = \App\Models\User::findById((int)$user['id']);
             if ($liveUser && ($liveUser['status'] ?? '') === 'INACTIVE') {

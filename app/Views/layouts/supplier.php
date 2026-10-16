@@ -76,20 +76,22 @@ $isMessagesPage = strpos($_SERVER['REQUEST_URI'] ?? '', '/supplier/messages') !=
                     <a href="<?= htmlspecialchars($baseUrl) ?>/supplier/dashboard" class="hover:text-blue-900 transition-colors py-1">Dashboard</a>
                     
                     <!-- Catalogue Dropdown -->
-                    <div class="relative group">
-                        <button type="button" class="flex items-center gap-1 hover:text-blue-900 transition-colors py-1 focus:outline-none">
+                    <div class="relative py-1" id="supplierCatalogueMenu">
+                        <button type="button" id="btnSupplierCatalogue" class="flex items-center gap-1 hover:text-blue-900 transition-colors py-1 focus:outline-none cursor-pointer">
                             <span>Catalogue</span>
-                            <span class="material-symbols-outlined text-[16px] text-slate-400 group-hover:text-blue-900 transition-transform group-hover:rotate-180">expand_more</span>
+                            <span class="material-symbols-outlined text-[16px] text-slate-400 transition-transform" id="catalogueCaret">expand_more</span>
                         </button>
-                        <div class="absolute left-0 mt-1 w-44 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 hidden group-hover:block z-50 transition-all">
-                            <a href="<?= htmlspecialchars($baseUrl) ?>/supplier/products/add" class="flex items-center gap-2 px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-teal-50 hover:text-teal-800 transition-colors">
-                                <span class="material-symbols-outlined text-[16px] text-teal-600">add_circle</span>
-                                <span>Add Products</span>
-                            </a>
-                            <a href="<?= htmlspecialchars($baseUrl) ?>/supplier/products" class="flex items-center gap-2 px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-teal-50 hover:text-teal-800 transition-colors">
-                                <span class="material-symbols-outlined text-[16px] text-teal-600">inventory_2</span>
-                                <span>View Products</span>
-                            </a>
+                        <div id="dropdownCatalogueMenu" class="absolute left-0 top-full pt-1 w-48 hidden z-50">
+                            <div class="bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 overflow-hidden">
+                                <a href="<?= htmlspecialchars($baseUrl) ?>/supplier/products/add" class="flex items-center gap-2.5 px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-teal-50 hover:text-teal-800 transition-colors">
+                                    <span class="material-symbols-outlined text-[18px] text-teal-600">add_circle</span>
+                                    <span>Add Products</span>
+                                </a>
+                                <a href="<?= htmlspecialchars($baseUrl) ?>/supplier/products" class="flex items-center gap-2.5 px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-teal-50 hover:text-teal-800 transition-colors">
+                                    <span class="material-symbols-outlined text-[18px] text-teal-600">inventory_2</span>
+                                    <span>View Products</span>
+                                </a>
+                            </div>
                         </div>
                     </div>
 
@@ -147,5 +149,54 @@ $isMessagesPage = strpos($_SERVER['REQUEST_URI'] ?? '', '/supplier/messages') !=
         &copy; <?= date('Y') ?> Sports Junction Supplier Portal. All product additions and modifications undergo strict Super Admin audit.
     </footer>
     <?php endif; ?>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const catMenu = document.getElementById('supplierCatalogueMenu');
+        const catBtn = document.getElementById('btnSupplierCatalogue');
+        const catDropdown = document.getElementById('dropdownCatalogueMenu');
+        const catCaret = document.getElementById('catalogueCaret');
+
+        if (catMenu && catDropdown) {
+            let closeTimeout;
+
+            function openMenu() {
+                clearTimeout(closeTimeout);
+                catDropdown.classList.remove('hidden');
+                if (catCaret) catCaret.classList.add('rotate-180');
+            }
+
+            function closeMenu() {
+                closeTimeout = setTimeout(() => {
+                    catDropdown.classList.add('hidden');
+                    if (catCaret) catCaret.classList.remove('rotate-180');
+                }, 150);
+            }
+
+            catMenu.addEventListener('mouseenter', openMenu);
+            catMenu.addEventListener('mouseleave', closeMenu);
+
+            if (catBtn) {
+                catBtn.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                    const isHidden = catDropdown.classList.contains('hidden');
+                    if (isHidden) {
+                        openMenu();
+                    } else {
+                        catDropdown.classList.add('hidden');
+                        if (catCaret) catCaret.classList.remove('rotate-180');
+                    }
+                });
+            }
+
+            document.addEventListener('click', function (e) {
+                if (!catMenu.contains(e.target)) {
+                    catDropdown.classList.add('hidden');
+                    if (catCaret) catCaret.classList.remove('rotate-180');
+                }
+            });
+        }
+    });
+    </script>
 </body>
 </html>

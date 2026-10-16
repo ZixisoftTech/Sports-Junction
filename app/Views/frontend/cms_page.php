@@ -101,7 +101,56 @@ $hours = $siteSettings['working_hours'] ?? 'Mon - Sat: 9:00 AM - 7:00 PM IST';
                     </header>
 
                     <!-- Rich Content Body -->
-                    <div class="prose prose-slate max-w-none text-slate-700 text-sm leading-relaxed space-y-4">
+                    <style>
+                        .cms-content h1, .cms-content h2, .cms-content h3, .cms-content h4 {
+                            color: #0f172a;
+                            font-weight: 700;
+                            margin-top: 1.5rem;
+                            margin-bottom: 0.75rem;
+                            line-height: 1.3;
+                        }
+                        .cms-content h1 { font-size: 1.75rem; }
+                        .cms-content h2 { font-size: 1.35rem; }
+                        .cms-content h3 { font-size: 1.15rem; }
+                        .cms-content p {
+                            margin-bottom: 1rem;
+                            line-height: 1.7;
+                            color: #334155;
+                        }
+                        .cms-content ul, .cms-content ol {
+                            margin-left: 1.5rem;
+                            margin-bottom: 1rem;
+                        }
+                        .cms-content ul { list-style-type: disc; }
+                        .cms-content ol { list-style-type: decimal; }
+                        .cms-content li { margin-bottom: 0.35rem; color: #334155; }
+                        .cms-content a { color: #00288e; text-decoration: underline; font-weight: 600; }
+                        .cms-content blockquote {
+                            border-left: 4px solid #00288e;
+                            padding-left: 1rem;
+                            margin: 1.25rem 0;
+                            font-style: italic;
+                            color: #475569;
+                            background: #f8f9ff;
+                            padding: 0.75rem 1rem;
+                            border-radius: 0 0.5rem 0.5rem 0;
+                        }
+                        .cms-content table {
+                            width: 100%;
+                            margin-bottom: 1.5rem;
+                            border-collapse: collapse;
+                        }
+                        .cms-content th, .cms-content td {
+                            padding: 0.75rem 1rem;
+                            border: 1px solid #e2e8f0;
+                        }
+                        .cms-content th {
+                            background-color: #f8fafc;
+                            font-weight: 700;
+                            text-align: left;
+                        }
+                    </style>
+                    <div class="prose prose-slate max-w-none text-slate-700 text-sm leading-relaxed space-y-4 cms-content">
                         <?= $page['content'] ?>
                     </div>
 

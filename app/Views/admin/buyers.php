@@ -262,23 +262,35 @@ $csrfToken = \App\Helpers\CSRF::generate();
                     </div>
                 </div>
                 <div class="row g-2 mb-3">
-                    <div class="col-md-6">
+                    <div class="col-md-12">
                         <label class="form-label small fw-bold text-slate-700">Country</label>
-                        <select name="country_id" id="ebCountryId" class="form-select">
+                        <select name="country_id" id="ebCountryId" class="form-select" onchange="const p = $(this).find(':selected').data('phone'); if (p) $('#ebCountryCode').val(p);">
                             <option value="">-- Select Country --</option>
                             <?php foreach ($countries as $c): ?>
-                                <option value="<?= (int)$c['id'] ?>"><?= htmlspecialchars($c['name']) ?></option>
+                                <option value="<?= (int)$c['id'] ?>" data-flag="<?= htmlspecialchars($c['flag'] ?? '🌐') ?>" data-phone="<?= htmlspecialchars($c['phone_code'] ?? '') ?>">
+                                    <?= $c['flag'] ?? '🌐' ?> <?= htmlspecialchars($c['name']) ?> (<?= htmlspecialchars($c['phone_code'] ?? '') ?>)
+                                </option>
                             <?php endforeach; ?>
                         </select>
                     </div>
+                </div>
+                <div class="row g-2 mb-3">
                     <div class="col-md-6">
-                        <label class="form-label small fw-bold text-slate-700">Account Status</label>
-                        <select name="status" id="ebStatus" class="form-select">
-                            <option value="ACTIVE">ACTIVE</option>
-                            <option value="INACTIVE">INACTIVE</option>
-                            <option value="PENDING_VERIFICATION">PENDING_VERIFICATION</option>
-                        </select>
+                        <label class="form-label small fw-bold text-slate-700">State / Province</label>
+                        <input type="text" name="state" id="ebState" class="form-control" placeholder="e.g. California / Maharashtra">
                     </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold text-slate-700">City</label>
+                        <input type="text" name="city" id="ebCity" class="form-control" placeholder="e.g. Los Angeles / Mumbai">
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small fw-bold text-slate-700">Account Status</label>
+                    <select name="status" id="ebStatus" class="form-select">
+                        <option value="ACTIVE">ACTIVE</option>
+                        <option value="INACTIVE">INACTIVE</option>
+                        <option value="PENDING_VERIFICATION">PENDING_VERIFICATION</option>
+                    </select>
                 </div>
                 <div class="form-check mt-2" id="ebVerifyCheckWrap">
                     <input class="form-check-input" type="checkbox" value="1" id="ebMarkVerified" name="mark_email_verified">
@@ -464,7 +476,8 @@ function viewBuyer(id) {
         $('#vbId').text(`#BUY-${String(b.id).padStart(4, '0')}`);
         $('#vbName').text(b.name || '-');
         $('#vbCompany').text(b.company_name || 'Individual Buyer');
-        $('#vbCountry').text(b.country_name ? `Country: ${b.country_name}` : 'Country: Not specified');
+        const locParts = [b.city, b.state, b.country_name].filter(Boolean);
+        $('#vbCountry').text(locParts.length > 0 ? `Location: ${locParts.join(', ')}` : (b.country_name ? `Country: ${b.country_name}` : 'Country: Not specified'));
         $('#vbEmail').text(b.email || '-');
         $('#vbPhone').text(b.phone ? `${b.country_code || '+91'} ${b.phone}` : 'Not provided');
         $('#vbCreated').text(b.created_at || '-');
@@ -524,6 +537,8 @@ function openEditBuyer(id) {
         $('#ebCountryCode').val(b.country_code || '+91');
         $('#ebPhone').val(b.phone || '');
         $('#ebCountryId').val(b.country_id || '');
+        $('#ebState').val(b.state || '');
+        $('#ebCity').val(b.city || '');
         $('#ebStatus').val(b.status || 'ACTIVE');
         $('#ebMarkVerified').prop('checked', false);
         if (b.email_verified_at) {

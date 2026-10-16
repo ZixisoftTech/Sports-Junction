@@ -49,6 +49,9 @@ class ProductApprovalController extends Controller
             $product['decoded_pending_changes'] = json_decode($product['pending_changes'], true);
         }
 
+        // Attach assigned certificates
+        $product['certificates'] = \App\Models\ProductCertificate::getForProduct($id);
+
         $this->json(['success' => true, 'data' => $product]);
     }
 

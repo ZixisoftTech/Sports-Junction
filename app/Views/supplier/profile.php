@@ -20,10 +20,28 @@ $baseUrl = Response::baseUrl();
             <span>Business &amp; Facility Information</span>
         </h2>
 
-        <form action="<?= htmlspecialchars($baseUrl) ?>/supplier/profile" method="POST" class="space-y-4">
+        <form action="<?= htmlspecialchars($baseUrl) ?>/supplier/profile" method="POST" enctype="multipart/form-data" class="space-y-4">
             <input type="hidden" name="_csrf" value="<?= CSRF::getToken() ?>">
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Supplier Logo Upload -->
+                <div class="md:col-span-2">
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Supplier / Factory Logo</label>
+                    <div class="flex items-center gap-4">
+                        <div class="w-16 h-16 rounded-xl border border-slate-200 bg-slate-100 flex items-center justify-center overflow-hidden shrink-0">
+                            <?php if (!empty($supplier['logo'])): ?>
+                                <img src="<?= htmlspecialchars($baseUrl . $supplier['logo']) ?>" alt="Logo" class="w-full h-full object-contain">
+                            <?php else: ?>
+                                <span class="material-symbols-outlined text-slate-400 text-3xl">domain</span>
+                            <?php endif; ?>
+                        </div>
+                        <div class="flex-1">
+                            <input type="file" name="logo" accept="image/png,image/jpeg,image/webp,image/svg+xml" class="text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-900 hover:file:bg-blue-100 cursor-pointer">
+                            <p class="text-[11px] text-slate-400 mt-1">Recommended: Square format (PNG/JPG/WebP), max 2MB.</p>
+                        </div>
+                    </div>
+                </div>
+
                 <div>
                     <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Company / Factory Name *</label>
                     <input type="text" name="company_name" required value="<?= htmlspecialchars($supplier['company_name']) ?>" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:bg-white focus:border-blue-700 focus:ring-2 focus:ring-blue-100 outline-none transition-all">
@@ -66,27 +84,31 @@ $baseUrl = Response::baseUrl();
                     <input type="text" name="address" required value="<?= htmlspecialchars($supplier['address'] ?? '') ?>" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:bg-white focus:border-blue-700 focus:ring-2 focus:ring-blue-100 outline-none transition-all">
                 </div>
 
+                <div class="md:col-span-2">
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Factory / Business Overview</label>
+                    <textarea name="description" rows="3" placeholder="Brief description of manufacturing infrastructure, production capacity, OEM/ODM services..." class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:bg-white focus:border-blue-700 focus:ring-2 focus:ring-blue-100 outline-none transition-all"><?= htmlspecialchars($supplier['description'] ?? '') ?></textarea>
+                </div>
+
                 <div>
                     <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Country *</label>
-                    <select name="country_id" id="supplierCountry" required onchange="loadStates(this.value)" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:bg-white focus:border-blue-700 focus:ring-2 focus:ring-blue-100 outline-none transition-all">
+                    <select name="country_id" id="supplierCountry" required data-country-picker class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:bg-white focus:border-blue-700 focus:ring-2 focus:ring-blue-100 outline-none transition-all">
                         <?php foreach ($countries as $c): ?>
-                            <option value="<?= $c['id'] ?>" <?= ((int)$supplier['country_id'] === (int)$c['id']) ? 'selected' : '' ?>>
-                                <?= htmlspecialchars($c['name']) ?>
+                            <option value="<?= $c['id'] ?>" 
+                                    data-flag="<?= htmlspecialchars($c['flag'] ?? '🌐') ?>" 
+                                    data-phone="<?= htmlspecialchars($c['phone_code'] ?? '') ?>"
+                                    <?= ((int)$supplier['country_id'] === (int)$c['id']) ? 'selected' : '' ?>>
+                                <?= $c['flag'] ?> <?= htmlspecialchars($c['name']) ?> (<?= htmlspecialchars($c['phone_code'] ?? '') ?>)
                             </option>
                         <?php endforeach; ?>
                     </select>
                 </div>
                 <div>
                     <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">State / Province *</label>
-                    <select name="state_id" id="supplierState" required onchange="loadCities(this.value)" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:bg-white focus:border-blue-700 focus:ring-2 focus:ring-blue-100 outline-none transition-all">
-                        <option value="<?= (int)$supplier['state_id'] ?>" selected><?= htmlspecialchars($supplier['state_name'] ?? 'Current State') ?></option>
-                    </select>
+                    <input type="text" name="state" required value="<?= htmlspecialchars($supplier['state'] ?? $supplier['state_name'] ?? '') ?>" placeholder="e.g. Uttar Pradesh" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:bg-white focus:border-blue-700 focus:ring-2 focus:ring-blue-100 outline-none transition-all">
                 </div>
                 <div>
                     <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">City *</label>
-                    <select name="city_id" id="supplierCity" required class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:bg-white focus:border-blue-700 focus:ring-2 focus:ring-blue-100 outline-none transition-all">
-                        <option value="<?= (int)$supplier['city_id'] ?>" selected><?= htmlspecialchars($supplier['city_name'] ?? 'Current City') ?></option>
-                    </select>
+                    <input type="text" name="city" required value="<?= htmlspecialchars($supplier['city'] ?? $supplier['city_name'] ?? '') ?>" placeholder="e.g. Meerut" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:bg-white focus:border-blue-700 focus:ring-2 focus:ring-blue-100 outline-none transition-all">
                 </div>
             </div>
 
@@ -133,35 +155,4 @@ $baseUrl = Response::baseUrl();
     </div>
 </div>
 
-<script>
-function loadStates(countryId) {
-    if (!countryId) return;
-    fetch('<?= htmlspecialchars($baseUrl) ?>/api/public/states-by-country/' + countryId)
-        .then(r => r.json())
-        .then(res => {
-            let opts = '<option value="">Select State...</option>';
-            if (res.success && res.data) {
-                res.data.forEach(s => {
-                    opts += `<option value="${s.id}">${s.name}</option>`;
-                });
-            }
-            $('#supplierState').html(opts);
-            $('#supplierCity').html('<option value="">Select City...</option>');
-        });
-}
-
-function loadCities(stateId) {
-    if (!stateId) return;
-    fetch('<?= htmlspecialchars($baseUrl) ?>/api/public/cities-by-state/' + stateId)
-        .then(r => r.json())
-        .then(res => {
-            let opts = '<option value="">Select City...</option>';
-            if (res.success && res.data) {
-                res.data.forEach(c => {
-                    opts += `<option value="${c.id}">${c.name}</option>`;
-                });
-            }
-            $('#supplierCity').html(opts);
-        });
-}
-</script>
+<script src="<?= htmlspecialchars($baseUrl) ?>/assets/js/country-picker.js"></script>

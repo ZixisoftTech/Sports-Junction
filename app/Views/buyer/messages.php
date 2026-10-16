@@ -476,7 +476,7 @@ if (!empty($offers)) {
                             <?php endif; ?>
                             <div class="overflow-hidden">
                                 <h5 class="font-headline font-bold text-xs text-slate-900 truncate"><?= htmlspecialchars($activeConversation['product_title']) ?></h5>
-                                <div class="text-[11px] text-blue-900 font-bold mt-0.5">₹<?= number_format((float)($activeConversation['product_price'] ?? 0), 2) ?></div>
+                                <div class="text-[11px] text-blue-900 font-bold mt-0.5">$<?= number_format((float)($activeConversation['product_price'] ?? 0), 2) ?></div>
                                 <div class="text-[10px] text-slate-500">MOQ: <?= (int)($activeConversation['product_moq'] ?? 1) ?> units</div>
                             </div>
                         </div>
@@ -575,11 +575,11 @@ if (!empty($offers)) {
 
             <div class="grid grid-cols-2 gap-3">
                 <div>
-                    <label class="block font-bold text-slate-700 mb-1">Proposed Unit Price (₹) *</label>
+                    <label class="block font-bold text-slate-700 mb-1">Proposed Unit Price ($) *</label>
                     <input type="number" id="offerUnitPrice" name="unit_price" step="0.01" min="1" value="<?= (float)($activeConversation['product_price'] ?? 500) ?>" oninput="calculateOfferTotal()" required class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:border-blue-900 font-bold text-blue-900">
                 </div>
                 <div>
-                    <label class="block font-bold text-slate-700 mb-1">Total Estimated Value (₹)</label>
+                    <label class="block font-bold text-slate-700 mb-1">Total Estimated Value ($)</label>
                     <input type="text" id="offerTotalDisplay" readonly class="w-full px-3 py-2 rounded-xl border border-slate-100 bg-slate-50 font-extrabold text-slate-900">
                 </div>
             </div>
@@ -1097,7 +1097,7 @@ function calculateOfferTotal() {
     const total = qty * price;
     const totalDisplay = document.getElementById('offerTotalDisplay');
     if (totalDisplay) {
-        totalDisplay.value = '₹' + total.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        totalDisplay.value = '$' + total.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
     }
 }
 
