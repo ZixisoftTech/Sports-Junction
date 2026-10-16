@@ -113,9 +113,13 @@ $activeMenu = $activeMenu ?? 'dashboard';
             <i class="bi bi-people"></i>
             <span>Buyer Management</span>
         </a>
-        <a href="<?= htmlspecialchars($baseUrl) ?>/admin/enquiries" class="sj-nav-item <?= ($activeMenu === 'enquiries' || str_contains($_SERVER['REQUEST_URI'] ?? '', '/admin/enquiries')) ? 'active' : '' ?>">
+        <a href="<?= htmlspecialchars($baseUrl) ?>/admin/enquiries" class="sj-nav-item <?= ($activeMenu === 'enquiries' || (str_contains($_SERVER['REQUEST_URI'] ?? '', '/admin/enquiries') && !str_contains($_SERVER['REQUEST_URI'] ?? '', '/admin/rfq-oem'))) ? 'active' : '' ?>">
             <i class="bi bi-chat-left-quote"></i>
             <span>Enquiry Management</span>
+        </a>
+        <a href="<?= htmlspecialchars($baseUrl) ?>/admin/rfq-oem" class="sj-nav-item <?= ($activeMenu === 'rfq_oem' || str_contains($_SERVER['REQUEST_URI'] ?? '', '/admin/rfq-oem')) ? 'active' : '' ?>">
+            <i class="bi bi-clipboard2-check"></i>
+            <span>RFQ &amp; OEM Enquiries</span>
         </a>
         <a href="<?= htmlspecialchars($baseUrl) ?>/admin/communication" class="sj-nav-item <?= ($activeMenu === 'communication' || str_contains($_SERVER['REQUEST_URI'] ?? '', '/admin/communication')) ? 'active' : '' ?>">
             <i class="bi bi-chat-dots-fill"></i>

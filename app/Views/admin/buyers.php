@@ -307,6 +307,26 @@ $csrfToken = \App\Helpers\CSRF::generate();
             </div>
         </form>
     </div>
+<!-- Review Profile Changes Modal -->
+<div class="modal fade" id="profileReviewModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header border-bottom bg-light px-4 py-3">
+                <div>
+                    <h5 class="modal-title fw-bold mb-0 text-slate-900"><i class="bi bi-shield-check text-warning me-2"></i>Review Profile Update Request</h5>
+                    <small class="text-slate-500" id="prModalSubtitle">Audit proposed profile changes before approving or rejecting</small>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4" id="prModalBody">
+                <div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></div>
+            </div>
+            <div class="modal-footer bg-light border-top px-4 py-3 d-flex justify-content-between" id="prModalFooter">
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+                <div class="d-flex gap-2" id="prModalActions"></div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <?php ob_start(); ?>
@@ -349,10 +369,16 @@ $(document).ready(function() {
             },
             {
                 data: 'name',
-                render: (name, type, row) => `
-                    <div class="fw-bold text-slate-900">${escapeHtml(name)}</div>
-                    <small class="text-slate-500">${Number(row.total_enquiries || 0)} Enquir${Number(row.total_enquiries || 0) === 1 ? 'y' : 'ies'}</small>
-                `
+                render: (name, type, row) => {
+                    let revBadge = row.pending_profile_change_id
+                        ? `<div class="mt-1"><button type="button" class="btn btn-xs btn-warning text-dark fw-bold py-0.5 px-2 rounded-pill shadow-xs" onclick="openProfileReviewModal(${row.pending_profile_change_id})" title="Review submitted profile edits"><i class="bi bi-clock-history me-1"></i>Review Changes</button></div>`
+                        : '';
+                    return `
+                        <div class="fw-bold text-slate-900">${escapeHtml(name)}</div>
+                        <small class="text-slate-500">${Number(row.total_enquiries || 0)} Enquir${Number(row.total_enquiries || 0) === 1 ? 'y' : 'ies'}</small>
+                        ${revBadge}
+                    `;
+                }
             },
             {
                 data: 'company_name',
@@ -579,15 +605,133 @@ function toggleBuyerStatus(id, targetStatus, buyerName) {
     });
 }
 
-function exportBuyers(format) {
-    const params = new URLSearchParams({
-        format: format,
-        account_status: $('#filterAccountStatus').val(),
-        verification_status: $('#filterVerificationStatus').val(),
-        country_id: $('#filterCountry').val(),
-        search: buyersTable ? buyersTable.search() : ''
+function openProfileReviewModal(requestId) {
+    const modalEl = document.getElementById('profileReviewModal');
+    const modal = new bootstrap.Modal(modalEl);
+    modal.show();
+
+    $('#prModalBody').html('<div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></div>');
+    $('#prModalActions').html('');
+
+    $.getJSON(`${BASE_URL}/api/admin/profile-requests/${requestId}`, function(res) {
+        if (!res.success) {
+            $('#prModalBody').html(`<div class="alert alert-danger">${escapeHtml(res.message || 'Error loading request.')}</div>`);
+            return;
+        }
+
+        const r = res.data;
+        const cur = r.decoded_current || {};
+        const req = r.decoded_requested || {};
+
+        $('#prModalSubtitle').text(`Revision #${r.id} for ${r.user_name || r.user_email} (Submitted ${r.created_at})`);
+
+        let diffRows = '';
+        const allKeys = Array.from(new Set([...Object.keys(cur), ...Object.keys(req)]));
+
+        allKeys.forEach(k => {
+            const oldVal = cur[k] !== undefined && cur[k] !== null ? String(cur[k]) : '—';
+            const newVal = req[k] !== undefined && req[k] !== null ? String(req[k]) : '—';
+            const changed = (oldVal !== newVal);
+            const label = k.replace(/_/g, ' ').toUpperCase();
+
+            diffRows += `
+                <tr class="${changed ? 'table-warning' : ''}">
+                    <td class="fw-bold text-slate-700">${escapeHtml(label)}</td>
+                    <td class="text-slate-600">${escapeHtml(oldVal)}</td>
+                    <td class="${changed ? 'fw-bold text-primary' : 'text-slate-600'}">
+                        ${escapeHtml(newVal)}
+                        ${changed ? '<span class="badge bg-warning text-dark ms-1">Modified</span>' : ''}
+                    </td>
+                </tr>
+            `;
+        });
+
+        const html = `
+            <div class="mb-3">
+                <span class="badge bg-secondary mb-2">${escapeHtml(r.role)} ACCOUNT</span>
+                <p class="text-slate-600 small mb-0">The user submitted updated profile information. Review the side-by-side comparison below:</p>
+            </div>
+            <div class="table-responsive rounded-3 border mb-3">
+                <table class="table table-sm table-bordered mb-0 align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width: 25%;">Field</th>
+                            <th style="width: 37.5%;">Current Approved Value</th>
+                            <th style="width: 37.5%;">Proposed Value</th>
+                        </tr>
+                    </thead>
+                    <tbody>${diffRows}</tbody>
+                </table>
+            </div>
+            <div class="mb-2">
+                <label class="form-label small fw-bold text-slate-700">Rejection Feedback (Required only if rejecting):</label>
+                <input type="text" id="prRejectReason" class="form-control form-control-sm" placeholder="e.g. Please provide valid registered business details.">
+            </div>
+        `;
+
+        $('#prModalBody').html(html);
+
+        $('#prModalActions').html(`
+            <button type="button" class="btn btn-outline-danger btn-sm px-3" onclick="rejectProfileRequest(${r.id})">
+                <i class="bi bi-x-circle me-1"></i> Reject Revision
+            </button>
+            <button type="button" class="btn btn-success btn-sm px-3 fw-bold" onclick="approveProfileRequest(${r.id})">
+                <i class="bi bi-check-circle me-1"></i> Approve &amp; Publish Changes
+            </button>
+        `);
     });
-    window.open(`${BASE_URL}/api/admin/buyers/export?${params.toString()}`, '_blank');
 }
+
+function approveProfileRequest(requestId) {
+    if (!confirm('Approve and apply these profile changes immediately?')) return;
+
+    $.ajax({
+        url: `${BASE_URL}/api/admin/profile-requests/${requestId}/approve`,
+        method: 'POST',
+        headers: { 'X-CSRF-Token': CSRF_TOKEN },
+        data: { _csrf: CSRF_TOKEN },
+        success: function(res) {
+            if (res.success) {
+                Swal.fire('Approved', res.message, 'success');
+                bootstrap.Modal.getInstance(document.getElementById('profileReviewModal')).hide();
+                buyersTable.ajax.reload(null, false);
+            } else {
+                Swal.fire('Error', res.message || 'Approval failed.', 'error');
+            }
+        },
+        error: function(xhr) {
+            Swal.fire('Error', xhr.responseJSON?.message || 'Server error.', 'error');
+        }
+    });
+}
+
+function rejectProfileRequest(requestId) {
+    const reason = $('#prRejectReason').val();
+    if (!reason || reason.trim() === '') {
+        alert('Please specify a rejection reason for user feedback.');
+        $('#prRejectReason').focus();
+        return;
+    }
+
+    $.ajax({
+        url: `${BASE_URL}/api/admin/profile-requests/${requestId}/reject`,
+        method: 'POST',
+        headers: { 'X-CSRF-Token': CSRF_TOKEN },
+        data: { _csrf: CSRF_TOKEN, reason: reason },
+        success: function(res) {
+            if (res.success) {
+                Swal.fire('Rejected', res.message, 'info');
+                bootstrap.Modal.getInstance(document.getElementById('profileReviewModal')).hide();
+                buyersTable.ajax.reload(null, false);
+            } else {
+                Swal.fire('Error', res.message || 'Rejection failed.', 'error');
+            }
+        },
+        error: function(xhr) {
+            Swal.fire('Error', xhr.responseJSON?.message || 'Server error.', 'error');
+        }
+    });
+}
+
 </script>
 <?php $pageScripts = ob_get_clean(); ?>

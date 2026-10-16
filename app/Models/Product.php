@@ -41,6 +41,10 @@ class Product extends Model
         }
 
         $product['images'] = self::getImages($id);
+        $product['category_ids'] = self::getCategoryIds($id);
+        $product['subcategory_ids'] = self::getSubcategoryIds($id);
+        $product['categories'] = self::getCategories($id);
+        $product['subcategories'] = self::getSubcategories($id);
         return $product;
     }
 
@@ -80,8 +84,111 @@ class Product extends Model
             return null;
         }
 
-        $product['images'] = self::getImages((int) $product['id']);
+        $prodId = (int)$product['id'];
+        $product['images'] = self::getImages($prodId);
+        $product['category_ids'] = self::getCategoryIds($prodId);
+        $product['subcategory_ids'] = self::getSubcategoryIds($prodId);
+        $product['categories'] = self::getCategories($prodId);
+        $product['subcategories'] = self::getSubcategories($prodId);
         return $product;
+    }
+
+    public static function getCategories(int $productId): array
+    {
+        return self::fetchAll("
+            SELECT c.*, pca.is_primary
+            FROM categories c
+            JOIN product_category_assignments pca ON c.id = pca.category_id
+            WHERE pca.product_id = :pid
+            ORDER BY pca.is_primary DESC, c.name ASC
+        ", [':pid' => $productId]);
+    }
+
+    public static function getCategoryIds(int $productId): array
+    {
+        $rows = self::fetchAll("
+            SELECT category_id FROM product_category_assignments 
+            WHERE product_id = :pid 
+            ORDER BY is_primary DESC, category_id ASC
+        ", [':pid' => $productId]);
+        return array_map(fn($r) => (int)$r['category_id'], $rows);
+    }
+
+    public static function getSubcategories(int $productId): array
+    {
+        return self::fetchAll("
+            SELECT s.*, psa.is_primary, c.name as category_name
+            FROM subcategories s
+            JOIN product_subcategory_assignments psa ON s.id = psa.subcategory_id
+            LEFT JOIN categories c ON s.category_id = c.id
+            WHERE psa.product_id = :pid
+            ORDER BY psa.is_primary DESC, s.name ASC
+        ", [':pid' => $productId]);
+    }
+
+    public static function getSubcategoryIds(int $productId): array
+    {
+        $rows = self::fetchAll("
+            SELECT subcategory_id FROM product_subcategory_assignments 
+            WHERE product_id = :pid 
+            ORDER BY is_primary DESC, subcategory_id ASC
+        ", [':pid' => $productId]);
+        return array_map(fn($r) => (int)$r['subcategory_id'], $rows);
+    }
+
+    public static function syncCategories(int $productId, array $categoryIds, ?int $primaryCategoryId = null): void
+    {
+        $categoryIds = array_values(array_unique(array_filter(array_map('intval', $categoryIds))));
+        if (empty($categoryIds)) {
+            return;
+        }
+        if ($primaryCategoryId === null || !in_array($primaryCategoryId, $categoryIds, true)) {
+            $primaryCategoryId = $categoryIds[0];
+        }
+
+        self::execute("DELETE FROM product_category_assignments WHERE product_id = :pid", [':pid' => $productId]);
+        foreach ($categoryIds as $catId) {
+            self::execute("
+                INSERT INTO product_category_assignments (product_id, category_id, is_primary)
+                VALUES (:pid, :cid, :is_prim)
+            ", [
+                ':pid'     => $productId,
+                ':cid'     => $catId,
+                ':is_prim' => ($catId === $primaryCategoryId ? 1 : 0),
+            ]);
+        }
+        self::execute("UPDATE products SET category_id = :cid WHERE id = :pid", [
+            ':cid' => $primaryCategoryId,
+            ':pid' => $productId,
+        ]);
+    }
+
+    public static function syncSubcategories(int $productId, array $subcategoryIds, ?int $primarySubcategoryId = null): void
+    {
+        $subcategoryIds = array_values(array_unique(array_filter(array_map('intval', $subcategoryIds))));
+        self::execute("DELETE FROM product_subcategory_assignments WHERE product_id = :pid", [':pid' => $productId]);
+        if (empty($subcategoryIds)) {
+            self::execute("UPDATE products SET subcategory_id = NULL WHERE id = :pid", [':pid' => $productId]);
+            return;
+        }
+        if ($primarySubcategoryId === null || !in_array($primarySubcategoryId, $subcategoryIds, true)) {
+            $primarySubcategoryId = $subcategoryIds[0];
+        }
+
+        foreach ($subcategoryIds as $subId) {
+            self::execute("
+                INSERT INTO product_subcategory_assignments (product_id, subcategory_id, is_primary)
+                VALUES (:pid, :sid, :is_prim)
+            ", [
+                ':pid'     => $productId,
+                ':sid'     => $subId,
+                ':is_prim' => ($subId === $primarySubcategoryId ? 1 : 0),
+            ]);
+        }
+        self::execute("UPDATE products SET subcategory_id = :sid WHERE id = :pid", [
+            ':sid' => $primarySubcategoryId,
+            ':pid' => $productId,
+        ]);
     }
 
     public static function getImages(int $productId): array
@@ -181,22 +288,26 @@ class Product extends Model
             $bindings[':s4'] = "%{$q}%";
         }
 
-        // Category slug or ID
+        // Category slug or ID (matches primary category OR any assigned category)
         if (!empty($filters['category_slug'])) {
-            $where[] = "c.slug = :c_slug";
+            $where[] = "(c.slug = :c_slug OR EXISTS (SELECT 1 FROM product_category_assignments pca JOIN categories c2 ON pca.category_id = c2.id WHERE pca.product_id = p.id AND c2.slug = :c_slug_pca))";
             $bindings[':c_slug'] = trim((string) $filters['category_slug']);
+            $bindings[':c_slug_pca'] = trim((string) $filters['category_slug']);
         } elseif (!empty($filters['category_id'])) {
-            $where[] = "p.category_id = :cat_id";
+            $where[] = "(p.category_id = :cat_id OR EXISTS (SELECT 1 FROM product_category_assignments pca WHERE pca.product_id = p.id AND pca.category_id = :cat_id_pca))";
             $bindings[':cat_id'] = (int) $filters['category_id'];
+            $bindings[':cat_id_pca'] = (int) $filters['category_id'];
         }
 
-        // Subcategory slug or ID
+        // Subcategory slug or ID (matches primary subcategory OR any assigned subcategory)
         if (!empty($filters['subcategory_slug'])) {
-            $where[] = "s.slug = :s_slug";
+            $where[] = "(s.slug = :s_slug OR EXISTS (SELECT 1 FROM product_subcategory_assignments psa JOIN subcategories s2 ON psa.subcategory_id = s2.id WHERE psa.product_id = p.id AND s2.slug = :s_slug_psa))";
             $bindings[':s_slug'] = trim((string) $filters['subcategory_slug']);
+            $bindings[':s_slug_psa'] = trim((string) $filters['subcategory_slug']);
         } elseif (!empty($filters['subcategory_id'])) {
-            $where[] = "p.subcategory_id = :sub_id";
+            $where[] = "(p.subcategory_id = :sub_id OR EXISTS (SELECT 1 FROM product_subcategory_assignments psa WHERE psa.product_id = p.id AND psa.subcategory_id = :sub_id_psa))";
             $bindings[':sub_id'] = (int) $filters['subcategory_id'];
+            $bindings[':sub_id_psa'] = (int) $filters['subcategory_id'];
         }
 
         // Min Price
@@ -320,6 +431,18 @@ class Product extends Model
             $primaryImage = $images[0];
         }
 
+        $categoryIds = !empty($data['category_ids']) 
+            ? (is_array($data['category_ids']) ? $data['category_ids'] : explode(',', (string)$data['category_ids'])) 
+            : (!empty($data['category_id']) ? [(int)$data['category_id']] : []);
+        $categoryIds = array_values(array_unique(array_filter(array_map('intval', $categoryIds))));
+        $primaryCatId = !empty($data['category_id']) ? (int)$data['category_id'] : ($categoryIds[0] ?? 1);
+
+        $subcategoryIds = !empty($data['subcategory_ids']) 
+            ? (is_array($data['subcategory_ids']) ? $data['subcategory_ids'] : explode(',', (string)$data['subcategory_ids'])) 
+            : (!empty($data['subcategory_id']) ? [(int)$data['subcategory_id']] : []);
+        $subcategoryIds = array_values(array_unique(array_filter(array_map('intval', $subcategoryIds))));
+        $primarySubId = !empty($data['subcategory_id']) ? (int)$data['subcategory_id'] : ($subcategoryIds[0] ?? null);
+
         self::beginTransaction();
         try {
             self::execute("
@@ -344,8 +467,8 @@ class Product extends Model
                 )
             ", [
                 ':supplier_id'          => !empty($data['supplier_id']) ? (int) $data['supplier_id'] : 1,
-                ':category_id'          => (int) $data['category_id'],
-                ':subcategory_id'       => (int) $data['subcategory_id'],
+                ':category_id'          => $primaryCatId,
+                ':subcategory_id'       => $primarySubId,
                 ':title'                => $name,
                 ':slug'                 => $slug,
                 ':sku'                  => !empty($data['sku']) ? trim($data['sku']) : null,
@@ -386,6 +509,14 @@ class Product extends Model
             ]);
 
             $id = (int) self::lastInsertId();
+
+            // Sync category assignments
+            if (!empty($categoryIds)) {
+                self::syncCategories($id, $categoryIds, $primaryCatId);
+            }
+            if (!empty($subcategoryIds)) {
+                self::syncSubcategories($id, $subcategoryIds, $primarySubId);
+            }
 
             // Insert gallery images
             foreach ($images as $index => $imgPath) {
@@ -441,6 +572,20 @@ class Product extends Model
             ? $data['approval_status']
             : ($existing['approval_status'] ?? 'APPROVED');
 
+        $categoryIds = null;
+        if (isset($data['category_ids'])) {
+            $categoryIds = is_array($data['category_ids']) ? $data['category_ids'] : explode(',', (string)$data['category_ids']);
+            $categoryIds = array_values(array_unique(array_filter(array_map('intval', $categoryIds))));
+        }
+        $primaryCatId = (int)($data['category_id'] ?? ($categoryIds[0] ?? $existing['category_id']));
+
+        $subcategoryIds = null;
+        if (isset($data['subcategory_ids'])) {
+            $subcategoryIds = is_array($data['subcategory_ids']) ? $data['subcategory_ids'] : explode(',', (string)$data['subcategory_ids']);
+            $subcategoryIds = array_values(array_unique(array_filter(array_map('intval', $subcategoryIds))));
+        }
+        $primarySubId = !empty($data['subcategory_id']) ? (int)$data['subcategory_id'] : ($subcategoryIds[0] ?? $existing['subcategory_id']);
+
         self::beginTransaction();
         try {
             self::execute("
@@ -489,8 +634,8 @@ class Product extends Model
             ", [
                 ':supplier_id'          => !empty($data['supplier_id']) ? (int) $data['supplier_id'] : (int) ($existing['supplier_id'] ?? 1),
                 ':submitted_by'         => !empty($data['submitted_by']) ? (int) $data['submitted_by'] : ($existing['submitted_by'] ?? null),
-                ':category_id'          => (int) ($data['category_id'] ?? $existing['category_id']),
-                ':subcategory_id'       => (int) ($data['subcategory_id'] ?? $existing['subcategory_id']),
+                ':category_id'          => $primaryCatId,
+                ':subcategory_id'       => $primarySubId,
                 ':title'                => $name,
                 ':slug'                 => $slug,
                 ':sku'                  => !empty($data['sku']) ? trim($data['sku']) : null,
@@ -531,6 +676,14 @@ class Product extends Model
 
             if (!empty($data['clear_pending_changes']) || $approvalStatus === 'APPROVED') {
                 self::execute("UPDATE products SET pending_changes = NULL WHERE id = :id", [':id' => $id]);
+            }
+
+            // Sync category and subcategory assignments
+            if ($categoryIds !== null && !empty($categoryIds)) {
+                self::syncCategories($id, $categoryIds, $primaryCatId);
+            }
+            if ($subcategoryIds !== null) {
+                self::syncSubcategories($id, $subcategoryIds, $primarySubId);
             }
 
             // Delete requested images
@@ -607,6 +760,8 @@ class Product extends Model
 
         self::beginTransaction();
         try {
+            self::execute("DELETE FROM product_category_assignments WHERE product_id = :id", [':id' => $id]);
+            self::execute("DELETE FROM product_subcategory_assignments WHERE product_id = :id", [':id' => $id]);
             self::execute("DELETE FROM product_images WHERE product_id = :id", [':id' => $id]);
             self::execute("DELETE FROM product_inquiries WHERE product_id = :id", [':id' => $id]);
             self::execute("DELETE FROM products WHERE id = :id", [':id' => $id]);
@@ -746,7 +901,9 @@ class Product extends Model
                 'name'                  => trim($data['name'] ?? $data['title'] ?? $product['title']),
                 'slug'                  => trim($data['slug'] ?? $product['slug'] ?? ''),
                 'category_id'           => (int)($data['category_id'] ?? $product['category_id']),
+                'category_ids'          => !empty($data['category_ids']) ? (is_array($data['category_ids']) ? $data['category_ids'] : explode(',', (string)$data['category_ids'])) : ($product['category_ids'] ?? [$product['category_id']]),
                 'subcategory_id'        => (int)($data['subcategory_id'] ?? $product['subcategory_id']),
+                'subcategory_ids'       => !empty($data['subcategory_ids']) ? (is_array($data['subcategory_ids']) ? $data['subcategory_ids'] : explode(',', (string)$data['subcategory_ids'])) : ($product['subcategory_ids'] ?? []),
                 'sku'                   => trim($data['sku'] ?? $product['sku'] ?? ''),
                 'brand_name'            => trim($data['brand_name'] ?? $product['brand_name'] ?? ''),
                 'short_description'     => trim($data['short_description'] ?? $product['short_description'] ?? ''),
@@ -835,7 +992,9 @@ class Product extends Model
                         'name'                  => $pending['name'] ?? $product['title'],
                         'slug'                  => !empty($pending['slug']) ? $pending['slug'] : $product['slug'],
                         'category_id'           => $pending['category_id'] ?? $product['category_id'],
+                        'category_ids'          => $pending['category_ids'] ?? null,
                         'subcategory_id'        => $pending['subcategory_id'] ?? $product['subcategory_id'],
+                        'subcategory_ids'       => $pending['subcategory_ids'] ?? null,
                         'sku'                   => $pending['sku'] ?? $product['sku'],
                         'brand_name'            => $pending['brand_name'] ?? $product['brand_name'],
                         'short_description'     => $pending['short_description'] ?? $product['short_description'],

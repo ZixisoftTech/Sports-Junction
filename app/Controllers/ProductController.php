@@ -157,12 +157,29 @@ class ProductController extends Controller
 
         $input = $this->request->all();
 
+        // Normalize category_ids and subcategory_ids
+        if (!empty($input['category_ids'])) {
+            if (is_string($input['category_ids'])) {
+                $input['category_ids'] = array_filter(explode(',', $input['category_ids']));
+            }
+            if (is_array($input['category_ids']) && count($input['category_ids']) > 0) {
+                $input['category_id'] = (int)$input['category_ids'][0];
+            }
+        }
+        if (!empty($input['subcategory_ids'])) {
+            if (is_string($input['subcategory_ids'])) {
+                $input['subcategory_ids'] = array_filter(explode(',', $input['subcategory_ids']));
+            }
+            if (is_array($input['subcategory_ids']) && count($input['subcategory_ids']) > 0) {
+                $input['subcategory_id'] = (int)$input['subcategory_ids'][0];
+            }
+        }
+
         $validator = Validator::make($input);
         $rules = [
             'name'          => 'required|max:200',
             'supplier_id'   => 'required|integer',
             'category_id'   => 'required|integer',
-            'subcategory_id'=> 'required|integer',
             'min_price'     => 'required|numeric',
             'price_unit_id' => 'required|integer',
             'moq'           => 'required|integer',
@@ -241,12 +258,29 @@ class ProductController extends Controller
 
         $input = $this->request->all();
 
+        // Normalize category_ids and subcategory_ids
+        if (!empty($input['category_ids'])) {
+            if (is_string($input['category_ids'])) {
+                $input['category_ids'] = array_filter(explode(',', $input['category_ids']));
+            }
+            if (is_array($input['category_ids']) && count($input['category_ids']) > 0) {
+                $input['category_id'] = (int)$input['category_ids'][0];
+            }
+        }
+        if (!empty($input['subcategory_ids'])) {
+            if (is_string($input['subcategory_ids'])) {
+                $input['subcategory_ids'] = array_filter(explode(',', $input['subcategory_ids']));
+            }
+            if (is_array($input['subcategory_ids']) && count($input['subcategory_ids']) > 0) {
+                $input['subcategory_id'] = (int)$input['subcategory_ids'][0];
+            }
+        }
+
         $validator = Validator::make($input);
         $rules = [
             'name'          => 'required|max:200',
             'supplier_id'   => 'required|integer',
             'category_id'   => 'required|integer',
-            'subcategory_id'=> 'required|integer',
             'min_price'     => 'required|numeric',
             'price_unit_id' => 'required|integer',
             'moq'           => 'required|integer',
@@ -436,5 +470,56 @@ class ProductController extends Controller
         } else {
             Exporter::exportCsv($filename, $headers, $rows);
         }
+    }
+
+    public function downloadBulkTemplate(): void
+    {
+        $format = (string)$this->request->get('format', 'xlsx');
+        \App\Helpers\BulkProductImporter::downloadTemplate($format, true);
+    }
+
+    public function bulkPreview(): void
+    {
+        if (empty($_FILES['file']) || $_FILES['file']['error'] !== UPLOAD_ERR_OK) {
+            $this->json(['success' => false, 'message' => 'Please upload a valid Excel (.xlsx) or CSV file.'], 422);
+            return;
+        }
+
+        $tmpFile = $_FILES['file']['tmp_name'];
+        $ext = strtolower(pathinfo($_FILES['file']['name'], PATHINFO_EXTENSION));
+        if (!in_array($ext, ['xlsx', 'csv', 'txt'], true)) {
+            $this->json(['success' => false, 'message' => 'Invalid file format. Only .xlsx and .csv files are supported.'], 422);
+            return;
+        }
+
+        $storedTmp = tempnam(sys_get_temp_dir(), 'sj_bulk_') . '.' . $ext;
+        if (!move_uploaded_file($tmpFile, $storedTmp)) {
+            $this->json(['success' => false, 'message' => 'Failed to process uploaded file.'], 500);
+            return;
+        }
+
+        $result = \App\Helpers\BulkProductImporter::parseAndValidate($storedTmp, null, true);
+        @unlink($storedTmp);
+
+        $this->json($result);
+    }
+
+    public function bulkCommit(): void
+    {
+        $token = $this->request->input('_csrf') ?? $this->request->input('csrf_token') ?? $this->request->header('X-CSRF-Token');
+        CSRF::validateOrFail($token);
+
+        $fileToken = trim((string)$this->request->input('file_token', ''));
+        if (empty($fileToken)) {
+            $this->json(['success' => false, 'message' => 'Missing upload token. Please upload the file again.'], 422);
+            return;
+        }
+
+        $adminUser = $this->authUser();
+        $adminId = (int)($adminUser['id'] ?? 1);
+
+        $result = \App\Helpers\BulkProductImporter::commit($fileToken, null, true, $adminId);
+        $status = ($result['success'] ?? false) ? 200 : 422;
+        $this->json($result, $status);
     }
 }

@@ -20,8 +20,12 @@ $status = $enquiry['status'] ?? 'SUBMITTED';
                 <span class="badge rounded-pill" style="background:#dbeafe;color:#1d4ed8;"><i class="bi bi-box-seam me-1"></i>Product Page Enquiry</span>
             <?php elseif ($source === 'CONTACT_US'): ?>
                 <span class="badge rounded-pill" style="background:#f3e8ff;color:#7e22ce;"><i class="bi bi-envelope-paper me-1"></i>Contact Us Message</span>
+            <?php elseif ($source === 'RFQ'): ?>
+                <span class="badge rounded-pill" style="background:#fef3c7;color:#b45309;"><i class="bi bi-clipboard2-check me-1"></i>RFQ (Request For Quotation)</span>
+            <?php elseif ($source === 'FAST_OEM'): ?>
+                <span class="badge rounded-pill" style="background:#ccfbf1;color:#0f766e;"><i class="bi bi-gear-wide-connected me-1"></i>Fast OEM Customization</span>
             <?php else: ?>
-                <span class="badge rounded-pill" style="background:#e0f2fe;color:#0369a1;"><i class="bi bi-megaphone me-1"></i>General Requirement / RFQ</span>
+                <span class="badge rounded-pill" style="background:#e0f2fe;color:#0369a1;"><i class="bi bi-megaphone me-1"></i>General Requirement</span>
             <?php endif; ?>
             <span class="badge bg-dark" id="currentStatusBadge"><?= htmlspecialchars($status) ?></span>
         </div>

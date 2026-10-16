@@ -167,12 +167,30 @@ class SupplierPortalController extends Controller
         }
 
         $input = $this->request->all();
+
+        // Normalize category_ids and subcategory_ids
+        if (!empty($input['category_ids'])) {
+            if (is_string($input['category_ids'])) {
+                $input['category_ids'] = array_filter(explode(',', $input['category_ids']));
+            }
+            if (is_array($input['category_ids']) && count($input['category_ids']) > 0) {
+                $input['category_id'] = (int)$input['category_ids'][0];
+            }
+        }
+        if (!empty($input['subcategory_ids'])) {
+            if (is_string($input['subcategory_ids'])) {
+                $input['subcategory_ids'] = array_filter(explode(',', $input['subcategory_ids']));
+            }
+            if (is_array($input['subcategory_ids']) && count($input['subcategory_ids']) > 0) {
+                $input['subcategory_id'] = (int)$input['subcategory_ids'][0];
+            }
+        }
+
         $validator = Validator::make($input);
 
         $rules = [
             'name'           => 'required|max:200',
             'category_id'    => 'required|integer',
-            'subcategory_id' => 'required|integer',
             'min_price'      => 'required|numeric',
             'price_unit_id'  => 'required|integer',
             'moq'            => 'required|integer',
@@ -294,12 +312,30 @@ class SupplierPortalController extends Controller
         }
 
         $input = $this->request->all();
+
+        // Normalize category_ids and subcategory_ids
+        if (!empty($input['category_ids'])) {
+            if (is_string($input['category_ids'])) {
+                $input['category_ids'] = array_filter(explode(',', $input['category_ids']));
+            }
+            if (is_array($input['category_ids']) && count($input['category_ids']) > 0) {
+                $input['category_id'] = (int)$input['category_ids'][0];
+            }
+        }
+        if (!empty($input['subcategory_ids'])) {
+            if (is_string($input['subcategory_ids'])) {
+                $input['subcategory_ids'] = array_filter(explode(',', $input['subcategory_ids']));
+            }
+            if (is_array($input['subcategory_ids']) && count($input['subcategory_ids']) > 0) {
+                $input['subcategory_id'] = (int)$input['subcategory_ids'][0];
+            }
+        }
+
         $validator = Validator::make($input);
 
         $rules = [
             'name'           => 'required|max:200',
             'category_id'    => 'required|integer',
-            'subcategory_id' => 'required|integer',
             'min_price'      => 'required|numeric',
             'price_unit_id'  => 'required|integer',
             'moq'            => 'required|integer',
@@ -469,12 +505,14 @@ class SupplierPortalController extends Controller
         $supplier = $this->getSupplier();
         $countries = Country::allActive();
         $businessTypes = \App\Models\BusinessType::allActive();
+        $latestChange = \App\Models\ProfileChangeRequest::getLatestForUser((int)($supplier['user_id'] ?? 0));
 
         $this->render('supplier/profile', [
             'pageTitle'     => 'Factory Profile & Facility Settings — Sports Junction',
             'supplier'      => $supplier,
             'countries'     => $countries,
             'businessTypes' => $businessTypes,
+            'latestChange'  => $latestChange,
         ], 'supplier');
     }
 
@@ -490,7 +528,6 @@ class SupplierPortalController extends Controller
         $rules = [
             'company_name'     => 'required|max:150',
             'contact_person'   => 'required|max:100',
-            'email'            => 'required|email|max:191',
             'phone'            => 'required|max:30',
             'business_type_id' => 'required|integer',
             'country_id'       => 'required|integer',
@@ -504,17 +541,11 @@ class SupplierPortalController extends Controller
             return;
         }
 
-        $newEmail = strtolower(trim((string)$input['email']));
-        if (\App\Models\User::emailExists($newEmail, (int)($supplier['user_id'] ?? 0))) {
-            Session::flash('error', 'This email address is already in use by another account.');
-            $this->redirect('/supplier/profile');
-            return;
-        }
-
         // Handle logo upload
+        $logoPath = $supplier['logo'] ?? '';
         if (!empty($_FILES['logo']['name']) && is_uploaded_file($_FILES['logo']['tmp_name'])) {
             try {
-                $input['logo'] = \App\Helpers\Uploader::uploadImage($_FILES['logo'], 'suppliers');
+                $logoPath = \App\Helpers\Uploader::uploadImage($_FILES['logo'], 'suppliers');
             } catch (\Throwable $e) {
                 Session::flash('error', 'Logo upload failed: ' . $e->getMessage());
                 $this->redirect('/supplier/profile');
@@ -522,23 +553,45 @@ class SupplierPortalController extends Controller
             }
         }
 
-        $emailChanged = strtolower(trim($supplier['email'])) !== $newEmail;
+        $currentValues = [
+            'company_name'     => $supplier['company_name'] ?? '',
+            'contact_person'   => $supplier['contact_person'] ?? '',
+            'phone'            => $supplier['phone'] ?? '',
+            'country_code'     => $supplier['country_code'] ?? '+91',
+            'business_type_id' => (int)($supplier['business_type_id'] ?? 1),
+            'address'          => $supplier['address'] ?? '',
+            'country_id'       => (int)($supplier['country_id'] ?? 1),
+            'state'            => $supplier['state'] ?? '',
+            'city'             => $supplier['city'] ?? '',
+            'postal_code'      => $supplier['postal_code'] ?? '',
+            'description'      => $supplier['description'] ?? '',
+            'logo'             => $supplier['logo'] ?? '',
+        ];
 
-        Supplier::updateProfile((int)$supplier['id'], $input);
+        $requestedChanges = [
+            'company_name'     => trim((string)$input['company_name']),
+            'contact_person'   => trim((string)$input['contact_person']),
+            'phone'            => trim((string)$input['phone']),
+            'country_code'     => trim((string)($input['country_code'] ?? '+91')),
+            'business_type_id' => (int)$input['business_type_id'],
+            'address'          => trim((string)($input['address'] ?? '')),
+            'country_id'       => (int)$input['country_id'],
+            'state'            => trim((string)$input['state']),
+            'city'             => trim((string)$input['city']),
+            'postal_code'      => trim((string)($input['postal_code'] ?? '')),
+            'description'      => trim((string)($input['description'] ?? '')),
+            'logo'             => $logoPath,
+        ];
 
-        if ($emailChanged) {
-            $otp = \App\Models\Otp::generate($newEmail, 'SUPPLIER_REGISTRATION', $this->request->getIp());
-            Mailer::sendSupplierOtp($newEmail, (string)$input['company_name'], $otp);
-            Session::set('otp_email', $newEmail);
-            Session::set('otp_purpose', 'SUPPLIER_REGISTRATION');
-            Session::remove('auth_user');
+        \App\Models\ProfileChangeRequest::createRequest(
+            (int)$supplier['user_id'],
+            (int)$supplier['id'],
+            'SUPPLIER',
+            $currentValues,
+            $requestedChanges
+        );
 
-            Session::flash('info', 'Your business email was changed. Please verify your new address with the passcode sent.');
-            $this->redirect('/verify-email');
-            return;
-        }
-
-        Session::flash('success', 'Factory profile updated successfully.');
+        Session::flash('info', 'Your factory profile update request has been submitted for Super Admin review. Your active profile will remain live until approved.');
         $this->redirect('/supplier/profile');
     }
 
@@ -576,6 +629,59 @@ class SupplierPortalController extends Controller
         \App\Models\User::updatePassword((int)$fullUser['id'], $newPass);
         Session::flash('success', 'Password updated successfully.');
         $this->redirect('/supplier/profile');
+    }
+
+    public function downloadBulkTemplate(): void
+    {
+        $format = (string)$this->request->get('format', 'xlsx');
+        \App\Helpers\BulkProductImporter::downloadTemplate($format, false);
+    }
+
+    public function bulkPreview(): void
+    {
+        $supplier = $this->getSupplier();
+        if (empty($_FILES['file']) || $_FILES['file']['error'] !== UPLOAD_ERR_OK) {
+            $this->json(['success' => false, 'message' => 'Please upload a valid Excel (.xlsx) or CSV file.'], 422);
+            return;
+        }
+
+        $tmpFile = $_FILES['file']['tmp_name'];
+        $ext = strtolower(pathinfo($_FILES['file']['name'], PATHINFO_EXTENSION));
+        if (!in_array($ext, ['xlsx', 'csv', 'txt'], true)) {
+            $this->json(['success' => false, 'message' => 'Invalid file format. Only .xlsx and .csv files are supported.'], 422);
+            return;
+        }
+
+        $storedTmp = tempnam(sys_get_temp_dir(), 'sj_sup_bulk_') . '.' . $ext;
+        if (!move_uploaded_file($tmpFile, $storedTmp)) {
+            $this->json(['success' => false, 'message' => 'Failed to process uploaded file.'], 500);
+            return;
+        }
+
+        $result = \App\Helpers\BulkProductImporter::parseAndValidate($storedTmp, (int)$supplier['id'], false);
+        @unlink($storedTmp);
+
+        $this->json($result);
+    }
+
+    public function bulkCommit(): void
+    {
+        $supplier = $this->getSupplier();
+        $csrfToken = (string)($this->request->input('_csrf') ?? $this->request->input('csrf_token') ?? $this->request->header('X-CSRF-Token') ?? '');
+        if (!CSRF::validate($csrfToken)) {
+            $this->json(['success' => false, 'message' => 'Security token expired. Please refresh and try again.'], 419);
+            return;
+        }
+
+        $fileToken = trim((string)$this->request->input('file_token', ''));
+        if (empty($fileToken)) {
+            $this->json(['success' => false, 'message' => 'Missing upload token. Please upload the file again.'], 422);
+            return;
+        }
+
+        $result = \App\Helpers\BulkProductImporter::commit($fileToken, (int)$supplier['id'], false, (int)($supplier['user_id'] ?? 1));
+        $status = ($result['success'] ?? false) ? 200 : 422;
+        $this->json($result, $status);
     }
 }
 

@@ -188,6 +188,15 @@ $baseUrl = Response::baseUrl();
                             <small class="text-muted" style="font-size: 11px;">Admin creation assigns the Supplier role securely.</small>
                         </div>
 
+                        <div class="col-md-6 d-none" id="editStatusCol">
+                            <label class="form-label small fw-bold">Account Status</label>
+                            <select id="inpAccountStatus" class="form-select form-select-sm">
+                                <option value="ACTIVE">ACTIVE</option>
+                                <option value="INACTIVE">INACTIVE</option>
+                            </select>
+                            <small class="text-muted" style="font-size: 11px;">Active suppliers can access portal and publish live products.</small>
+                        </div>
+
                         <div class="col-12">
                             <label class="form-label small fw-bold">Street Address</label>
                             <input type="text" id="inpAddress" class="form-control form-control-sm" placeholder="Plot 42, Industrial Area, Phase II">
@@ -283,6 +292,24 @@ $baseUrl = Response::baseUrl();
                     <button type="submit" class="btn btn-danger btn-sm">Confirm Rejection</button>
                 </div>
             </form>
+<!-- Review Supplier Profile Changes Modal -->
+<div class="modal fade" id="profileReviewModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header border-bottom bg-light px-4 py-3">
+                <div>
+                    <h5 class="modal-title fw-bold mb-0 text-slate-900"><i class="bi bi-shield-check text-warning me-2"></i>Review Factory Profile Revision</h5>
+                    <small class="text-muted" id="prModalSubtitle">Audit proposed manufacturer profile updates before approving</small>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4" id="prModalBody">
+                <div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></div>
+            </div>
+            <div class="modal-footer bg-light border-top px-4 py-3 d-flex justify-content-between" id="prModalFooter">
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+                <div class="d-flex gap-2" id="prModalActions"></div>
+            </div>
         </div>
     </div>
 </div>
@@ -307,7 +334,10 @@ document.addEventListener('DOMContentLoaded', function() {
             {
                 data: 'company_name',
                 render: function(data, type, row) {
-                    return `<div class="fw-bold text-dark">${data}</div><small class="text-muted">${row.address || ''}</small>`;
+                    let revBadge = row.pending_profile_change_id
+                        ? `<div class="mt-1"><button type="button" class="btn btn-xs btn-warning text-dark fw-bold py-0.5 px-2 rounded-pill shadow-xs" onclick="openProfileReviewModal(${row.pending_profile_change_id})" title="Review submitted factory edits"><i class="bi bi-clock-history me-1"></i>Review Changes</button></div>`
+                        : '';
+                    return `<div class="fw-bold text-dark">${data}</div><small class="text-muted">${row.address || ''}</small>${revBadge}`;
                 }
             },
             { data: 'contact_person' },
@@ -331,19 +361,29 @@ document.addEventListener('DOMContentLoaded', function() {
             },
             {
                 data: 'approval_status',
-                render: function(data) {
+                render: function(data, type, row) {
+                    let accBadge = (row.status === 'ACTIVE')
+                        ? '<span class="badge rounded-pill me-1" style="background:#dcfce7;color:#15803d;"><i class="bi bi-check-circle-fill me-1"></i>ACTIVE</span>'
+                        : '<span class="badge rounded-pill me-1" style="background:#fee2e2;color:#b91c1c;"><i class="bi bi-x-circle-fill me-1"></i>INACTIVE</span>';
+                    
+                    let appBadge = '';
                     switch (data) {
                         case 'APPROVED':
-                            return '<span class="badge bg-success-subtle text-success border border-success-subtle"><i class="bi bi-check-circle me-1"></i>Approved</span>';
+                            appBadge = '<span class="badge bg-success-subtle text-success border border-success-subtle"><i class="bi bi-patch-check me-1"></i>Approved</span>';
+                            break;
                         case 'PENDING_APPROVAL':
-                            return '<span class="badge bg-warning-subtle text-warning border border-warning-subtle"><i class="bi bi-hourglass-top me-1"></i>Pending Review</span>';
+                            appBadge = '<span class="badge bg-warning-subtle text-warning border border-warning-subtle"><i class="bi bi-hourglass-top me-1"></i>Pending Review</span>';
+                            break;
                         case 'REJECTED':
-                            return '<span class="badge bg-danger-subtle text-danger border border-danger-subtle"><i class="bi bi-x-circle me-1"></i>Rejected</span>';
+                            appBadge = '<span class="badge bg-danger-subtle text-danger border border-danger-subtle"><i class="bi bi-x-circle me-1"></i>Rejected</span>';
+                            break;
                         case 'SUSPENDED':
-                            return '<span class="badge bg-secondary text-white"><i class="bi bi-pause-circle me-1"></i>Suspended</span>';
+                            appBadge = '<span class="badge bg-secondary text-white"><i class="bi bi-pause-circle me-1"></i>Suspended</span>';
+                            break;
                         default:
-                            return `<span class="badge bg-light text-muted border">${data}</span>`;
+                            appBadge = `<span class="badge bg-light text-muted border">${data}</span>`;
                     }
+                    return `<div class="d-flex flex-column gap-1">${accBadge}${appBadge}</div>`;
                 }
             },
             {
@@ -360,20 +400,18 @@ document.addEventListener('DOMContentLoaded', function() {
                     let actions = `<button class="btn btn-sm btn-outline-primary py-1 px-2 me-1" onclick="viewSupplier(${row.id})" title="View Details"><i class="bi bi-eye"></i></button>`;
                     actions += `<button class="btn btn-sm btn-outline-secondary py-1 px-2 me-1" onclick="editSupplier(${row.id})" title="Edit Details"><i class="bi bi-pencil-square"></i></button>`;
 
+                    const isActive = row.status === 'ACTIVE';
+                    const toggleTitle = isActive ? 'Deactivate Supplier Account' : 'Activate Supplier Account';
+                    const toggleBtnClass = isActive ? 'btn-outline-danger' : 'btn-outline-success';
+                    const toggleIcon = isActive ? 'bi-slash-circle' : 'bi-check-circle';
+                    actions += `<button class="btn btn-sm ${toggleBtnClass} py-1 px-2 me-1" onclick="toggleSupplierStatus(${row.id}, '${isActive ? 'INACTIVE' : 'ACTIVE'}', '${escapeQuotes(row.company_name)}')" title="${toggleTitle}"><i class="bi ${toggleIcon}"></i></button>`;
+
                     if (row.approval_status === 'PENDING_APPROVAL' || row.approval_status === 'REJECTED') {
                         actions += `<button class="btn btn-sm btn-success py-1 px-2 me-1" onclick="approveSupplier(${row.id})" title="Approve"><i class="bi bi-check-lg"></i></button>`;
                     }
 
                     if (row.approval_status === 'PENDING_APPROVAL') {
                         actions += `<button class="btn btn-sm btn-outline-danger py-1 px-2 me-1" onclick="openRejectModal(${row.id})" title="Reject"><i class="bi bi-x-lg"></i></button>`;
-                    }
-
-                    if (row.approval_status === 'APPROVED') {
-                        actions += `<button class="btn btn-sm btn-warning py-1 px-2 me-1" onclick="suspendSupplier(${row.id})" title="Suspend"><i class="bi bi-pause-circle"></i></button>`;
-                    }
-
-                    if (row.approval_status === 'SUSPENDED') {
-                        actions += `<button class="btn btn-sm btn-success py-1 px-2 me-1" onclick="reactivateSupplier(${row.id})" title="Reactivate"><i class="bi bi-play-circle"></i></button>`;
                     }
 
                     actions += `<button class="btn btn-sm btn-outline-danger py-1 px-2" onclick="deleteSupplier(${row.id}, '${escapeQuotes(row.company_name)}')" title="Delete"><i class="bi bi-trash"></i></button>`;
@@ -446,6 +484,7 @@ function openAddSupplierModal() {
     $('#supplierModalTitle').text('Add Supplier Manually');
     $('#btnSaveSupplier').text('Create Supplier');
     $('#initialStatusCol').removeClass('d-none');
+    $('#editStatusCol').addClass('d-none');
     $('#supplierFormAlert').addClass('d-none').text('');
 
     $('#inpCompanyName').val('');
@@ -471,7 +510,8 @@ function editSupplier(id) {
     $('#formSupplierId').val(id);
     $('#supplierModalTitle').text('Edit Supplier Details');
     $('#btnSaveSupplier').text('Update Details');
-    $('#initialStatusCol').addClass('d-none'); // Don't alter approval state via profile edit
+    $('#initialStatusCol').addClass('d-none');
+    $('#editStatusCol').removeClass('d-none');
 
     fetch(`${baseUrl}/api/admin/suppliers/${id}`)
         .then(r => r.json())
@@ -492,6 +532,7 @@ function editSupplier(id) {
             $('#inpCountry').val(s.country_id);
             $('#inpState').val(s.state || s.state_name || '');
             $('#inpCity').val(s.city || s.city_name || '');
+            $('#inpAccountStatus').val(s.status || 'ACTIVE');
 
             $('.supplier-tag-check').prop('checked', false);
             if (s.assigned_tag_ids && Array.isArray(s.assigned_tag_ids)) {
@@ -530,7 +571,9 @@ function submitSupplierForm(e) {
         _csrf: csrfToken,
     };
 
-    if (!isEdit) {
+    if (isEdit) {
+        payload.status = $('#inpAccountStatus').val();
+    } else {
         payload.approval_status = $('#inpInitialApproval').val();
     }
 
@@ -557,6 +600,35 @@ function submitSupplierForm(e) {
     })
     .catch(err => {
         $('#supplierFormAlert').removeClass('d-none').text('Server communication error');
+    });
+}
+
+function toggleSupplierStatus(id, targetStatus, companyName) {
+    const isDeactivating = targetStatus === 'INACTIVE';
+    const actionText = isDeactivating ? 'Deactivate' : 'Activate';
+    if (!confirm(`${actionText} supplier "${companyName}"? ${isDeactivating ? 'This will immediately block product publishing and supplier portal access.' : 'This will restore full portal access and product visibility.'}`)) {
+        return;
+    }
+
+    fetch(`${baseUrl}/api/admin/suppliers/${id}/toggle-status`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': csrfToken
+        },
+        body: JSON.stringify({ status: targetStatus })
+    })
+    .then(r => r.json())
+    .then(res => {
+        if (res.success) {
+            alert(res.message);
+            suppliersDt.ajax.reload();
+        } else {
+            alert(res.message || 'Error updating supplier status.');
+        }
+    })
+    .catch(err => {
+        alert('Server communication error.');
     });
 }
 
@@ -737,6 +809,141 @@ function deleteSupplier(id, companyName) {
             suppliersDt.ajax.reload();
         } else {
             alert(res.message || 'Error deleting supplier.');
+        }
+    });
+}
+
+function openProfileReviewModal(requestId) {
+    const modalEl = document.getElementById('profileReviewModal');
+    const modal = new bootstrap.Modal(modalEl);
+    modal.show();
+
+    $('#prModalBody').html('<div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></div>');
+    $('#prModalActions').html('');
+
+    fetch(`${baseUrl}/api/admin/profile-requests/${requestId}`)
+        .then(r => r.json())
+        .then(res => {
+            if (!res.success) {
+                $('#prModalBody').html(`<div class="alert alert-danger">${res.message || 'Error loading request.'}</div>`);
+                return;
+            }
+
+            const r = res.data;
+            const cur = r.decoded_current || {};
+            const req = r.decoded_requested || {};
+
+            $('#prModalSubtitle').text(`Revision #${r.id} for ${r.supplier_company || r.user_name || r.user_email} (Submitted ${r.created_at})`);
+
+            let diffRows = '';
+            const allKeys = Array.from(new Set([...Object.keys(cur), ...Object.keys(req)]));
+
+            allKeys.forEach(k => {
+                let oldVal = cur[k] !== undefined && cur[k] !== null ? String(cur[k]) : '—';
+                let newVal = req[k] !== undefined && req[k] !== null ? String(req[k]) : '—';
+                const changed = (oldVal !== newVal);
+                const label = k.replace(/_/g, ' ').toUpperCase();
+
+                if (k === 'logo') {
+                    if (oldVal !== '—') oldVal = `<img src="${baseUrl}${oldVal}" style="max-height:40px;" class="rounded border">`;
+                    if (newVal !== '—') newVal = `<img src="${baseUrl}${newVal}" style="max-height:40px;" class="rounded border">`;
+                }
+
+                diffRows += `
+                    <tr class="${changed ? 'table-warning' : ''}">
+                        <td class="fw-bold text-dark">${label}</td>
+                        <td class="text-muted">${oldVal}</td>
+                        <td class="${changed ? 'fw-bold text-primary' : 'text-muted'}">
+                            ${newVal}
+                            ${changed ? '<span class="badge bg-warning text-dark ms-1">Modified</span>' : ''}
+                        </td>
+                    </tr>
+                `;
+            });
+
+            const html = `
+                <div class="mb-3">
+                    <span class="badge bg-secondary mb-2">${r.role} FACTORY ACCOUNT</span>
+                    <p class="text-muted small mb-0">The manufacturer submitted updated business profile details. Review the side-by-side comparison below:</p>
+                </div>
+                <div class="table-responsive rounded-3 border mb-3">
+                    <table class="table table-sm table-bordered mb-0 align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 25%;">Field</th>
+                                <th style="width: 37.5%;">Current Approved Value</th>
+                                <th style="width: 37.5%;">Proposed Value</th>
+                            </tr>
+                        </thead>
+                        <tbody>${diffRows}</tbody>
+                    </table>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small fw-bold text-dark">Rejection Feedback (Required only if rejecting):</label>
+                    <input type="text" id="prRejectReason" class="form-control form-control-sm" placeholder="e.g. Please provide valid business registration and facility address.">
+                </div>
+            `;
+
+            $('#prModalBody').html(html);
+
+            $('#prModalActions').html(`
+                <button type="button" class="btn btn-outline-danger btn-sm px-3" onclick="rejectProfileRequest(${r.id})">
+                    <i class="bi bi-x-circle me-1"></i> Reject Revision
+                </button>
+                <button type="button" class="btn btn-success btn-sm px-3 fw-bold" onclick="approveProfileRequest(${r.id})">
+                    <i class="bi bi-check-circle me-1"></i> Approve &amp; Publish Changes
+                </button>
+            `);
+        });
+}
+
+function approveProfileRequest(requestId) {
+    if (!confirm('Approve and apply these factory profile changes immediately?')) return;
+
+    fetch(`${baseUrl}/api/admin/profile-requests/${requestId}/approve`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': csrfToken
+        },
+        body: JSON.stringify({ _csrf: csrfToken })
+    })
+    .then(r => r.json())
+    .then(res => {
+        if (res.success) {
+            alert(res.message);
+            bootstrap.Modal.getInstance(document.getElementById('profileReviewModal')).hide();
+            suppliersDt.ajax.reload();
+        } else {
+            alert(res.message || 'Approval failed.');
+        }
+    });
+}
+
+function rejectProfileRequest(requestId) {
+    const reason = $('#prRejectReason').val();
+    if (!reason || reason.trim() === '') {
+        alert('Please specify a rejection reason for user feedback.');
+        $('#prRejectReason').focus();
+        return;
+    }
+
+    fetch(`${baseUrl}/api/admin/profile-requests/${requestId}/reject`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': csrfToken
+        },
+        body: JSON.stringify({ _csrf: csrfToken, reason: reason })
+    })
+    .then(r => r.json())
+    .then(res => {
+        if (res.success) {
+            alert(res.message);
+            bootstrap.Modal.getInstance(document.getElementById('profileReviewModal')).hide();
+            suppliersDt.ajax.reload();
+        } else {
+            alert(res.message || 'Rejection failed.');
         }
     });
 }

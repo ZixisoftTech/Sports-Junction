@@ -171,30 +171,40 @@ $subcategories = $subcategories ?? [];
                         <input type="text" class="form-control" id="prodBrand" name="brand_name" placeholder="e.g. ApexSport Industries" maxlength="150" value="<?= htmlspecialchars($product['brand_name'] ?? '') ?>">
                     </div>
 
-                    <div class="col-md-6">
-                        <label for="prodCategory" class="form-label fw-semibold small">Category <span class="text-danger">*</span></label>
-                        <select class="form-select" id="prodCategory" name="category_id" required>
-                            <option value="">Select Master Category...</option>
-                            <?php foreach ($categories as $cat): ?>
-                                <option value="<?= $cat['id'] ?>" <?= ((int)($product['category_id'] ?? 0) === (int)$cat['id']) ? 'selected' : '' ?>>
-                                    <?= htmlspecialchars($cat['name']) ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                        <div class="invalid-feedback">Please select a parent category.</div>
+                    <div class="col-md-12">
+                        <label class="form-label fw-semibold small">Product Categories <span class="text-danger">*</span> <span class="text-muted fw-normal">(Select one or more)</span></label>
+                        <div class="p-3 bg-light rounded-3 border" id="categoryPickerContainer">
+                            <div class="row g-2" id="categoryCheckboxesRow">
+                                <?php 
+                                $assignedCatIds = !empty($product['category_ids']) ? array_map('intval', $product['category_ids']) : (!empty($product['category_id']) ? [(int)$product['category_id']] : []);
+                                foreach ($categories as $cat): 
+                                    $isCatChecked = in_array((int)$cat['id'], $assignedCatIds, true);
+                                ?>
+                                    <div class="col-sm-6 col-md-4 col-lg-3">
+                                        <div class="form-check p-2 bg-white rounded border d-flex align-items-center h-100">
+                                            <input class="form-check-input ms-0 me-2 flex-shrink-0 category-checkbox" type="checkbox" name="category_ids[]" value="<?= (int)$cat['id'] ?>" id="cat_<?= (int)$cat['id'] ?>" <?= $isCatChecked ? 'checked' : '' ?>>
+                                            <label class="form-check-label small fw-semibold text-dark cursor-pointer text-truncate" for="cat_<?= (int)$cat['id'] ?>" title="<?= htmlspecialchars($cat['name']) ?>">
+                                                <?= htmlspecialchars($cat['name']) ?>
+                                            </label>
+                                        </div>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                            <input type="hidden" name="category_id" id="prodPrimaryCategory" value="<?= (int)($product['category_id'] ?? 0) ?>">
+                            <div class="form-text small text-muted mt-2">Products can belong to multiple categories. The first selected category serves as primary.</div>
+                        </div>
+                        <div class="invalid-feedback d-none" id="catInvalidFeedback">Please select at least one product category.</div>
                     </div>
 
-                    <div class="col-md-6">
-                        <label for="prodSubcategory" class="form-label fw-semibold small">Subcategory <span class="text-danger">*</span></label>
-                        <select class="form-select" id="prodSubcategory" name="subcategory_id" required>
-                            <option value="">Select Subcategory...</option>
-                            <?php if (!empty($subcategories)): foreach ($subcategories as $sub): ?>
-                                <option value="<?= $sub['id'] ?>" <?= ((int)($product['subcategory_id'] ?? 0) === (int)$sub['id']) ? 'selected' : '' ?>>
-                                    <?= htmlspecialchars($sub['name']) ?>
-                                </option>
-                            <?php endforeach; endif; ?>
-                        </select>
-                        <div class="invalid-feedback">Please select a subcategory.</div>
+                    <div class="col-md-12">
+                        <label class="form-label fw-semibold small">Assigned Subcategories <span class="text-muted fw-normal">(Optional, select relevant subcategories)</span></label>
+                        <div class="p-3 bg-light rounded-3 border" id="subcategoryPickerContainer">
+                            <div class="row g-2" id="subcategoryCheckboxesRow">
+                                <div class="col-12 text-muted small py-2" id="subcatEmptyNotice">Select one or more categories above to view available subcategories.</div>
+                            </div>
+                            <input type="hidden" name="subcategory_id" id="prodPrimarySubcategory" value="<?= (int)($product['subcategory_id'] ?? 0) ?>">
+                            <div class="form-text small text-muted mt-2">Subcategories are dynamically loaded according to selected categories.</div>
+                        </div>
                     </div>
 
                     <div class="col-md-12">
@@ -726,20 +736,32 @@ document.addEventListener('DOMContentLoaded', function () {
         if (step === 1) {
             const title = document.getElementById('prodTitle');
             const supplier = document.getElementById('prodSupplier');
-            const category = document.getElementById('prodCategory');
-            const subcategory = document.getElementById('prodSubcategory');
+            const checkedCats = document.querySelectorAll('input[name="category_ids[]"]:checked');
+            const catFeedback = document.getElementById('catInvalidFeedback');
 
-            [title, supplier, category, subcategory].forEach(el => {
-                el.classList.remove('is-invalid');
-                if (!el.value || el.value.trim() === '') {
-                    el.classList.add('is-invalid');
-                    isValid = false;
-                    if (!firstInvalid) firstInvalid = el;
+            let step1Valid = true;
+            [title, supplier].forEach(el => {
+                if (el) {
+                    el.classList.remove('is-invalid');
+                    if (!el.value || el.value.trim() === '') {
+                        el.classList.add('is-invalid');
+                        step1Valid = false;
+                        if (!firstInvalid) firstInvalid = el;
+                    }
                 }
             });
 
-            if (!isValid) {
-                showAlert('Please fill in all required fields (Product Name, Supplier, Category, and Subcategory) before proceeding.');
+            if (checkedCats.length === 0) {
+                if (catFeedback) catFeedback.classList.remove('d-none');
+                step1Valid = false;
+                if (!firstInvalid) firstInvalid = document.getElementById('categoryPickerContainer');
+            } else {
+                if (catFeedback) catFeedback.classList.add('d-none');
+            }
+
+            if (!step1Valid) {
+                showAlert('Please fill in all required fields (Product Name, Supplier, and at least one Category) before proceeding.');
+                return false;
             }
         } else if (step === 2) {
             const minPrice = document.getElementById('prodMinPrice');
@@ -842,39 +864,95 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
-    // Dynamic Subcategories Loader
-    function loadSubcategories(categoryId, selectedSubId = null) {
-        const subSelect = document.getElementById('prodSubcategory');
-        subSelect.innerHTML = '<option value="">Loading subcategories...</option>';
-        if (!categoryId) {
-            subSelect.innerHTML = '<option value="">Select Subcategory...</option>';
+    // Dynamic Subcategories Loader for Multiple Selected Categories
+    const initialAssignedSubIds = <?= json_encode(!empty($product['subcategory_ids']) ? array_map('intval', $product['subcategory_ids']) : (!empty($product['subcategory_id']) ? [(int)$product['subcategory_id']] : [])) ?>;
+    let selectedSubcategoryIds = new Set(initialAssignedSubIds);
+
+    function getSelectedCategoryIds() {
+        const checked = document.querySelectorAll('.category-checkbox:checked');
+        return Array.from(checked).map(cb => parseInt(cb.value)).filter(id => !isNaN(id) && id > 0);
+    }
+
+    function updateSubcategoriesList() {
+        const catIds = getSelectedCategoryIds();
+        const container = document.getElementById('subcategoryCheckboxesRow');
+        const hiddenPrimaryCat = document.getElementById('prodPrimaryCategory');
+        const hiddenPrimarySub = document.getElementById('prodPrimarySubcategory');
+
+        if (hiddenPrimaryCat) {
+            hiddenPrimaryCat.value = catIds.length > 0 ? catIds[0] : '';
+        }
+
+        if (catIds.length === 0) {
+            container.innerHTML = '<div class="col-12 text-muted small py-2" id="subcatEmptyNotice">Select one or more categories above to view available subcategories.</div>';
+            if (hiddenPrimarySub) hiddenPrimarySub.value = '';
             return;
         }
 
-        fetch(`${baseUrl}/api/masters/subcategories-by-category/${categoryId}`)
+        container.innerHTML = '<div class="col-12 text-muted small py-2"><span class="spinner-border spinner-border-sm me-2"></span>Loading subcategories for selected categories...</div>';
+
+        fetch(`${baseUrl}/api/masters/subcategories-by-categories?category_ids=${catIds.join(',')}`)
             .then(res => res.json())
             .then(data => {
-                subSelect.innerHTML = '<option value="">Select Subcategory...</option>';
-                if (data.data && data.data.length > 0) {
-                    data.data.forEach(sub => {
-                        const opt = document.createElement('option');
-                        opt.value = sub.id;
-                        opt.textContent = sub.name;
-                        if (selectedSubId && parseInt(selectedSubId) === parseInt(sub.id)) {
-                            opt.selected = true;
+                const subs = data.data || [];
+                if (subs.length === 0) {
+                    container.innerHTML = '<div class="col-12 text-muted small py-2">No active subcategories found for the selected categories.</div>';
+                    if (hiddenPrimarySub) hiddenPrimarySub.value = '';
+                    return;
+                }
+
+                let html = '';
+                subs.forEach(sub => {
+                    const isChecked = selectedSubcategoryIds.has(parseInt(sub.id));
+                    html += `
+                        <div class="col-sm-6 col-md-4 col-lg-3">
+                            <div class="form-check p-2 bg-white rounded border d-flex align-items-center h-100">
+                                <input class="form-check-input ms-0 me-2 flex-shrink-0 subcategory-checkbox" type="checkbox" name="subcategory_ids[]" value="${sub.id}" id="sub_${sub.id}" ${isChecked ? 'checked' : ''}>
+                                <label class="form-check-label small fw-semibold text-dark cursor-pointer text-truncate" for="sub_${sub.id}" title="${sub.name}">
+                                    <span class="badge bg-light text-muted border me-1">${sub.category_name || 'Category'}</span>
+                                    ${sub.name}
+                                </label>
+                            </div>
+                        </div>
+                    `;
+                });
+                container.innerHTML = html;
+
+                container.querySelectorAll('.subcategory-checkbox').forEach(sc => {
+                    sc.addEventListener('change', function() {
+                        const sid = parseInt(this.value);
+                        if (this.checked) {
+                            selectedSubcategoryIds.add(sid);
+                        } else {
+                            selectedSubcategoryIds.delete(sid);
                         }
-                        subSelect.appendChild(opt);
+                        const firstChecked = container.querySelector('.subcategory-checkbox:checked');
+                        if (hiddenPrimarySub) {
+                            hiddenPrimarySub.value = firstChecked ? firstChecked.value : '';
+                        }
                     });
+                });
+
+                const firstChecked = container.querySelector('.subcategory-checkbox:checked');
+                if (hiddenPrimarySub) {
+                    hiddenPrimarySub.value = firstChecked ? firstChecked.value : '';
                 }
             })
             .catch(() => {
-                subSelect.innerHTML = '<option value="">Failed to load subcategories</option>';
+                container.innerHTML = '<div class="col-12 text-danger small py-2">Failed to load subcategories.</div>';
             });
     }
 
-    document.getElementById('prodCategory').addEventListener('change', function () {
-        loadSubcategories(this.value);
+    document.querySelectorAll('.category-checkbox').forEach(cb => {
+        cb.addEventListener('change', function() {
+            const catFeedback = document.getElementById('catInvalidFeedback');
+            if (catFeedback) catFeedback.classList.add('d-none');
+            updateSubcategoriesList();
+        });
     });
+
+    // Run initial load
+    updateSubcategoriesList();
 
     // Supplier Reassignment Warning Confirmation
     const supplierSelect = document.getElementById('prodSupplier');

@@ -215,7 +215,15 @@ document.addEventListener('DOMContentLoaded', function() {
             data: function(d) {
                 d.filter = document.getElementById('approvalStatusFilter').value || 'ALL';
             },
-            dataSrc: 'data'
+            dataSrc: function(json) {
+                if (json.error) {
+                    console.error("Product approvals data warning:", json.error);
+                }
+                return json.data || [];
+            },
+            error: function(xhr, error, thrown) {
+                console.error("DataTables AJAX error:", xhr.status, thrown);
+            }
         },
         order: [[0, 'desc']],
         columns: [

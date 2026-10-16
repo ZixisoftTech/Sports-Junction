@@ -314,4 +314,84 @@ class EnquiryManagementController extends Controller
             Exporter::exportCsv($filename, $headers, $rows);
         }
     }
+
+    public function rfqOem(): void
+    {
+        $metrics    = ProductInquiry::getRfqOemMetrics();
+        $suppliers  = Supplier::allActive();
+        $categories = Category::allActive();
+
+        $this->render('admin/rfq_oem', [
+            'pageTitle'   => 'RFQ & Fast OEM Customization Enquiries — Sports Junction Admin',
+            'metrics'     => $metrics,
+            'suppliers'   => $suppliers,
+            'categories'  => $categories,
+            'activeMenu'  => 'rfq_oem',
+        ], 'admin');
+    }
+
+    public function rfqOemData(): void
+    {
+        $params = [
+            'draw'           => $this->request->get('draw', 1),
+            'start'          => $this->request->get('start', 0),
+            'length'         => $this->request->get('length', 15),
+            'search'         => $this->request->get('search', []),
+            'order'          => $this->request->get('order', []),
+            'supplier_id'    => $this->request->get('supplier_id', 'ALL'),
+            'enquiry_source' => $this->request->get('enquiry_source', 'ALL'),
+            'status'         => $this->request->get('status', 'ALL'),
+            'category_id'    => $this->request->get('category_id', 'ALL'),
+            'start_date'     => $this->request->get('start_date', ''),
+            'end_date'       => $this->request->get('end_date', ''),
+            'rfq_oem_only'   => 1,
+        ];
+
+        $result = ProductInquiry::getAdminDataTable($params);
+        $this->json($result);
+    }
+
+    public function rfqOemExport(): void
+    {
+        $format = strtolower((string) $this->request->get('format', 'csv'));
+        $params = [
+            'supplier_id'    => $this->request->get('supplier_id', 'ALL'),
+            'enquiry_source' => $this->request->get('enquiry_source', 'ALL'),
+            'status'         => $this->request->get('status', 'ALL'),
+            'category_id'    => $this->request->get('category_id', 'ALL'),
+            'start_date'     => $this->request->get('start_date', ''),
+            'end_date'       => $this->request->get('end_date', ''),
+            'search_query'   => $this->request->get('search', ''),
+            'rfq_oem_only'   => 1,
+        ];
+
+        $rows = ProductInquiry::getAdminExportData($params);
+        $headers = [
+            'Enquiry ID',
+            'Enquiry Source',
+            'Buyer Name',
+            'Buyer Company',
+            'Buyer Email',
+            'Buyer Phone',
+            'Product Name / Requirement',
+            'Supplier Name',
+            'Quantity Required',
+            'Delivery Location',
+            'Enquiry Subject',
+            'Message / Specifications',
+            'Enquiry Status',
+            'Enquiry Date',
+        ];
+
+        AuditLogger::log('EXPORT', 'ProductInquiry', null, "Exported " . count($rows) . " RFQ & OEM enquiries as " . strtoupper($format));
+
+        $filename = 'sports_junction_rfq_oem_' . date('Ymd_His');
+        if ($format === 'excel' || $format === 'xls') {
+            Exporter::exportExcelXml($filename, $headers, $rows);
+        } elseif ($format === 'pdf') {
+            Exporter::exportPdfView('Sports Junction — RFQ & Fast OEM Customization Enquiries', $headers, $rows);
+        } else {
+            Exporter::exportCsv($filename, $headers, $rows);
+        }
+    }
 }

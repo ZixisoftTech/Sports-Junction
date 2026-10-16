@@ -15,7 +15,7 @@ $prefillCompany = $buyerDetails['company_name'] ?? '';
             </span>
             <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-white mb-3">Contact Sports Junction</h1>
             <p class="text-slate-300 text-base leading-relaxed">
-                Have a custom sports manufacturing requirement, bulk procurement question, or vendor partnership enquiry? Send a message directly to our centralized Super Admin & B2B Trade Desk.
+                Have a sports manufacturing requirement, bulk procurement question, or vendor partnership enquiry? Send a message directly to our centralized B2B Trade Desk.
             </p>
         </div>
     </div>

@@ -52,6 +52,12 @@ class SupplierAuthMiddleware
                 return false;
             }
 
+            if (($supplier['status'] ?? '') === 'INACTIVE') {
+                Session::flash('error', 'Your supplier account has been deactivated by an administrator. Please contact support.');
+                $response->redirect('/login');
+                return false;
+            }
+
             if ($status === 'SUSPENDED') {
                 Session::flash('error', 'Your manufacturer account has been suspended. Please contact administrative support.');
                 $response->redirect('/login');

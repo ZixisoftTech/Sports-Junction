@@ -126,6 +126,21 @@ $supplierCertificationTags = !empty($product['supplier_id']) ? \App\Models\Suppl
                 <h1 class="font-headline font-extrabold text-xl sm:text-2xl text-on-surface leading-snug">
                     <?= htmlspecialchars($product['name']) ?>
                 </h1>
+                <?php if (!empty($product['categories'])): ?>
+                    <div class="flex flex-wrap items-center gap-1.5 pt-2">
+                        <?php foreach ($product['categories'] as $c): ?>
+                            <a href="<?= htmlspecialchars($baseUrl) ?>/category/<?= htmlspecialchars($c['slug']) ?>" class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-900 border border-blue-200/70 text-[11px] font-semibold hover:bg-blue-100 transition-colors">
+                                <span class="material-symbols-outlined text-[13px]">category</span>
+                                <span><?= htmlspecialchars($c['name']) ?></span>
+                            </a>
+                        <?php endforeach; ?>
+                        <?php if (!empty($product['subcategories'])): foreach ($product['subcategories'] as $sub): ?>
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 text-[11px] font-medium border border-slate-200">
+                                <?= htmlspecialchars($sub['name']) ?>
+                            </span>
+                        <?php endforeach; endif; ?>
+                    </div>
+                <?php endif; ?>
             </div>
 
             <!-- Wholesale Price Tier Card -->

@@ -213,7 +213,8 @@ class Supplier extends Model
                    COALESCE(s.state, st.name) AS state_name,
                    COALESCE(s.city, ct.name) AS city_name,
                    u.email_verified_at,
-                   (SELECT COUNT(*) FROM products p WHERE p.supplier_id = s.id) AS product_count
+                   (SELECT COUNT(*) FROM products p WHERE p.supplier_id = s.id) AS product_count,
+                   (SELECT pcr.id FROM profile_change_requests pcr WHERE pcr.supplier_id = s.id AND pcr.status = 'PENDING' LIMIT 1) AS pending_profile_change_id
             FROM suppliers s
             LEFT JOIN business_types bt ON s.business_type_id = bt.id
             LEFT JOIN countries c ON s.country_id = c.id
@@ -246,6 +247,45 @@ class Supplier extends Model
         ];
     }
 
+    public static function setStatus(int $id, string $status): bool
+    {
+        $supplier = self::findById($id);
+        if (!$supplier) {
+            return false;
+        }
+
+        $status = in_array(strtoupper($status), ['ACTIVE', 'INACTIVE'], true) ? strtoupper($status) : 'ACTIVE';
+
+        self::beginTransaction();
+        try {
+            self::execute("
+                UPDATE suppliers
+                SET status = :status, updated_at = NOW()
+                WHERE id = :id
+            ", [
+                ':status' => $status,
+                ':id'     => $id,
+            ]);
+
+            if (!empty($supplier['user_id'])) {
+                self::execute("
+                    UPDATE users
+                    SET status = :status, updated_at = NOW()
+                    WHERE id = :user_id
+                ", [
+                    ':status'  => $status,
+                    ':user_id' => (int)$supplier['user_id'],
+                ]);
+            }
+
+            self::commit();
+            return true;
+        } catch (\Throwable $e) {
+            self::rollBack();
+            return false;
+        }
+    }
+
     public static function updateProfile(int $id, array $data): bool
     {
         $supplier = self::findById($id);
@@ -253,6 +293,7 @@ class Supplier extends Model
             return false;
         }
 
+        $statusSql = "";
         $logoSql = !empty($data['logo']) ? ", logo = :logo" : "";
         $bindings = [
             ':company_name'     => trim($data['company_name']),
@@ -274,6 +315,10 @@ class Supplier extends Model
         if (!empty($data['logo'])) {
             $bindings[':logo'] = trim($data['logo']);
         }
+        if (!empty($data['status']) && in_array($data['status'], ['ACTIVE', 'INACTIVE'], true)) {
+            $statusSql = ", status = :status";
+            $bindings[':status'] = $data['status'];
+        }
 
         self::execute("
             UPDATE suppliers SET
@@ -290,7 +335,7 @@ class Supplier extends Model
                 state            = :state,
                 city             = :city,
                 description      = :description,
-                postal_code      = :postal_code{$logoSql},
+                postal_code      = :postal_code{$logoSql}{$statusSql},
                 updated_at       = NOW()
             WHERE id = :id
         ", $bindings);

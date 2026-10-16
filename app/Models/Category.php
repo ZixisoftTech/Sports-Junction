@@ -23,7 +23,13 @@ class Category extends Model
     {
         $categories = self::fetchAll("
             SELECT c.*, 
-                   (SELECT COUNT(*) FROM products p WHERE p.category_id = c.id AND p.status IN ('PUBLISHED', 'ACTIVE')) as product_count
+                   (
+                       SELECT COUNT(DISTINCT p.id) 
+                       FROM products p 
+                       LEFT JOIN product_category_assignments pca ON pca.product_id = p.id
+                       WHERE (p.category_id = c.id OR pca.category_id = c.id) 
+                         AND p.status IN ('PUBLISHED', 'ACTIVE')
+                   ) as product_count
             FROM categories c 
             WHERE c.status = 'ACTIVE' 
             ORDER BY c.display_order ASC, c.name ASC

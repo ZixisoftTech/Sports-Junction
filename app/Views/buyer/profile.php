@@ -36,10 +36,43 @@ $info = Session::flash('info');
         </div>
     <?php endif; ?>
 
-    <?php if ($error): ?>
-        <div class="mb-6 p-4 rounded-2xl bg-red-50 border border-red-200 text-red-800 text-xs sm:text-sm flex items-center gap-2.5">
-            <span class="material-symbols-outlined text-red-600 text-[20px]">error</span>
-            <div><?= htmlspecialchars($error) ?></div>
+    <?php if ($info): ?>
+        <div class="mb-6 p-4 rounded-2xl bg-blue-50 border border-blue-200 text-blue-900 text-xs sm:text-sm flex items-center gap-2.5">
+            <span class="material-symbols-outlined text-blue-600 text-[20px]">info</span>
+            <div><?= htmlspecialchars($info) ?></div>
+        </div>
+    <?php endif; ?>
+
+    <?php if (!empty($latestChange) && $latestChange['status'] === 'PENDING'): ?>
+        <div class="mb-6 p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs sm:text-sm">
+            <div class="flex items-center gap-2 font-bold mb-1">
+                <span class="material-symbols-outlined text-amber-600 text-[20px]">hourglass_top</span>
+                <span>Profile Revision Pending Administrator Approval</span>
+            </div>
+            <p class="text-amber-700 mb-2">You submitted updated profile details on <?= htmlspecialchars($latestChange['created_at']) ?>. These changes are awaiting Super Admin review. Your active profile below remains live across the marketplace until approved.</p>
+            <div class="p-3 bg-white/80 rounded-xl border border-amber-200 text-slate-700 text-xs grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div><strong>Proposed Name:</strong> <?= htmlspecialchars($latestChange['decoded_requested']['name'] ?? '—') ?></div>
+                <div><strong>Proposed Company:</strong> <?= htmlspecialchars($latestChange['decoded_requested']['company_name'] ?? '—') ?></div>
+                <div><strong>Proposed Phone:</strong> <?= htmlspecialchars(($latestChange['decoded_requested']['country_code'] ?? '') . ' ' . ($latestChange['decoded_requested']['phone'] ?? '—')) ?></div>
+                <div><strong>Proposed Location:</strong> <?= htmlspecialchars(implode(', ', array_filter([$latestChange['decoded_requested']['city'] ?? '', $latestChange['decoded_requested']['state'] ?? '']))) ?: '—' ?></div>
+            </div>
+        </div>
+    <?php elseif (!empty($latestChange) && $latestChange['status'] === 'REJECTED'): ?>
+        <div class="mb-6 p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-900 text-xs sm:text-sm">
+            <div class="flex items-center gap-2 font-bold mb-1">
+                <span class="material-symbols-outlined text-rose-600 text-[20px]">cancel</span>
+                <span>Previous Profile Revision Was Rejected</span>
+            </div>
+            <p class="text-rose-700 mb-1"><strong>Feedback:</strong> <?= htmlspecialchars($latestChange['rejection_reason'] ?? 'Requirements not met.') ?></p>
+            <small class="text-rose-500">You may update your details below and resubmit for approval.</small>
+        </div>
+    <?php elseif (!empty($latestChange) && $latestChange['status'] === 'APPROVED'): ?>
+        <div class="mb-6 p-3 rounded-2xl bg-slate-50 border border-slate-200 text-slate-700 text-xs flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-emerald-600 text-[18px]">verified</span>
+                <span>Profile Status: <strong>Approved &amp; Live</strong></span>
+            </div>
+            <span class="text-slate-400 text-[11px]">Last verified: <?= htmlspecialchars(substr($latestChange['reviewed_at'] ?? $latestChange['updated_at'] ?? '', 0, 10)) ?></span>
         </div>
     <?php endif; ?>
 
@@ -64,9 +97,9 @@ $info = Session::flash('info');
                 </div>
 
                 <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Work Email Address *</label>
-                    <input type="email" name="email" required value="<?= htmlspecialchars($buyer['email']) ?>" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:bg-white focus:border-blue-700 focus:ring-2 focus:ring-blue-100 outline-none transition-all">
-                    <small class="text-[11px] text-slate-400">Changing your email will require OTP reverification.</small>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Work Email Address (Account ID)</label>
+                    <input type="email" name="email" readonly value="<?= htmlspecialchars($buyer['email']) ?>" class="w-full px-3.5 py-2.5 bg-slate-100 border border-slate-200 rounded-xl text-sm text-slate-500 cursor-not-allowed outline-none">
+                    <small class="text-[11px] text-slate-400">Primary login email address. Contact support to change identity email.</small>
                 </div>
                 <div>
                     <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Mobile / Phone Number *</label>

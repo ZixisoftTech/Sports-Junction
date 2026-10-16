@@ -589,6 +589,19 @@ class MasterApiController extends Controller
         $this->json(['success' => true, 'data' => $subs]);
     }
 
+    public function subcategoriesByCategories(): void
+    {
+        $raw = $this->request->get('category_ids') ?? $this->request->input('category_ids') ?? '';
+        if (is_array($raw)) {
+            $catIds = $raw;
+        } else {
+            $catIds = array_filter(array_map('trim', explode(',', (string)$raw)));
+        }
+
+        $subs = Subcategory::byCategoriesActive($catIds);
+        $this->json(['success' => true, 'data' => $subs]);
+    }
+
     public function export(array $params): void
     {
         $entity = $params['entity'] ?? '';

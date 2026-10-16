@@ -51,6 +51,23 @@ class Subcategory extends Model
         ", [':cat_id' => $categoryId]);
     }
 
+    public static function byCategoriesActive(array $categoryIds): array
+    {
+        $categoryIds = array_values(array_unique(array_filter(array_map('intval', $categoryIds))));
+        if (empty($categoryIds)) {
+            return [];
+        }
+        $placeholders = implode(',', array_fill(0, count($categoryIds), '?'));
+        return self::fetchAll("
+            SELECT s.*, c.name as category_name,
+                   (SELECT COUNT(*) FROM products p WHERE p.subcategory_id = s.id AND p.status IN ('PUBLISHED', 'ACTIVE')) as product_count
+            FROM subcategories s
+            JOIN categories c ON s.category_id = c.id
+            WHERE s.category_id IN ({$placeholders}) AND s.status = 'ACTIVE'
+            ORDER BY c.name ASC, s.display_order ASC, s.name ASC
+        ", $categoryIds);
+    }
+
     public static function create(array $data): int
     {
         $name = trim($data['name']);

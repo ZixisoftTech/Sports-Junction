@@ -233,11 +233,15 @@ class ShopController extends Controller
                 }
             }
         } else {
-            if (empty($input['enquiry_source']) || !in_array($input['enquiry_source'], ['GENERAL', 'CONTACT_US'], true)) {
+            if (empty($input['enquiry_source']) || !in_array($input['enquiry_source'], ['GENERAL', 'CONTACT_US', 'RFQ', 'FAST_OEM'], true)) {
                 $input['enquiry_source'] = 'GENERAL';
             }
             if (empty($input['subject'])) {
-                $input['subject'] = 'General Bulk Requirement / RFQ';
+                $input['subject'] = match ($input['enquiry_source']) {
+                    'RFQ' => 'Request for Quotation (RFQ)',
+                    'FAST_OEM' => 'Fast OEM Customization Inquiry',
+                    default => 'General Bulk Requirement / RFQ'
+                };
             }
         }
 
@@ -412,9 +416,9 @@ class ShopController extends Controller
         }
 
         $supplier = \App\Models\Supplier::findById($id);
-        if (!$supplier) {
+        if (!$supplier || ($supplier['status'] ?? '') !== 'ACTIVE' || ($supplier['approval_status'] ?? '') !== 'APPROVED') {
             $this->response->setStatusCode(404);
-            $this->render('errors/404', ['message' => 'Supplier storefront not found.'], 'frontend');
+            $this->render('errors/404', ['message' => 'Supplier storefront not found or currently inactive.'], 'frontend');
             return;
         }
 

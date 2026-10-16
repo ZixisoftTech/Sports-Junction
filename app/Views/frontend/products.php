@@ -226,15 +226,26 @@ $sort = $filters['sort'] ?? 'featured';
                                     </div>
                                 </div>
 
-                                <!-- Card Footer CTAs -->
+                                <!-- Card Footer CTAs: 50% Specs & Samples + Heart + Chat button -->
                                 <div class="pt-3 border-t border-surface-container flex items-center gap-2">
                                     <a href="<?= $prodUrl ?>" class="flex-1 py-2 text-center rounded-xl bg-surface-container-low hover:bg-surface-container-high text-blue-900 text-xs font-bold transition-colors">
-                                        View Specs
+                                        Specs & Samples
                                     </a>
-                                    <button type="button" onclick="toggleFavouriteProduct(<?= (int)$prod['id'] ?>, this)" class="p-2 rounded-xl border border-surface-container hover:bg-rose-50 text-slate-500 hover:text-rose-600 transition-colors" title="Save to Favourites">
+                                    <button type="button" onclick="toggleFavouriteProduct(<?= (int)$prod['id'] ?>, this)" class="p-2 rounded-xl border border-surface-container hover:bg-rose-50 text-slate-500 hover:text-rose-600 transition-colors shrink-0" title="Save to Favourites" aria-label="Save to Favourites">
                                         <span class="material-symbols-outlined text-[18px]">favorite</span>
                                     </button>
-                                    <button type="button" onclick="openInquiryModal('<?= htmlspecialchars(addslashes($prod['name'])) ?>', '<?= htmlspecialchars(addslashes($prod['supplier_name'] ?? 'Verified Factory')) ?>', <?= (int)$prod['moq_quantity'] ?>, <?= (int)$prod['id'] ?>, <?= (int)($prod['supplier_id'] ?? 1) ?>)" class="p-2 rounded-xl bg-blue-700 hover:bg-blue-800 text-white transition-colors" title="Quick Factory Inquiry">
+                                    <button type="button" onclick="openProductChat(<?= htmlspecialchars(json_encode([
+                                        'id' => (int)$prod['id'],
+                                        'product_id' => (int)$prod['id'],
+                                        'supplier_id' => (int)($prod['supplier_id'] ?? 1),
+                                        'title' => $prod['name'] ?? $prod['title'] ?? '',
+                                        'name' => $prod['name'] ?? $prod['title'] ?? '',
+                                        'primary_image' => $prod['primary_image'] ?? '',
+                                        'min_price' => (float)($prod['min_price'] ?? 0),
+                                        'max_price' => (float)($prod['max_price'] ?? 0),
+                                        'moq_quantity' => (int)($prod['moq_quantity'] ?? 1),
+                                        'supplier_name' => $prod['supplier_name'] ?? 'Verified Factory'
+                                    ])) ?>)" class="p-2 rounded-xl bg-blue-700 hover:bg-blue-800 text-white transition-colors shrink-0 flex items-center justify-center cursor-pointer" title="Chat with Factory about this Product" aria-label="Chat with Factory">
                                         <span class="material-symbols-outlined text-[18px]">send</span>
                                     </button>
                                 </div>

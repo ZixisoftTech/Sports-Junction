@@ -21,6 +21,11 @@ $baseUrl = Response::baseUrl();
             </ul>
         </div>
 
+        <!-- Bulk Upload Button -->
+        <button type="button" class="btn btn-outline-primary btn-sm shadow-sm px-3" data-bs-toggle="modal" data-bs-target="#bulkUploadProductModal" id="btnAdminBulkUpload">
+            <i class="bi bi-file-earmark-arrow-up me-1"></i> Bulk Upload Products
+        </button>
+
         <!-- Add New Button: Dedicated Full Page Route -->
         <a href="<?= htmlspecialchars($baseUrl) ?>/admin/products/create" class="btn btn-sj-primary btn-sm shadow-sm px-3" id="btnAddNewProduct">
             <i class="bi bi-plus-lg me-1"></i> Add Product
@@ -490,3 +495,289 @@ document.addEventListener('DOMContentLoaded', function () {
         </div>
     </div>
 </div>
+
+<!-- Bulk Product Upload Modal -->
+<div class="modal fade" id="bulkUploadProductModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-primary text-white py-3">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-file-earmark-arrow-up fs-5"></i>
+                    <h5 class="modal-title fw-bold m-0 fs-6">Bulk Product Upload (Excel / CSV)</h5>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <!-- Template Download Card -->
+                <div class="alert alert-info border-info-subtle d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
+                    <div>
+                        <h6 class="fw-bold mb-1 text-dark"><i class="bi bi-download me-1.5 text-primary"></i>Official Product Upload Template</h6>
+                        <p class="small text-muted mb-0">Use our formatted Excel template with pre-configured headers, multi-category support, and sample products.</p>
+                    </div>
+                    <div class="d-flex align-items-center gap-2 shrink-0">
+                        <a href="<?= htmlspecialchars($baseUrl) ?>/api/products/bulk-template?format=xlsx" class="btn btn-success btn-sm shadow-sm">
+                            <i class="bi bi-file-earmark-spreadsheet me-1"></i> Download Template (.xlsx)
+                        </a>
+                        <a href="<?= htmlspecialchars($baseUrl) ?>/api/products/bulk-template?format=csv" class="btn btn-outline-secondary btn-sm shadow-sm bg-white">
+                            <i class="bi bi-filetype-csv me-1"></i> Download CSV
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Upload Drag-Drop Box -->
+                <div class="mb-4">
+                    <label class="form-label fw-bold text-dark small mb-2">Select Spreadsheet to Import (.xlsx or .csv)</label>
+                    <div class="border-2 border-dashed rounded-3 p-4 text-center bg-light" id="adminBulkDropzone" style="border-color: #cbd5e1 !important; cursor: pointer;">
+                        <input type="file" id="adminBulkFileInput" class="d-none" accept=".xlsx,.csv,.txt">
+                        <i class="bi bi-cloud-arrow-up display-6 text-primary mb-2 d-block"></i>
+                        <span class="fw-bold text-dark d-block">Click to browse file or drag &amp; drop here</span>
+                        <span class="text-muted small d-block mt-1">Supported formats: Microsoft Excel (.xlsx) and Comma-Separated Values (.csv) up to 15MB</span>
+                        <div id="adminBulkSelectedFileInfo" class="mt-3 d-none">
+                            <span class="badge bg-primary px-3 py-2 fs-7" id="adminBulkFileName">filename.xlsx</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Preview / Validation Results Section -->
+                <div id="adminBulkPreviewSection" class="d-none">
+                    <div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2">
+                        <h6 class="fw-bold text-dark m-0 d-flex align-items-center gap-2">
+                            <i class="bi bi-clipboard-check text-success"></i> Upload Validation Summary
+                        </h6>
+                        <div class="d-flex align-items-center gap-2" id="adminBulkStatsBadges"></div>
+                    </div>
+
+                    <!-- Error Messages Box -->
+                    <div id="adminBulkErrorsContainer" class="d-none mb-3">
+                        <div class="alert alert-danger p-3 mb-0">
+                            <h6 class="fw-bold text-danger mb-2"><i class="bi bi-exclamation-triangle-fill me-1.5"></i>Row-by-Row Validation Issues Found:</h6>
+                            <ul class="mb-0 ps-3 small text-danger" id="adminBulkErrorsList" style="max-height: 160px; overflow-y: auto;"></ul>
+                        </div>
+                    </div>
+
+                    <!-- Preview Table -->
+                    <div class="table-responsive border rounded-3" style="max-height: 260px; overflow-y: auto;">
+                        <table class="table table-sm table-hover align-middle mb-0 text-nowrap small">
+                            <thead class="table-light sticky-top">
+                                <tr>
+                                    <th>#</th>
+                                    <th>Product Name</th>
+                                    <th>Categories</th>
+                                    <th>Min Price ($)</th>
+                                    <th>Max Price ($)</th>
+                                    <th>MOQ</th>
+                                    <th>SKU</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="adminBulkPreviewTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer bg-light border-top py-2.5 d-flex justify-content-between">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+                <div class="d-flex align-items-center gap-2">
+                    <button type="button" class="btn btn-primary btn-sm px-4" id="btnAdminBulkValidate" disabled>
+                        <i class="bi bi-shield-check me-1"></i> Validate &amp; Preview
+                    </button>
+                    <button type="button" class="btn btn-success btn-sm px-4 d-none" id="btnAdminBulkCommit">
+                        <i class="bi bi-check2-circle me-1"></i> Confirm &amp; Import Products
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const dropzone = document.getElementById('adminBulkDropzone');
+    const fileInput = document.getElementById('adminBulkFileInput');
+    const fileInfo = document.getElementById('adminBulkSelectedFileInfo');
+    const fileNameBadge = document.getElementById('adminBulkFileName');
+    const btnValidate = document.getElementById('btnAdminBulkValidate');
+    const btnCommit = document.getElementById('btnAdminBulkCommit');
+    const previewSection = document.getElementById('adminBulkPreviewSection');
+    const statsContainer = document.getElementById('adminBulkStatsBadges');
+    const errorsContainer = document.getElementById('adminBulkErrorsContainer');
+    const errorsList = document.getElementById('adminBulkErrorsList');
+    const previewTableBody = document.getElementById('adminBulkPreviewTableBody');
+
+    let currentFile = null;
+    let currentFileToken = null;
+
+    if (dropzone && fileInput) {
+        dropzone.addEventListener('click', () => fileInput.click());
+        dropzone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropzone.classList.add('bg-white', 'border-primary');
+        });
+        dropzone.addEventListener('dragleave', () => {
+            dropzone.classList.remove('bg-white', 'border-primary');
+        });
+        dropzone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropzone.classList.remove('bg-white', 'border-primary');
+            if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                handleFileSelect(e.dataTransfer.files[0]);
+            }
+        });
+        fileInput.addEventListener('change', function () {
+            if (this.files && this.files[0]) {
+                handleFileSelect(this.files[0]);
+            }
+        });
+    }
+
+    function handleFileSelect(file) {
+        currentFile = file;
+        fileNameBadge.textContent = `${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+        fileInfo.classList.remove('d-none');
+        btnValidate.disabled = false;
+        btnCommit.classList.add('d-none');
+        previewSection.classList.add('d-none');
+    }
+
+    if (btnValidate) {
+        btnValidate.addEventListener('click', async function () {
+            if (!currentFile) return;
+
+            btnValidate.disabled = true;
+            btnValidate.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Validating...';
+
+            const formData = new FormData();
+            formData.append('file', currentFile);
+
+            try {
+                const res = await fetch(`${baseUrl}/api/products/bulk-preview`, {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await res.json();
+
+                if (!data.success) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Validation Failed',
+                        text: data.message || 'Unable to parse spreadsheet.',
+                        confirmButtonColor: '#00288e'
+                    });
+                    btnValidate.disabled = false;
+                    btnValidate.innerHTML = '<i class="bi bi-shield-check me-1"></i> Validate &amp; Preview';
+                    return;
+                }
+
+                currentFileToken = data.file_token;
+                previewSection.classList.remove('d-none');
+
+                statsContainer.innerHTML = `
+                    <span class="badge bg-secondary">Total: ${data.total_rows}</span>
+                    <span class="badge bg-success">Valid: ${data.valid_rows_count}</span>
+                    <span class="badge bg-danger">Issues: ${data.error_rows_count}</span>
+                `;
+
+                if (data.errors && data.errors.length > 0) {
+                    errorsContainer.classList.remove('d-none');
+                    errorsList.innerHTML = data.errors.map(err => `
+                        <li><strong>Row ${err.row} [${err.product}]:</strong> ${err.errors.join('; ')}</li>
+                    `).join('');
+                } else {
+                    errorsContainer.classList.add('d-none');
+                    errorsList.innerHTML = '';
+                }
+
+                if (data.preview_rows && data.preview_rows.length > 0) {
+                    previewTableBody.innerHTML = data.preview_rows.map(row => `
+                        <tr>
+                            <td><span class="badge bg-light text-muted border">Row ${row.row_num}</span></td>
+                            <td class="fw-bold text-dark">${row.name}</td>
+                            <td><span class="badge bg-primary-subtle text-primary border">${row.category_names ? row.category_names.join(', ') : 'Category'}</span></td>
+                            <td class="text-success fw-bold">$${parseFloat(row.min_price).toFixed(2)}</td>
+                            <td>$${parseFloat(row.max_price).toFixed(2)}</td>
+                            <td>${row.moq}</td>
+                            <td><code class="text-muted small">${row.sku || '-'}</code></td>
+                            <td><span class="badge bg-success-subtle text-success border">Ready</span></td>
+                        </tr>
+                    `).join('');
+                } else {
+                    previewTableBody.innerHTML = '<tr><td colspan="8" class="text-center py-3 text-muted">No valid rows available to import.</td></tr>';
+                }
+
+                if (data.valid_rows_count > 0) {
+                    btnCommit.classList.remove('d-none');
+                    btnCommit.innerHTML = `<i class="bi bi-check2-circle me-1"></i> Confirm &amp; Import (${data.valid_rows_count}) Products`;
+                } else {
+                    btnCommit.classList.add('d-none');
+                }
+            } catch (err) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Network Error',
+                    text: 'Failed to contact validation server.',
+                    confirmButtonColor: '#00288e'
+                });
+            } finally {
+                btnValidate.disabled = false;
+                btnValidate.innerHTML = '<i class="bi bi-shield-check me-1"></i> Re-Validate';
+            }
+        });
+    }
+
+    if (btnCommit) {
+        btnCommit.addEventListener('click', async function () {
+            if (!currentFileToken) return;
+
+            btnCommit.disabled = true;
+            btnCommit.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Importing...';
+
+            const csrfToken = document.querySelector('input[name="_csrf"]')?.value || '<?= CSRF::getToken() ?>';
+
+            try {
+                const res = await fetch(`${baseUrl}/api/products/bulk-commit`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: new URLSearchParams({
+                        file_token: currentFileToken,
+                        _csrf: csrfToken
+                    })
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Import Complete!',
+                        text: data.message,
+                        confirmButtonColor: '#00288e'
+                    }).then(() => {
+                        const modalEl = document.getElementById('bulkUploadProductModal');
+                        const modalInstance = bootstrap.Modal.getInstance(modalEl);
+                        if (modalInstance) modalInstance.hide();
+                        if (typeof productsDataTable !== 'undefined') {
+                            productsDataTable.ajax.reload();
+                        }
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Import Failed',
+                        text: data.message || 'Could not complete import.',
+                        confirmButtonColor: '#00288e'
+                    });
+                    btnCommit.disabled = false;
+                    btnCommit.innerHTML = '<i class="bi bi-check2-circle me-1"></i> Try Again';
+                }
+            } catch (err) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Import Error',
+                    text: 'Network communication failed during import transaction.',
+                    confirmButtonColor: '#00288e'
+                });
+                btnCommit.disabled = false;
+            }
+        });
+    }
+});
+</script>

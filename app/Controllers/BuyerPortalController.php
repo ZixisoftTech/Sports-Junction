@@ -218,11 +218,13 @@ class BuyerPortalController extends Controller
     {
         $buyer = $this->getBuyer();
         $countries = Country::allActive();
+        $latestChange = \App\Models\ProfileChangeRequest::getLatestForUser((int)$buyer['id']);
 
         $this->render('buyer/profile', [
-            'pageTitle' => 'My Account & Profile — Sports Junction',
-            'buyer'     => $buyer,
-            'countries' => $countries,
+            'pageTitle'    => 'My Account & Profile — Sports Junction',
+            'buyer'        => $buyer,
+            'countries'    => $countries,
+            'latestChange' => $latestChange,
         ], 'frontend');
     }
 
@@ -238,7 +240,6 @@ class BuyerPortalController extends Controller
         $rules = [
             'name'         => 'required|max:150',
             'company_name' => 'required|max:150',
-            'email'        => 'required|email|max:191',
             'phone'        => 'required|max:30',
             'country_id'   => 'required|integer',
         ];
@@ -249,46 +250,35 @@ class BuyerPortalController extends Controller
             return;
         }
 
-        $newEmail = strtolower(trim((string)$input['email']));
-        if (User::emailExists($newEmail, (int)$buyer['id'])) {
-            Session::flash('error', 'This email address is already registered to another account.');
-            $this->redirect('/buyer/profile');
-            return;
-        }
+        $currentValues = [
+            'name'         => $buyer['name'] ?? '',
+            'company_name' => $buyer['company_name'] ?? '',
+            'phone'        => $buyer['phone'] ?? '',
+            'country_code' => $buyer['country_code'] ?? '+91',
+            'country_id'   => (int)($buyer['country_id'] ?? 1),
+            'state'        => $buyer['state'] ?? '',
+            'city'         => $buyer['city'] ?? '',
+        ];
 
-        $emailChanged = strtolower(trim($buyer['email'])) !== $newEmail;
+        $requestedChanges = [
+            'name'         => trim((string)$input['name']),
+            'company_name' => trim((string)$input['company_name']),
+            'phone'        => trim((string)$input['phone']),
+            'country_code' => trim((string)($input['country_code'] ?? '+91')),
+            'country_id'   => (int)$input['country_id'],
+            'state'        => trim((string)($input['state'] ?? '')),
+            'city'         => trim((string)($input['city'] ?? '')),
+        ];
 
-        User::updateProfile((int)$buyer['id'], [
-            'name'         => $input['name'],
-            'company_name' => $input['company_name'],
-            'email'        => $newEmail,
-            'phone'        => $input['phone'],
-            'country_code' => $input['country_code'] ?? '+91',
-            'country_id'   => $input['country_id'],
-            'state'        => !empty($input['state']) ? trim($input['state']) : null,
-            'city'         => !empty($input['city']) ? trim($input['city']) : null,
-        ]);
+        \App\Models\ProfileChangeRequest::createRequest(
+            (int)$buyer['id'],
+            null,
+            'BUYER',
+            $currentValues,
+            $requestedChanges
+        );
 
-        if ($emailChanged) {
-            // Re-verify email flow
-            $otp = Otp::generate($newEmail, 'REGISTRATION', $this->request->getIp());
-            Mailer::sendBuyerOtp($newEmail, (string)$input['name'], $otp);
-            Session::set('otp_email', $newEmail);
-            Session::set('otp_purpose', 'REGISTRATION');
-            Session::remove('auth_user');
-
-            Session::flash('info', 'Your email address was updated. Please enter the verification passcode sent to your new email.');
-            $this->redirect('/verify-email');
-            return;
-        }
-
-        // Update session
-        Session::set('auth_user', array_merge(Session::get('auth_user'), [
-            'name'  => $input['name'],
-            'email' => $newEmail,
-        ]));
-
-        Session::flash('success', 'Your profile details have been saved successfully.');
+        Session::flash('info', 'Your profile change request has been submitted for Super Admin review. Your active profile will remain unchanged until approved.');
         $this->redirect('/buyer/profile');
     }
 

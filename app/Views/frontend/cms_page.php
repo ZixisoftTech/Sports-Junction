@@ -60,10 +60,6 @@ $hours = $siteSettings['working_hours'] ?? 'Mon - Sat: 9:00 AM - 7:00 PM IST';
                     </p>
                     <div class="space-y-2 text-xs text-blue-200">
                         <div class="flex items-center gap-2">
-                            <span class="material-symbols-outlined text-[15px] text-teal-300">call</span>
-                            <span class="font-semibold text-white"><?= htmlspecialchars($phone) ?></span>
-                        </div>
-                        <div class="flex items-center gap-2">
                             <span class="material-symbols-outlined text-[15px] text-teal-300">mail</span>
                             <span class="font-semibold text-white"><?= htmlspecialchars($email) ?></span>
                         </div>

@@ -5,87 +5,49 @@ $baseUrl = Response::baseUrl();
 <!-- 1. HERO / SEARCH SECTION -->
 <section class="relative bg-surface py-6">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex flex-col lg:flex-row gap-5 items-stretch">
-            <!-- LEFT COLUMN: Vertical Category Sidebar -->
-            <div class="w-full lg:w-64 shrink-0 bg-white rounded-2xl border border-surface-container shadow-sm p-3 flex flex-col justify-between">
-                <div class="space-y-1">
-                    <div class="px-3 py-2 text-xs font-bold text-outline uppercase tracking-wider flex items-center justify-between border-b border-surface-container mb-2">
-                        <span>Categories</span>
-                        <span class="material-symbols-outlined text-[16px]">tune</span>
+        <!-- High-Conversion B2B Hero Banner (Full Width) -->
+        <div class="w-full relative rounded-2xl overflow-hidden bg-slate-900 min-h-[380px] sm:min-h-[420px] lg:min-h-[450px] flex items-center shadow-lg">
+            <img alt="Sports manufacturing warehouse" class="absolute inset-0 w-full h-full object-cover opacity-35" src="https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&w=1600&q=80">
+            <div class="absolute inset-0 bg-gradient-to-r from-blue-950/95 via-blue-950/70 to-transparent"></div>
+
+            <div class="relative z-10 max-w-2xl p-6 sm:p-10 lg:p-12 text-white flex flex-col justify-between h-full">
+                <div class="space-y-4">
+                    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-500/20 backdrop-blur-md text-teal-300 text-xs font-bold uppercase tracking-wider border border-teal-500/30">
+                        <span class="w-2 h-2 rounded-full bg-teal-400 animate-pulse"></span>
+                        <span>Factory Direct Sourcing Hub</span>
                     </div>
 
-                    <?php if (!empty($categories)): ?>
-                        <?php foreach (array_slice($categories, 0, 8) as $cat): ?>
-                            <a href="<?= htmlspecialchars($baseUrl) ?>/category/<?= htmlspecialchars($cat['slug']) ?>" class="flex items-center justify-between px-3 py-2 rounded-xl text-on-surface hover:bg-surface-container-low hover:text-primary transition-all text-xs font-semibold group">
-                                <span class="flex items-center gap-2.5 truncate">
-                                    <?php 
-                                    $catIcon = trim($cat['icon'] ?? 'sports_tennis');
-                                    $isImg = (str_starts_with($catIcon, '/') || str_starts_with($catIcon, 'http') || str_contains($catIcon, '.'));
-                                    if ($isImg): ?>
-                                        <img src="<?= htmlspecialchars(\App\Core\Response::formatImageUrl($catIcon)) ?>" class="w-4 h-4 object-contain rounded" alt="">
-                                    <?php else: ?>
-                                        <span class="material-symbols-outlined text-[18px] text-primary group-hover:scale-110 transition-transform"><?= htmlspecialchars($catIcon) ?></span>
-                                    <?php endif; ?>
-                                    <span class="truncate"><?= htmlspecialchars($cat['name']) ?></span>
-                                </span>
-                                <span class="material-symbols-outlined text-[14px] text-outline group-hover:text-primary group-hover:translate-x-0.5 transition-all">chevron_right</span>
-                            </a>
-                        <?php endforeach; ?>
-                    <?php endif; ?>
-                </div>
+                    <h1 class="font-headline text-3xl sm:text-4xl lg:text-5xl font-extrabold leading-tight tracking-tight text-white">
+                        Direct From Verified Indian Sports & Fitness Manufacturers
+                    </h1>
 
-                <div class="mt-4 pt-3 border-t border-surface-container px-2">
-                    <div class="flex items-center gap-2 text-xs text-teal-700 font-bold">
-                        <span class="material-symbols-outlined text-[16px]">verified</span>
-                        <span>15,000+ Audited Plants</span>
+                    <p class="text-sm sm:text-base text-gray-200 leading-relaxed max-w-xl">
+                        Factory-Direct Wholesale Pricing • Guaranteed MOQs • ISO 9001 & BSCI Audited Production Facilities in Meerut & Jalandhar with Fast Sample Turnaround.
+                    </p>
+
+                    <div class="flex flex-wrap items-center gap-3 pt-3">
+                        <a href="<?= htmlspecialchars($baseUrl) ?>/products" class="px-6 py-3.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-headline font-bold text-sm shadow-lg hover:shadow-xl transition-all flex items-center gap-2">
+                            <span>Source Catalog</span>
+                            <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+                        </a>
+                        <button type="button" onclick="openRfqModal()" class="px-6 py-3.5 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/20 backdrop-blur-md font-headline font-bold text-sm transition-all flex items-center gap-2 cursor-pointer">
+                            <span class="material-symbols-outlined text-[18px]">description</span>
+                            <span>Request Quotation</span>
+                        </button>
                     </div>
                 </div>
-            </div>
 
-            <!-- RIGHT COLUMN: High-Conversion B2B Hero Banner -->
-            <div class="flex-1 relative rounded-2xl overflow-hidden bg-slate-900 min-h-[420px] lg:min-h-[460px] flex items-center shadow-lg">
-                <img alt="Sports manufacturing warehouse" class="absolute inset-0 w-full h-full object-cover opacity-35" src="https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&w=1600&q=80">
-                <div class="absolute inset-0 bg-gradient-to-r from-blue-950/95 via-blue-950/70 to-transparent"></div>
-
-                <div class="relative z-10 max-w-xl p-6 sm:p-10 lg:p-12 text-white flex flex-col justify-between h-full">
-                    <div class="space-y-4">
-                        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-500/20 backdrop-blur-md text-teal-300 text-xs font-bold uppercase tracking-wider border border-teal-500/30">
-                            <span class="w-2 h-2 rounded-full bg-teal-400 animate-pulse"></span>
-                            <span>Factory Direct Sourcing Hub</span>
-                        </div>
-
-                        <h1 class="font-headline text-3xl sm:text-4xl lg:text-5xl font-extrabold leading-tight tracking-tight text-white">
-                            Direct From Verified Indian Sports & Fitness Manufacturers
-                        </h1>
-
-                        <p class="text-sm sm:text-base text-gray-200 leading-relaxed max-w-lg">
-                            Factory-Direct Wholesale Pricing • Guaranteed MOQs • ISO 9001 & BSCI Audited Production Facilities in Meerut & Jalandhar with Fast Sample Turnaround.
-                        </p>
-
-                        <div class="flex flex-wrap items-center gap-3 pt-3">
-                            <a href="<?= htmlspecialchars($baseUrl) ?>/products" class="px-6 py-3.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-headline font-bold text-sm shadow-lg hover:shadow-xl transition-all flex items-center gap-2">
-                                <span>Source Catalog</span>
-                                <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
-                            </a>
-                            <button type="button" onclick="openInquiryModal('Custom Wholesale RFP', 'Sports Junction Verified Pool', 100)" class="px-6 py-3.5 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/20 backdrop-blur-md font-headline font-bold text-sm transition-all flex items-center gap-2">
-                                <span class="material-symbols-outlined text-[18px]">description</span>
-                                <span>Request Quotation</span>
-                            </button>
-                        </div>
+                <!-- Bottom Trust Indicators -->
+                <div class="mt-8 pt-4 border-t border-white/10 flex items-center justify-between text-xs text-gray-300">
+                    <div class="flex items-center gap-2">
+                        <span class="w-8 h-1.5 rounded-full bg-blue-500"></span>
+                        <span class="w-3 h-1.5 rounded-full bg-white/30"></span>
+                        <span class="w-3 h-1.5 rounded-full bg-white/30"></span>
+                        <span class="ml-2 font-mono font-semibold text-white">01 / 03</span>
                     </div>
-
-                    <!-- Bottom Trust Indicators -->
-                    <div class="mt-8 pt-4 border-t border-white/10 flex items-center justify-between text-xs text-gray-300">
-                        <div class="flex items-center gap-2">
-                            <span class="w-8 h-1.5 rounded-full bg-blue-500"></span>
-                            <span class="w-3 h-1.5 rounded-full bg-white/30"></span>
-                            <span class="w-3 h-1.5 rounded-full bg-white/30"></span>
-                            <span class="ml-2 font-mono font-semibold text-white">01 / 03</span>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <span class="material-symbols-outlined text-[16px] text-teal-400">local_shipping</span>
-                            <span>Global Port Dispatch: Nhava Sheva & Mundra</span>
-                        </div>
+                    <div class="flex items-center gap-2">
+                        <span class="material-symbols-outlined text-[16px] text-teal-400">local_shipping</span>
+                        <span>Global Port Dispatch: Nhava Sheva & Mundra</span>
                     </div>
                 </div>
             </div>
@@ -139,28 +101,25 @@ $baseUrl = Response::baseUrl();
     </div>
 
     <!-- Category Cards Grid -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <?php if (!empty($categories)): ?>
-            <?php foreach (array_slice($categories, 0, 8) as $idx => $cat): ?>
-                <a href="<?= htmlspecialchars($baseUrl) ?>/category/<?= htmlspecialchars($cat['slug']) ?>" class="group p-5 rounded-2xl bg-white border border-surface-container shadow-sm hover:shadow-md hover:border-blue-200 transition-all flex flex-col justify-between h-44 relative overflow-hidden">
-                    <div class="flex items-center justify-between">
-                        <div class="w-12 h-12 rounded-xl bg-surface-container-low flex items-center justify-center text-primary group-hover:bg-blue-700 group-hover:text-white transition-colors overflow-hidden p-2">
-                            <?php 
-                            $catIcon = trim($cat['icon'] ?? 'sports_tennis');
-                            $isImg = (str_starts_with($catIcon, '/') || str_starts_with($catIcon, 'http') || str_contains($catIcon, '.'));
-                            if ($isImg): ?>
-                                <img src="<?= htmlspecialchars(\App\Core\Response::formatImageUrl($catIcon)) ?>" class="w-full h-full object-contain" alt="">
-                            <?php else: ?>
-                                <span class="material-symbols-outlined text-[24px]"><?= htmlspecialchars($catIcon) ?></span>
-                            <?php endif; ?>
-                        </div>
-                        <span class="font-mono text-xs font-semibold text-outline">0<?= $idx + 1 ?></span>
+            <?php foreach (array_slice($categories, 0, 8) as $cat): ?>
+                <a href="<?= htmlspecialchars($baseUrl) ?>/category/<?= htmlspecialchars($cat['slug']) ?>" class="group p-4 rounded-2xl bg-white border border-slate-200/90 shadow-2xs hover:shadow-md hover:border-blue-300 transition-all flex items-center gap-3.5 relative overflow-hidden">
+                    <div class="w-12 h-12 rounded-xl bg-blue-50/80 group-hover:bg-blue-600 flex items-center justify-center text-blue-900 group-hover:text-white transition-colors shrink-0 p-2.5">
+                        <?php 
+                        $catIcon = trim($cat['icon'] ?? 'sports_tennis');
+                        $isImg = (str_starts_with($catIcon, '/') || str_starts_with($catIcon, 'http') || str_contains($catIcon, '.'));
+                        if ($isImg): ?>
+                            <img src="<?= htmlspecialchars(\App\Core\Response::formatImageUrl($catIcon)) ?>" class="w-full h-full object-contain" alt="">
+                        <?php else: ?>
+                            <span class="material-symbols-outlined text-[24px]"><?= htmlspecialchars($catIcon) ?></span>
+                        <?php endif; ?>
                     </div>
-                    <div>
-                        <h3 class="font-headline font-bold text-sm sm:text-base text-on-surface group-hover:text-blue-700 transition-colors">
+                    <div class="min-w-0 flex-1">
+                        <h3 class="font-headline font-bold text-sm text-slate-900 group-hover:text-blue-700 transition-colors line-clamp-2 leading-snug">
                             <?= htmlspecialchars($cat['name']) ?>
                         </h3>
-                        <p class="text-xs text-on-surface-variant mt-1">
+                        <p class="text-xs text-slate-500 mt-0.5 font-normal">
                             <?= (int) ($cat['product_count'] ?? 0) ?> active products
                         </p>
                     </div>
@@ -240,15 +199,26 @@ $baseUrl = Response::baseUrl();
                                 </div>
                             </div>
 
-                            <!-- CTA Buttons -->
+                            <!-- CTA Buttons: 50% Specs & Samples + Heart + Chat button -->
                             <div class="pt-3 border-t border-surface-container flex items-center gap-2">
                                 <a href="<?= $prodUrl ?>" class="flex-1 py-2 text-center rounded-xl bg-surface-container-low hover:bg-surface-container-high text-blue-900 text-xs font-bold transition-colors">
                                     Specs & Samples
                                 </a>
-                                <button type="button" onclick="toggleFavouriteProduct(<?= (int)$prod['id'] ?>, this)" class="p-2 rounded-xl border border-surface-container hover:bg-rose-50 text-slate-500 hover:text-rose-600 transition-colors" title="Save to Favourites">
+                                <button type="button" onclick="toggleFavouriteProduct(<?= (int)$prod['id'] ?>, this)" class="p-2 rounded-xl border border-surface-container hover:bg-rose-50 text-slate-500 hover:text-rose-600 transition-colors shrink-0" title="Save to Favourites" aria-label="Save to Favourites">
                                     <span class="material-symbols-outlined text-[18px]">favorite</span>
                                 </button>
-                                <button type="button" onclick="openInquiryModal('<?= htmlspecialchars(addslashes($prod['name'])) ?>', '<?= htmlspecialchars(addslashes($prod['supplier_name'] ?? 'Verified Factory')) ?>', <?= (int)$prod['moq_quantity'] ?>, <?= (int)$prod['id'] ?>, <?= (int)($prod['supplier_id'] ?? 1) ?>)" class="p-2 rounded-xl bg-blue-700 hover:bg-blue-800 text-white transition-colors" title="Quick Factory Inquiry">
+                                <button type="button" onclick="openProductChat(<?= htmlspecialchars(json_encode([
+                                    'id' => (int)$prod['id'],
+                                    'product_id' => (int)$prod['id'],
+                                    'supplier_id' => (int)($prod['supplier_id'] ?? 1),
+                                    'title' => $prod['name'] ?? $prod['title'] ?? '',
+                                    'name' => $prod['name'] ?? $prod['title'] ?? '',
+                                    'primary_image' => $prod['primary_image'] ?? '',
+                                    'min_price' => (float)($prod['min_price'] ?? 0),
+                                    'max_price' => (float)($prod['max_price'] ?? 0),
+                                    'moq_quantity' => (int)($prod['moq_quantity'] ?? 1),
+                                    'supplier_name' => $prod['supplier_name'] ?? 'Verified Factory'
+                                ])) ?>)" class="p-2 rounded-xl bg-blue-700 hover:bg-blue-800 text-white transition-colors shrink-0 flex items-center justify-center cursor-pointer" title="Chat with Factory about this Product" aria-label="Chat with Factory">
                                     <span class="material-symbols-outlined text-[18px]">send</span>
                                 </button>
                             </div>

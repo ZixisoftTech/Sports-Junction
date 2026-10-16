@@ -1,6 +1,9 @@
 <?php
 declare(strict_types=1);
 
+// Start root output buffering immediately to prevent any PHP notices/warnings from corrupting JSON/HTTP responses
+ob_start();
+
 /**
  * =======================================================================
  * SPORTS JUNCTION — INDIA'S SPORTS MANUFACTURING MARKETPLACE
@@ -196,6 +199,9 @@ $router->get('/supplier/products', [SupplierPortalController::class, 'products']
 $router->get('/supplier/products/add', [SupplierPortalController::class, 'addProduct'], [SupplierAuthMiddleware::class]);
 $router->post('/supplier/products/add', [SupplierPortalController::class, 'storeProduct'], [SupplierAuthMiddleware::class]);
 $router->post('/supplier/products/store', [SupplierPortalController::class, 'storeProduct'], [SupplierAuthMiddleware::class]);
+$router->get('/supplier/products/bulk-template', [SupplierPortalController::class, 'downloadBulkTemplate'], [SupplierAuthMiddleware::class]);
+$router->post('/supplier/products/bulk-preview', [SupplierPortalController::class, 'bulkPreview'], [SupplierAuthMiddleware::class]);
+$router->post('/supplier/products/bulk-commit', [SupplierPortalController::class, 'bulkCommit'], [SupplierAuthMiddleware::class]);
 $router->get('/supplier/products/edit/{id}', [SupplierPortalController::class, 'editProduct'], [SupplierAuthMiddleware::class]);
 $router->post('/supplier/products/edit/{id}', [SupplierPortalController::class, 'updateProduct'], [SupplierAuthMiddleware::class]);
 $router->post('/supplier/products/update/{id}', [SupplierPortalController::class, 'updateProduct'], [SupplierAuthMiddleware::class]);
@@ -223,10 +229,13 @@ $router->post('/api/admin/buyers/{id}/toggle-status', [BuyerManagementController
 
 // Super Admin Centralized Enquiry Management
 $router->get('/admin/enquiries', [EnquiryManagementController::class, 'index'], [AuthMiddleware::class]);
+$router->get('/admin/rfq-oem', [EnquiryManagementController::class, 'rfqOem'], [AuthMiddleware::class]);
 $router->get('/admin/enquiries/{id}', [EnquiryManagementController::class, 'show'], [AuthMiddleware::class]);
 $router->post('/admin/enquiries/{id}/reply', [EnquiryManagementController::class, 'reply'], [AuthMiddleware::class]);
 $router->get('/api/admin/enquiries/data', [EnquiryManagementController::class, 'data'], [AuthMiddleware::class]);
 $router->get('/api/admin/enquiries/export', [EnquiryManagementController::class, 'export'], [AuthMiddleware::class]);
+$router->get('/api/admin/rfq-oem/data', [EnquiryManagementController::class, 'rfqOemData'], [AuthMiddleware::class]);
+$router->get('/api/admin/rfq-oem/export', [EnquiryManagementController::class, 'rfqOemExport'], [AuthMiddleware::class]);
 $router->get('/api/admin/enquiries/{id}', [EnquiryManagementController::class, 'show'], [AuthMiddleware::class]);
 $router->post('/api/admin/enquiries/{id}/assign-supplier', [EnquiryManagementController::class, 'assignSupplier'], [AuthMiddleware::class]);
 $router->post('/api/admin/enquiries/{id}/status', [EnquiryManagementController::class, 'updateStatus'], [AuthMiddleware::class]);
@@ -259,6 +268,7 @@ $router->post('/api/admin/suppliers/{id}/approve', [SupplierApprovalController::
 $router->post('/api/admin/suppliers/{id}/reject', [SupplierApprovalController::class, 'reject'], [AuthMiddleware::class]);
 $router->post('/api/admin/suppliers/{id}/suspend', [SupplierApprovalController::class, 'suspend'], [AuthMiddleware::class]);
 $router->post('/api/admin/suppliers/{id}/reactivate', [SupplierApprovalController::class, 'reactivate'], [AuthMiddleware::class]);
+$router->post('/api/admin/suppliers/{id}/toggle-status', [SupplierApprovalController::class, 'toggleStatus'], [AuthMiddleware::class]);
 
 // Super Admin Product Approvals
 $router->get('/admin/product-approvals', [ProductApprovalController::class, 'index'], [AuthMiddleware::class]);
@@ -266,6 +276,12 @@ $router->get('/api/admin/product-approvals/data', [ProductApprovalController::cl
 $router->get('/api/admin/product-approvals/{id}', [ProductApprovalController::class, 'show'], [AuthMiddleware::class]);
 $router->post('/api/admin/product-approvals/{id}/approve', [ProductApprovalController::class, 'approve'], [AuthMiddleware::class]);
 $router->post('/api/admin/product-approvals/{id}/reject', [ProductApprovalController::class, 'reject'], [AuthMiddleware::class]);
+
+// Profile Change Requests (Buyer & Supplier Controlled Approvals)
+$router->get('/api/admin/profile-requests', [AdminProfileChangeController::class, 'index'], [AuthMiddleware::class]);
+$router->get('/api/admin/profile-requests/{id}', [AdminProfileChangeController::class, 'show'], [AuthMiddleware::class]);
+$router->post('/api/admin/profile-requests/{id}/approve', [AdminProfileChangeController::class, 'approve'], [AuthMiddleware::class]);
+$router->post('/api/admin/profile-requests/{id}/reject', [AdminProfileChangeController::class, 'reject'], [AuthMiddleware::class]);
 
 // Master Management Page Routes
 $router->get('/admin/masters/countries', [CountryController::class, 'index'], [AuthMiddleware::class]);
@@ -287,6 +303,10 @@ $router->get('/admin/masters/subcategories', [SubcategoryController::class, 'ind
 $router->get('/admin/products', [ProductController::class, 'index'], [AuthMiddleware::class]);
 $router->get('/admin/products/create', [ProductController::class, 'create'], [AuthMiddleware::class]);
 $router->get('/admin/products/add', [ProductController::class, 'create'], [AuthMiddleware::class]);
+$router->get('/admin/products/bulk-template', [ProductController::class, 'downloadBulkTemplate'], [AuthMiddleware::class]);
+$router->get('/api/products/bulk-template', [ProductController::class, 'downloadBulkTemplate'], [AuthMiddleware::class]);
+$router->post('/api/products/bulk-preview', [ProductController::class, 'bulkPreview'], [AuthMiddleware::class]);
+$router->post('/api/products/bulk-commit', [ProductController::class, 'bulkCommit'], [AuthMiddleware::class]);
 $router->get('/admin/products/edit/{id}', [ProductController::class, 'edit'], [AuthMiddleware::class]);
 $router->get('/api/products/data', [ProductController::class, 'data'], [AuthMiddleware::class]);
 $router->get('/api/products/export', [ProductController::class, 'export'], [AuthMiddleware::class]);
@@ -307,6 +327,8 @@ $router->delete('/api/products/{id}', [ProductController::class, 'delete'], [Aut
 // Dynamic dependent states and subcategories loaders
 $router->get('/api/masters/states-by-country/{countryId}', [MasterApiController::class, 'statesByCountry'], [AuthMiddleware::class]);
 $router->get('/api/masters/subcategories-by-category/{categoryId}', [MasterApiController::class, 'subcategoriesByCategory']);
+$router->get('/api/masters/subcategories-by-categories', [MasterApiController::class, 'subcategoriesByCategories']);
+$router->post('/api/masters/subcategories-by-categories', [MasterApiController::class, 'subcategoriesByCategories']);
 
 // DataTables AJAX data endpoint
 $router->get('/api/masters/{entity}/data', [MasterApiController::class, 'data'], [AuthMiddleware::class]);

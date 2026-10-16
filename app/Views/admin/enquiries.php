@@ -111,7 +111,9 @@ $selectedBuyerId = !empty($filterBuyer['id']) ? (int)$filterBuyer['id'] : '';
                 <select id="filterSource" class="form-select form-select-sm">
                     <option value="ALL">All Sources</option>
                     <option value="PRODUCT_PAGE">Product Page Enquiry</option>
-                    <option value="GENERAL">General Enquiry / RFQ</option>
+                    <option value="RFQ">RFQ (Request For Quotation)</option>
+                    <option value="FAST_OEM">Fast OEM Customization</option>
+                    <option value="GENERAL">General Enquiry</option>
                     <option value="CONTACT_US">Contact Us Message</option>
                 </select>
             </div>
@@ -235,6 +237,10 @@ function renderSourceBadge(src) {
         return `<span class="badge rounded-pill" style="background:#dbeafe;color:#1d4ed8;"><i class="bi bi-box-seam me-1"></i>Product Page</span>`;
     } else if (src === 'CONTACT_US') {
         return `<span class="badge rounded-pill" style="background:#f3e8ff;color:#7e22ce;"><i class="bi bi-envelope-paper me-1"></i>Contact Us</span>`;
+    } else if (src === 'RFQ') {
+        return `<span class="badge rounded-pill" style="background:#fef3c7;color:#b45309;"><i class="bi bi-clipboard2-check me-1"></i>RFQ Request</span>`;
+    } else if (src === 'FAST_OEM') {
+        return `<span class="badge rounded-pill" style="background:#ccfbf1;color:#0f766e;"><i class="bi bi-gear-wide-connected me-1"></i>Fast OEM</span>`;
     }
     return `<span class="badge rounded-pill" style="background:#e0f2fe;color:#0369a1;"><i class="bi bi-megaphone me-1"></i>General Enquiry</span>`;
 }

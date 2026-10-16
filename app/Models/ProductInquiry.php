@@ -22,6 +22,8 @@ class ProductInquiry extends Model
         'PRODUCT_PAGE',
         'GENERAL',
         'CONTACT_US',
+        'RFQ',
+        'FAST_OEM',
     ];
 
     public static function create(array $data): int
@@ -245,7 +247,14 @@ class ProductInquiry extends Model
         }
 
         // Enquiry Source Filter
-        if (!empty($params['enquiry_source']) && $params['enquiry_source'] !== 'ALL') {
+        if (!empty($params['rfq_oem_only'])) {
+            if (!empty($params['enquiry_source']) && in_array($params['enquiry_source'], ['RFQ', 'FAST_OEM'], true)) {
+                $where[] = "i.enquiry_source = :f_rfq_source";
+                $bindings[':f_rfq_source'] = $params['enquiry_source'];
+            } else {
+                $where[] = "i.enquiry_source IN ('RFQ', 'FAST_OEM')";
+            }
+        } elseif (!empty($params['enquiry_source']) && $params['enquiry_source'] !== 'ALL') {
             $where[] = "i.enquiry_source = :f_source";
             $bindings[':f_source'] = $params['enquiry_source'];
         }
@@ -401,6 +410,8 @@ class ProductInquiry extends Model
                     WHEN 'PRODUCT_PAGE' THEN 'Product Page Enquiry'
                     WHEN 'GENERAL' THEN 'General Enquiry'
                     WHEN 'CONTACT_US' THEN 'Contact Us Enquiry'
+                    WHEN 'RFQ' THEN 'Request For Quotation (RFQ)'
+                    WHEN 'FAST_OEM' THEN 'Fast OEM Customization'
                     ELSE i.enquiry_source
                 END AS 'Enquiry Source',
                 i.buyer_name AS 'Buyer Name',
@@ -433,6 +444,8 @@ class ProductInquiry extends Model
                 SUM(CASE WHEN enquiry_source = 'PRODUCT_PAGE' THEN 1 ELSE 0 END) AS product_page,
                 SUM(CASE WHEN enquiry_source = 'GENERAL' THEN 1 ELSE 0 END) AS general_rfq,
                 SUM(CASE WHEN enquiry_source = 'CONTACT_US' THEN 1 ELSE 0 END) AS contact_us,
+                SUM(CASE WHEN enquiry_source = 'RFQ' THEN 1 ELSE 0 END) AS rfq_count,
+                SUM(CASE WHEN enquiry_source = 'FAST_OEM' THEN 1 ELSE 0 END) AS fast_oem_count,
                 SUM(CASE WHEN status IN ('PENDING', 'SUBMITTED') THEN 1 ELSE 0 END) AS pending,
                 SUM(CASE WHEN status IN ('RESPONDED', 'IN_DISCUSSION') THEN 1 ELSE 0 END) AS responded,
                 SUM(CASE WHEN status IN ('CLOSED', 'RESOLVED') THEN 1 ELSE 0 END) AS resolved
@@ -440,13 +453,39 @@ class ProductInquiry extends Model
         ");
 
         return [
-            'total'        => (int) ($row['total'] ?? 0),
-            'product_page' => (int) ($row['product_page'] ?? 0),
-            'general_rfq'  => (int) ($row['general_rfq'] ?? 0),
-            'contact_us'   => (int) ($row['contact_us'] ?? 0),
-            'pending'      => (int) ($row['pending'] ?? 0),
-            'responded'    => (int) ($row['responded'] ?? 0),
-            'resolved'     => (int) ($row['resolved'] ?? 0),
+            'total'          => (int) ($row['total'] ?? 0),
+            'product_page'   => (int) ($row['product_page'] ?? 0),
+            'general_rfq'    => (int) ($row['general_rfq'] ?? 0),
+            'contact_us'     => (int) ($row['contact_us'] ?? 0),
+            'rfq_count'      => (int) ($row['rfq_count'] ?? 0),
+            'fast_oem_count' => (int) ($row['fast_oem_count'] ?? 0),
+            'pending'        => (int) ($row['pending'] ?? 0),
+            'responded'      => (int) ($row['responded'] ?? 0),
+            'resolved'       => (int) ($row['resolved'] ?? 0),
+        ];
+    }
+
+    public static function getRfqOemMetrics(): array
+    {
+        $row = self::fetch("
+            SELECT 
+                COUNT(*) AS total,
+                SUM(CASE WHEN enquiry_source = 'RFQ' THEN 1 ELSE 0 END) AS rfq_count,
+                SUM(CASE WHEN enquiry_source = 'FAST_OEM' THEN 1 ELSE 0 END) AS fast_oem_count,
+                SUM(CASE WHEN status IN ('PENDING', 'SUBMITTED') THEN 1 ELSE 0 END) AS pending,
+                SUM(CASE WHEN status IN ('RESPONDED', 'IN_DISCUSSION') THEN 1 ELSE 0 END) AS responded,
+                SUM(CASE WHEN status IN ('CLOSED', 'RESOLVED') THEN 1 ELSE 0 END) AS resolved
+            FROM product_inquiries
+            WHERE enquiry_source IN ('RFQ', 'FAST_OEM')
+        ");
+
+        return [
+            'total'          => (int) ($row['total'] ?? 0),
+            'rfq_count'      => (int) ($row['rfq_count'] ?? 0),
+            'fast_oem_count' => (int) ($row['fast_oem_count'] ?? 0),
+            'pending'        => (int) ($row['pending'] ?? 0),
+            'responded'      => (int) ($row['responded'] ?? 0),
+            'resolved'       => (int) ($row['resolved'] ?? 0),
         ];
     }
 

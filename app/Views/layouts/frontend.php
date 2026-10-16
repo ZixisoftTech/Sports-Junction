@@ -79,6 +79,13 @@ $footerColumns = CmsPage::getByColumns(true);
         .material-symbols-outlined.fill-1 {
             font-variation-settings: 'FILL' 1;
         }
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
     </style>
 </head>
 <body class="bg-surface text-on-surface font-sans antialiased flex flex-col min-h-screen">
@@ -152,38 +159,38 @@ $footerColumns = CmsPage::getByColumns(true);
         </div>
 
         <!-- Secondary Categories Navigation Bar -->
-        <div class="w-full bg-surface-container-lowest border-t border-surface-container">
+        <div class="w-full bg-surface-container-lowest border-t border-surface-container relative">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-11 text-xs uppercase tracking-wider font-semibold">
-                <nav class="flex items-center gap-6 overflow-x-auto py-2 scrollbar-none">
+                <nav class="flex items-center gap-4 sm:gap-6 overflow-x-auto lg:overflow-visible py-2 no-scrollbar">
                     <!-- Dropdown Trigger -->
-                    <div class="relative group">
-                        <a href="<?= htmlspecialchars($baseUrl) ?>/products" class="flex items-center gap-1.5 text-primary font-bold hover:text-primary-container transition-colors shrink-0">
+                    <div class="relative" id="allCategoriesNavContainer">
+                        <button type="button" id="allCategoriesNavBtn" class="flex items-center gap-1.5 text-primary font-bold hover:text-primary-container transition-colors shrink-0 cursor-pointer focus:outline-none">
                             <span class="material-symbols-outlined text-[16px]">menu</span>
                             <span>ALL CATEGORIES</span>
-                            <span class="material-symbols-outlined text-[14px]">expand_more</span>
-                        </a>
+                            <span class="material-symbols-outlined text-[14px] transition-transform duration-200" id="allCategoriesNavCaret">expand_more</span>
+                        </button>
                         <!-- Mega Menu Dropdown -->
-                        <div class="absolute top-full left-0 w-64 bg-white rounded-xl shadow-xl border border-surface-container p-2 hidden group-hover:block z-50">
+                        <div id="allCategoriesNavMenu" class="absolute top-full left-0 mt-2 w-72 bg-white rounded-xl shadow-2xl border border-slate-200 p-2 hidden z-[9999] max-h-[75vh] overflow-y-auto">
                             <?php if (!empty($categories)): ?>
                                 <?php foreach ($categories as $catItem): ?>
-                                    <a href="<?= htmlspecialchars($baseUrl) ?>/category/<?= htmlspecialchars($catItem['slug']) ?>" class="flex items-center justify-between px-3 py-2 rounded-lg text-on-surface hover:bg-surface-container-low hover:text-primary text-xs font-semibold transition-all">
-                                        <span class="flex items-center gap-2">
+                                    <a href="<?= htmlspecialchars($baseUrl) ?>/category/<?= htmlspecialchars($catItem['slug']) ?>" class="flex items-center justify-between px-3 py-2.5 rounded-lg text-slate-800 hover:bg-blue-50 hover:text-blue-900 text-xs font-semibold transition-all">
+                                        <span class="flex items-center gap-2.5">
                                             <?php 
                                             $catIcon = trim($catItem['icon'] ?? 'sports_tennis');
                                             $isImageIcon = (str_starts_with($catIcon, '/') || str_starts_with($catIcon, 'http') || str_contains($catIcon, '.'));
                                             if ($isImageIcon): ?>
                                                 <img src="<?= htmlspecialchars(Response::formatImageUrl($catIcon)) ?>" class="w-4 h-4 object-contain rounded" alt="">
                                             <?php else: ?>
-                                                <span class="material-symbols-outlined text-[18px] text-primary"><?= htmlspecialchars($catIcon) ?></span>
+                                                <span class="material-symbols-outlined text-[18px] text-blue-900"><?= htmlspecialchars($catIcon) ?></span>
                                             <?php endif; ?>
                                             <span><?= htmlspecialchars($catItem['name']) ?></span>
                                         </span>
-                                        <span class="material-symbols-outlined text-[14px] text-outline">chevron_right</span>
+                                        <span class="material-symbols-outlined text-[14px] text-slate-400">chevron_right</span>
                                     </a>
                                 <?php endforeach; ?>
                             <?php endif; ?>
-                            <div class="border-t border-surface-container mt-1 pt-1">
-                                <a href="<?= htmlspecialchars($baseUrl) ?>/products" class="block text-center text-primary font-bold py-1.5 hover:underline text-[11px]">
+                            <div class="border-t border-slate-100 mt-1 pt-1.5">
+                                <a href="<?= htmlspecialchars($baseUrl) ?>/products" class="block text-center text-blue-900 font-bold py-1.5 hover:underline text-[11px]">
                                     Browse All Products &rarr;
                                 </a>
                             </div>
@@ -201,11 +208,11 @@ $footerColumns = CmsPage::getByColumns(true);
                 </nav>
 
                 <div class="hidden lg:flex items-center gap-5 text-on-surface-variant normal-case shrink-0 text-xs">
-                    <button type="button" onclick="openInquiryModal('Direct Sourcing Request', 'Sports Junction Verified Hub', 100)" class="flex items-center gap-1 hover:text-primary transition-colors font-medium">
+                    <button type="button" onclick="openRfqModal()" class="flex items-center gap-1 hover:text-primary transition-colors font-medium cursor-pointer">
                         <span class="material-symbols-outlined text-[16px] text-secondary">request_quote</span>
                         <span>Request for Quotation</span>
                     </button>
-                    <button type="button" onclick="openInquiryModal('Custom OEM Inquiry', 'Sports Junction Custom Lab', 50)" class="flex items-center gap-1 hover:text-primary transition-colors font-medium">
+                    <button type="button" onclick="openFastOemModal()" class="flex items-center gap-1 hover:text-primary transition-colors font-medium cursor-pointer">
                         <span class="material-symbols-outlined text-[16px] text-primary">bolt</span>
                         <span>Fast OEM Customization</span>
                     </button>
@@ -295,219 +302,185 @@ $footerColumns = CmsPage::getByColumns(true);
         <span id="toast-text" class="text-sm font-semibold">Direct factory RFQ successfully transmitted!</span>
     </div>
 
-    <!-- Footer: Alibaba-Style 5-Column Grid with Dynamic CMS Pages, Trust & Payment Badges, and Social Links -->
-    <footer class="bg-white text-slate-700 border-t border-slate-200 mt-20 pt-14 pb-10">
+    <!-- Footer: Dark Navy / Near-Black Background Matching Redesign Requirements -->
+    <footer class="bg-[#071328] text-slate-300 border-t border-slate-800 mt-20 pt-14 pb-10">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             
-            <!-- 5 Columns Header & Links Grid -->
-            <div class="grid grid-cols-2 md:grid-cols-5 gap-8 lg:gap-12 pb-12">
+            <!-- Column Grid -->
+            <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-8 lg:gap-10 pb-12">
                 
                 <!-- Col 1: About Sports Junction -->
                 <div>
-                    <h4 class="font-headline font-bold text-xs sm:text-sm text-slate-900 mb-4 tracking-tight">
+                    <h4 class="font-headline font-bold text-xs sm:text-sm text-white mb-4 tracking-tight uppercase">
                         About <?= htmlspecialchars($siteName) ?>
                     </h4>
-                    <ul class="space-y-2.5 text-xs text-slate-600">
+                    <ul class="space-y-2.5 text-xs text-slate-400">
                         <?php if (!empty($footerColumns['ABOUT'])): ?>
                             <?php foreach ($footerColumns['ABOUT'] as $p): ?>
                                 <?php $url = !empty($p['external_url']) ? htmlspecialchars($baseUrl . $p['external_url']) : htmlspecialchars($baseUrl . '/page/' . $p['slug']); ?>
                                 <li>
-                                    <a href="<?= $url ?>" class="hover:text-blue-900 hover:underline transition-colors block leading-relaxed">
+                                    <a href="<?= $url ?>" class="hover:text-teal-400 transition-colors block leading-relaxed">
                                         <?= htmlspecialchars($p['title']) ?>
                                     </a>
                                 </li>
                             <?php endforeach; ?>
                         <?php else: ?>
-                            <li><a href="<?= $baseUrl ?>/page/why-choose-sports-junction" class="hover:text-blue-900 hover:underline transition-colors block">Why choose <?= htmlspecialchars($siteName) ?></a></li>
-                            <li><a href="<?= $baseUrl ?>/page/corporate-responsibility" class="hover:text-blue-900 hover:underline transition-colors block">Corporate responsibility</a></li>
-                            <li><a href="<?= $baseUrl ?>/page/careers" class="hover:text-blue-900 hover:underline transition-colors block">Careers</a></li>
+                            <li><a href="<?= $baseUrl ?>/page/why-choose-sports-junction" class="hover:text-teal-400 transition-colors block">Why choose <?= htmlspecialchars($siteName) ?></a></li>
+                            <li><a href="<?= $baseUrl ?>/page/corporate-responsibility" class="hover:text-teal-400 transition-colors block">Corporate responsibility</a></li>
+                            <li><a href="<?= $baseUrl ?>/page/careers" class="hover:text-teal-400 transition-colors block">Careers</a></li>
                         <?php endif; ?>
                     </ul>
                 </div>
 
-                <!-- Col 2: Order Protection -->
+                <!-- Col 2: Top Sectors -->
                 <div>
-                    <h4 class="font-headline font-bold text-xs sm:text-sm text-slate-900 mb-4 tracking-tight">
-                        Order protection
+                    <h4 class="font-headline font-bold text-xs sm:text-sm text-white mb-4 tracking-tight uppercase">
+                        Top Sectors
                     </h4>
-                    <ul class="space-y-2.5 text-xs text-slate-600">
+                    <ul class="space-y-2.5 text-xs text-slate-400">
+                        <li><a href="<?= $baseUrl ?>/category/cricket-and-field-sports" class="hover:text-teal-400 transition-colors block">Cricket Bats &amp; Pads</a></li>
+                        <li><a href="<?= $baseUrl ?>/category/football-and-inflatables" class="hover:text-teal-400 transition-colors block">Match Footballs</a></li>
+                        <li><a href="<?= $baseUrl ?>/category/agility-and-speed-training" class="hover:text-teal-400 transition-colors block">Agility Hurdles &amp; Ladders</a></li>
+                        <li><a href="<?= $baseUrl ?>/category/sports-and-fitness" class="hover:text-teal-400 transition-colors block">Commercial Gym Equipment</a></li>
+                        <li><a href="<?= $baseUrl ?>/category/apparel-and-accessories" class="hover:text-teal-400 transition-colors block">Sportswear &amp; Uniforms</a></li>
+                    </ul>
+                </div>
+
+                <!-- Col 3: Sourcing Solutions -->
+                <div>
+                    <h4 class="font-headline font-bold text-xs sm:text-sm text-white mb-4 tracking-tight uppercase">
+                        Sourcing Solutions
+                    </h4>
+                    <ul class="space-y-2.5 text-xs text-slate-400">
+                        <li><a href="<?= $baseUrl ?>/products" class="hover:text-teal-400 transition-colors block">Direct Factory Catalog</a></li>
+                        <li><a href="javascript:void(0)" onclick="openRfqModal()" class="hover:text-teal-400 transition-colors block">Request for Quotation (RFQ)</a></li>
+                        <li><a href="<?= $baseUrl ?>/contact" class="hover:text-teal-400 transition-colors block">Contact Us &amp; Support</a></li>
+                        <li><a href="<?= $baseUrl ?>/sitemap.xml" target="_blank" class="hover:text-teal-400 transition-colors block">XML Sitemap</a></li>
+                    </ul>
+                </div>
+
+                <!-- Col 4: Platform & Admin -->
+                <div>
+                    <h4 class="font-headline font-bold text-xs sm:text-sm text-white mb-4 tracking-tight uppercase">
+                        Platform &amp; Admin
+                    </h4>
+                    <ul class="space-y-2.5 text-xs text-slate-400">
+                        <li><a href="<?= $baseUrl ?>/admin/login" class="hover:text-teal-400 transition-colors block">Super Admin Portal</a></li>
+                        <li><a href="<?= $baseUrl ?>/admin/products" class="hover:text-teal-400 transition-colors block">Product Publishing Hub</a></li>
+                        <li><a href="<?= $baseUrl ?>/seller/login" class="hover:text-teal-400 transition-colors block">Supplier Portal</a></li>
+                        <li><a href="<?= $baseUrl ?>/page/policies-and-rules" class="hover:text-teal-400 transition-colors block">Terms &amp; Manufacturing SLA</a></li>
+                    </ul>
+                </div>
+
+                <!-- Col 5: Help & Protection -->
+                <div>
+                    <h4 class="font-headline font-bold text-xs sm:text-sm text-white mb-4 tracking-tight uppercase">
+                        Help &amp; Protection
+                    </h4>
+                    <ul class="space-y-2.5 text-xs text-slate-400">
                         <?php if (!empty($footerColumns['ORDER_PROTECTION'])): ?>
                             <?php foreach ($footerColumns['ORDER_PROTECTION'] as $p): ?>
                                 <?php $url = !empty($p['external_url']) ? htmlspecialchars($baseUrl . $p['external_url']) : htmlspecialchars($baseUrl . '/page/' . $p['slug']); ?>
                                 <li>
-                                    <a href="<?= $url ?>" class="hover:text-blue-900 hover:underline transition-colors block leading-relaxed">
+                                    <a href="<?= $url ?>" class="hover:text-teal-400 transition-colors block leading-relaxed">
                                         <?= htmlspecialchars($p['title']) ?>
                                     </a>
                                 </li>
                             <?php endforeach; ?>
                         <?php else: ?>
-                            <li><a href="<?= $baseUrl ?>/page/secure-payments" class="hover:text-blue-900 hover:underline transition-colors block">Secure payments</a></li>
-                            <li><a href="<?= $baseUrl ?>/page/guaranteed-delivery" class="hover:text-blue-900 hover:underline transition-colors block">Guaranteed delivery</a></li>
-                            <li><a href="<?= $baseUrl ?>/page/inspection-services" class="hover:text-blue-900 hover:underline transition-colors block">Production monitoring & inspection services</a></li>
-                            <li><a href="<?= $baseUrl ?>/page/policies-and-rules" class="hover:text-blue-900 hover:underline transition-colors block">Policies and rules</a></li>
-                        <?php endif; ?>
-                    </ul>
-                </div>
-
-                <!-- Col 3: Source on Sports Junction -->
-                <div>
-                    <h4 class="font-headline font-bold text-xs sm:text-sm text-slate-900 mb-4 tracking-tight">
-                        Source on <?= htmlspecialchars($siteName) ?>
-                    </h4>
-                    <ul class="space-y-2.5 text-xs text-slate-600">
-                        <?php if (!empty($footerColumns['SOURCE'])): ?>
-                            <?php foreach ($footerColumns['SOURCE'] as $p): ?>
-                                <?php $url = !empty($p['external_url']) ? htmlspecialchars($baseUrl . $p['external_url']) : htmlspecialchars($baseUrl . '/page/' . $p['slug']); ?>
-                                <li>
-                                    <a href="<?= $url ?>" class="hover:text-blue-900 hover:underline transition-colors block leading-relaxed">
-                                        <?= htmlspecialchars($p['title']) ?>
-                                    </a>
-                                </li>
-                            <?php endforeach; ?>
-                        <?php else: ?>
-                            <li><a href="<?= $baseUrl ?>/products?verified=1" class="hover:text-blue-900 hover:underline transition-colors block">Verified manufacturers</a></li>
-                            <li><a href="<?= $baseUrl ?>/products" onclick="openInquiryModal('Custom Sourcing Request', 'Sports Junction Pool', 100); return false;" class="hover:text-blue-900 hover:underline transition-colors block">Request for Quotation</a></li>
-                        <?php endif; ?>
-                    </ul>
-                </div>
-
-                <!-- Col 4: Help Center -->
-                <div>
-                    <h4 class="font-headline font-bold text-xs sm:text-sm text-slate-900 mb-4 tracking-tight">
-                        Help Center
-                    </h4>
-                    <ul class="space-y-2.5 text-xs text-slate-600">
-                        <?php if (!empty($footerColumns['HELP_CENTER'])): ?>
-                            <?php foreach ($footerColumns['HELP_CENTER'] as $p): ?>
-                                <?php $url = !empty($p['external_url']) ? htmlspecialchars($baseUrl . $p['external_url']) : htmlspecialchars($baseUrl . '/page/' . $p['slug']); ?>
-                                <li>
-                                    <a href="<?= $url ?>" class="hover:text-blue-900 hover:underline transition-colors block leading-relaxed">
-                                        <?= htmlspecialchars($p['title']) ?>
-                                    </a>
-                                </li>
-                            <?php endforeach; ?>
-                        <?php else: ?>
-                            <li><a href="<?= $baseUrl ?>/page/buyer-help-center" class="hover:text-blue-900 hover:underline transition-colors block">Buyer Help Center</a></li>
-                            <li><a href="javascript:void(0)" onclick="toggleFloatingChat()" class="hover:text-blue-900 hover:underline transition-colors block">Live chat</a></li>
-                        <?php endif; ?>
-                    </ul>
-                </div>
-
-                <!-- Col 5: Sell on Sports Junction -->
-                <div>
-                    <h4 class="font-headline font-bold text-xs sm:text-sm text-slate-900 mb-4 tracking-tight">
-                        Sell on <?= htmlspecialchars($siteName) ?>
-                    </h4>
-                    <ul class="space-y-2.5 text-xs text-slate-600">
-                        <?php if (!empty($footerColumns['SELL'])): ?>
-                            <?php foreach ($footerColumns['SELL'] as $p): ?>
-                                <?php $url = !empty($p['external_url']) ? htmlspecialchars($baseUrl . $p['external_url']) : htmlspecialchars($baseUrl . '/page/' . $p['slug']); ?>
-                                <li>
-                                    <a href="<?= $url ?>" class="hover:text-blue-900 hover:underline transition-colors block leading-relaxed">
-                                        <?= htmlspecialchars($p['title']) ?>
-                                    </a>
-                                </li>
-                            <?php endforeach; ?>
-                        <?php else: ?>
-                            <li><a href="<?= $baseUrl ?>/seller/login" class="hover:text-blue-900 hover:underline transition-colors block">Sell on <?= htmlspecialchars($siteName) ?></a></li>
-                            <li><a href="<?= $baseUrl ?>/seller/login" class="hover:text-blue-900 hover:underline transition-colors block">Become a Verified Supplier</a></li>
+                            <li><a href="<?= $baseUrl ?>/page/secure-payments" class="hover:text-teal-400 transition-colors block">Secure Payments</a></li>
+                            <li><a href="<?= $baseUrl ?>/page/guaranteed-delivery" class="hover:text-teal-400 transition-colors block">Guaranteed Delivery</a></li>
+                            <li><a href="<?= $baseUrl ?>/page/inspection-services" class="hover:text-teal-400 transition-colors block">Inspection Services</a></li>
+                            <li><a href="<?= $baseUrl ?>/page/buyer-help-center" class="hover:text-teal-400 transition-colors block">Buyer Help Center</a></li>
                         <?php endif; ?>
                     </ul>
                 </div>
 
             </div>
 
-            <!-- Lower Section: Badges & Social Media (Matching Screenshot Reference) -->
-            <div class="border-t border-slate-200 pt-8 pb-6 flex flex-col lg:flex-row items-center justify-between gap-6">
+            <!-- Lower Section: Badges & Social Media in Dark Theme -->
+            <div class="border-t border-slate-800 pt-8 pb-6 flex flex-col lg:flex-row items-center justify-between gap-6">
                 
                 <!-- Left: Trust & Payment Icons -->
                 <div class="flex flex-wrap items-center gap-2 sm:gap-2.5">
                     
                     <!-- Trust Seals -->
-                    <div class="flex items-center gap-1.5 px-2 py-1 rounded bg-slate-50 border border-slate-200 text-[11px] font-semibold text-slate-700 shadow-2xs">
-                        <span class="inline-flex w-3.5 h-3.5 rounded-full bg-red-600 items-center justify-center text-white text-[9px] font-black">✓</span>
+                    <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-[11px] font-semibold text-slate-300">
+                        <span class="inline-flex w-3.5 h-3.5 rounded-full bg-emerald-600 items-center justify-center text-white text-[9px] font-black">✓</span>
                         <span>ID Check</span>
                     </div>
 
-                    <div class="flex items-center gap-1 px-2 py-1 rounded bg-slate-50 border border-slate-200 text-[11px] font-bold text-slate-700 shadow-2xs">
-                        <span class="material-symbols-outlined text-emerald-600 text-[14px]">shield</span>
+                    <div class="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-[11px] font-bold text-slate-300">
+                        <span class="material-symbols-outlined text-emerald-400 text-[14px]">shield</span>
                         <span>PCI DSS</span>
                     </div>
 
-                    <div class="flex items-center gap-1 px-2 py-1 rounded bg-slate-50 border border-slate-200 text-[11px] font-bold text-slate-700 shadow-2xs">
-                        <span class="material-symbols-outlined text-teal-600 text-[14px]">verified</span>
+                    <div class="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-[11px] font-bold text-slate-300">
+                        <span class="material-symbols-outlined text-teal-400 text-[14px]">verified</span>
                         <span>VERIFIED</span>
                     </div>
 
-                    <div class="flex items-center gap-1 px-2 py-1 rounded bg-slate-50 border border-slate-200 text-[11px] font-bold text-blue-900 shadow-2xs">
-                        <span class="text-amber-500 font-extrabold text-[12px]">✔</span>
+                    <div class="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-[11px] font-bold text-slate-300">
+                        <span class="text-amber-400 font-extrabold text-[12px]">✔</span>
                         <span>VERISIGN</span>
                     </div>
 
                     <!-- Divider -->
-                    <div class="h-6 w-px bg-slate-300 mx-1 hidden sm:block"></div>
+                    <div class="h-6 w-px bg-slate-800 mx-1 hidden sm:block"></div>
 
                     <!-- Payment Badges -->
-                    <span class="px-2 py-0.5 rounded bg-blue-900 text-white font-extrabold text-[11px] tracking-wider shadow-2xs italic">VISA</span>
+                    <span class="px-2.5 py-0.5 rounded bg-blue-900 text-white font-extrabold text-[11px] tracking-wider italic">VISA</span>
 
-                    <span class="inline-flex items-center gap-0.5 px-2 py-0.5 rounded bg-slate-100 border border-slate-200 shadow-2xs">
-                        <span class="w-2.5 h-2.5 rounded-full bg-red-600 inline-block"></span>
+                    <span class="inline-flex items-center gap-0.5 px-2 py-0.5 rounded bg-slate-900 border border-slate-800">
+                        <span class="w-2.5 h-2.5 rounded-full bg-red-500 inline-block"></span>
                         <span class="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block -ml-1.5"></span>
-                        <span class="text-[10px] font-bold text-slate-800 ml-0.5">mastercard</span>
+                        <span class="text-[10px] font-bold text-slate-200 ml-0.5">mastercard</span>
                     </span>
 
-                    <span class="px-2 py-0.5 rounded bg-sky-700 text-white font-bold text-[10px] tracking-tight shadow-2xs">AMEX</span>
+                    <span class="px-2 py-0.5 rounded bg-sky-800 text-white font-bold text-[10px] tracking-tight">AMEX</span>
 
-                    <span class="px-2 py-0.5 rounded bg-blue-50 text-blue-800 border border-blue-200 font-black text-[10px] italic shadow-2xs">PayPal</span>
+                    <span class="px-2 py-0.5 rounded bg-blue-950 text-blue-300 border border-blue-900 font-black text-[10px] italic">PayPal</span>
 
-                    <span class="px-2 py-0.5 rounded bg-black text-white font-semibold text-[10px] shadow-2xs flex items-center gap-0.5">
+                    <span class="px-2 py-0.5 rounded bg-black text-white font-semibold text-[10px] border border-slate-800 flex items-center gap-0.5">
                         <span class="text-[11px]"></span>Pay
                     </span>
 
-                    <span class="px-2 py-0.5 rounded bg-orange-50 border border-orange-200 text-orange-700 font-bold text-[10px] shadow-2xs">DISCOVER</span>
-
-                    <span class="px-1.5 py-0.5 rounded bg-slate-100 border border-slate-300 text-slate-800 font-bold text-[10px] shadow-2xs">Diners</span>
-
-                    <span class="px-2 py-0.5 rounded bg-emerald-800 text-white font-bold text-[10px] shadow-2xs">JCB</span>
-
-                    <span class="px-2 py-0.5 rounded bg-red-700 text-white font-bold text-[10px] shadow-2xs">UnionPay</span>
-
-                    <span class="px-2 py-0.5 rounded bg-slate-800 text-white font-bold text-[10px] shadow-2xs">T/T</span>
+                    <span class="px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-300 font-bold text-[10px]">T/T Wire</span>
 
                 </div>
 
                 <!-- Right: Stay Connected (Social Channels) -->
                 <div class="flex flex-col sm:flex-row items-center gap-3 shrink-0">
-                    <span class="font-headline font-bold text-xs text-slate-900 tracking-tight">Stay Connected</span>
+                    <span class="font-headline font-bold text-xs text-white tracking-tight">Stay Connected</span>
                     <div class="flex items-center gap-2">
                         
                         <!-- Facebook -->
-                        <a href="<?= htmlspecialchars($siteSettings['social_facebook'] ?? '#') ?>" target="_blank" rel="noopener noreferrer" class="w-7 h-7 rounded-full bg-slate-100 hover:bg-blue-600 hover:text-white text-slate-600 flex items-center justify-center transition-all shadow-2xs" title="Facebook">
+                        <a href="<?= htmlspecialchars($siteSettings['social_facebook'] ?? '#') ?>" target="_blank" rel="noopener noreferrer" class="w-7 h-7 rounded-full bg-slate-900 hover:bg-blue-600 hover:text-white text-slate-400 border border-slate-800 flex items-center justify-center transition-all" title="Facebook">
                             <span class="font-bold text-xs">f</span>
                         </a>
 
                         <!-- LinkedIn -->
-                        <a href="<?= htmlspecialchars($siteSettings['social_linkedin'] ?? '#') ?>" target="_blank" rel="noopener noreferrer" class="w-7 h-7 rounded-full bg-slate-100 hover:bg-sky-700 hover:text-white text-slate-600 flex items-center justify-center transition-all shadow-2xs" title="LinkedIn">
+                        <a href="<?= htmlspecialchars($siteSettings['social_linkedin'] ?? '#') ?>" target="_blank" rel="noopener noreferrer" class="w-7 h-7 rounded-full bg-slate-900 hover:bg-sky-600 hover:text-white text-slate-400 border border-slate-800 flex items-center justify-center transition-all" title="LinkedIn">
                             <span class="font-bold text-[11px]">in</span>
                         </a>
 
                         <!-- Twitter / X -->
-                        <a href="<?= htmlspecialchars($siteSettings['social_twitter'] ?? '#') ?>" target="_blank" rel="noopener noreferrer" class="w-7 h-7 rounded-full bg-slate-100 hover:bg-black hover:text-white text-slate-600 flex items-center justify-center transition-all shadow-2xs" title="Twitter / X">
+                        <a href="<?= htmlspecialchars($siteSettings['social_twitter'] ?? '#') ?>" target="_blank" rel="noopener noreferrer" class="w-7 h-7 rounded-full bg-slate-900 hover:bg-white hover:text-black text-slate-400 border border-slate-800 flex items-center justify-center transition-all" title="Twitter / X">
                             <span class="font-bold text-[11px]">𝕏</span>
                         </a>
 
                         <!-- Instagram -->
-                        <a href="<?= htmlspecialchars($siteSettings['social_instagram'] ?? '#') ?>" target="_blank" rel="noopener noreferrer" class="w-7 h-7 rounded-full bg-slate-100 hover:bg-pink-600 hover:text-white text-slate-600 flex items-center justify-center transition-all shadow-2xs" title="Instagram">
+                        <a href="<?= htmlspecialchars($siteSettings['social_instagram'] ?? '#') ?>" target="_blank" rel="noopener noreferrer" class="w-7 h-7 rounded-full bg-slate-900 hover:bg-pink-600 hover:text-white text-slate-400 border border-slate-800 flex items-center justify-center transition-all" title="Instagram">
                             <span class="font-bold text-[13px]">📸</span>
                         </a>
 
                         <!-- YouTube -->
-                        <a href="<?= htmlspecialchars($siteSettings['social_youtube'] ?? '#') ?>" target="_blank" rel="noopener noreferrer" class="w-7 h-7 rounded-full bg-slate-100 hover:bg-red-600 hover:text-white text-slate-600 flex items-center justify-center transition-all shadow-2xs" title="YouTube">
+                        <a href="<?= htmlspecialchars($siteSettings['social_youtube'] ?? '#') ?>" target="_blank" rel="noopener noreferrer" class="w-7 h-7 rounded-full bg-slate-900 hover:bg-red-600 hover:text-white text-slate-400 border border-slate-800 flex items-center justify-center transition-all" title="YouTube">
                             <span class="font-bold text-[11px]">▶</span>
                         </a>
 
                         <!-- TikTok -->
-                        <a href="<?= htmlspecialchars($siteSettings['social_tiktok'] ?? '#') ?>" target="_blank" rel="noopener noreferrer" class="w-7 h-7 rounded-full bg-slate-100 hover:bg-black hover:text-white text-slate-600 flex items-center justify-center transition-all shadow-2xs" title="TikTok">
+                        <a href="<?= htmlspecialchars($siteSettings['social_tiktok'] ?? '#') ?>" target="_blank" rel="noopener noreferrer" class="w-7 h-7 rounded-full bg-slate-900 hover:bg-slate-700 hover:text-white text-slate-400 border border-slate-800 flex items-center justify-center transition-all" title="TikTok">
                             <span class="font-bold text-[11px]">♪</span>
                         </a>
 
@@ -516,19 +489,15 @@ $footerColumns = CmsPage::getByColumns(true);
 
             </div>
 
-            <!-- Bottom Sub-Footer: Legal & Contact Information -->
-            <div class="border-t border-slate-100 pt-6 flex flex-col md:flex-row items-center justify-between text-[11px] text-slate-500 gap-3">
+            <!-- Bottom Sub-Footer: Legal & Clean Contact (No Public Telephone - Task 15) -->
+            <div class="border-t border-slate-800/80 pt-6 flex flex-col md:flex-row items-center justify-between text-[11px] text-slate-400 gap-3">
                 <div class="flex items-center gap-3">
-                    <img src="<?= htmlspecialchars($siteLogo) ?>" alt="Logo" class="h-6 w-auto object-contain grayscale opacity-75">
+                    <img src="<?= htmlspecialchars($siteLogo) ?>" alt="Logo" class="h-6 w-auto object-contain brightness-200 opacity-80">
                     <span>&copy; <?= date('Y') ?> <?= htmlspecialchars($siteName) ?> Private Limited. All rights reserved. India's Premier Sports Manufacturing Marketplace.</span>
                 </div>
-                <div class="flex flex-wrap items-center gap-3 text-slate-600">
-                    <?php if (!empty($siteSettings['contact_phone'])): ?>
-                        <span><strong class="text-slate-800">Phone:</strong> <?= htmlspecialchars($siteSettings['contact_phone']) ?></span>
-                        <span>•</span>
-                    <?php endif; ?>
+                <div class="flex flex-wrap items-center gap-3 text-slate-400">
                     <?php if (!empty($siteSettings['contact_email'])): ?>
-                        <span><strong class="text-slate-800">Email:</strong> <?= htmlspecialchars($siteSettings['contact_email']) ?></span>
+                        <span><strong class="text-white">Official Trade Desk:</strong> <a href="mailto:<?= htmlspecialchars($siteSettings['contact_email']) ?>" class="text-teal-400 hover:underline"><?= htmlspecialchars($siteSettings['contact_email']) ?></a></span>
                     <?php endif; ?>
                 </div>
             </div>
@@ -539,6 +508,36 @@ $footerColumns = CmsPage::getByColumns(true);
     <!-- Interactive Scripts for Modal & Inquiries -->
     <script>
         const baseUrl = '<?= $baseUrl ?>';
+
+        // Toggle All Categories Dropdown on Click/Tap
+        document.addEventListener('DOMContentLoaded', function() {
+            const catBtn = document.getElementById('allCategoriesNavBtn');
+            const catMenu = document.getElementById('allCategoriesNavMenu');
+            const catCaret = document.getElementById('allCategoriesNavCaret');
+            const catContainer = document.getElementById('allCategoriesNavContainer');
+
+            if (catBtn && catMenu) {
+                catBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    const isClosed = catMenu.classList.contains('hidden');
+                    if (isClosed) {
+                        catMenu.classList.remove('hidden');
+                        if (catCaret) catCaret.classList.add('rotate-180');
+                    } else {
+                        catMenu.classList.add('hidden');
+                        if (catCaret) catCaret.classList.remove('rotate-180');
+                    }
+                });
+
+                document.addEventListener('click', function(e) {
+                    if (catContainer && !catContainer.contains(e.target)) {
+                        catMenu.classList.add('hidden');
+                        if (catCaret) catCaret.classList.remove('rotate-180');
+                    }
+                });
+            }
+        });
 
         function showNotification(msg) {
             const toast = document.getElementById('toast');
@@ -551,6 +550,48 @@ $footerColumns = CmsPage::getByColumns(true);
             }, 4500);
         }
 
+        function openRfqModal() {
+            const modal = document.getElementById('inquiry-modal');
+            const card = document.getElementById('inquiry-modal-card');
+            if (!modal || !card) return;
+
+            document.getElementById('modal-product-title').textContent = 'Request for Quotation (RFQ)';
+            document.getElementById('modal-supplier-name').textContent = 'Target: Sports Junction Verified Manufacturing Network';
+            const qtyInput = document.getElementById('modal-qty');
+            if (qtyInput) qtyInput.value = 500;
+            document.getElementById('modal-product-id').value = '';
+            document.getElementById('modal-supplier-id').value = '';
+            document.getElementById('modal-enquiry-source').value = 'RFQ';
+            document.getElementById('modal-subject').value = 'Request for Quotation (RFQ)';
+
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                card.classList.remove('scale-95');
+            }, 10);
+        }
+
+        function openFastOemModal() {
+            const modal = document.getElementById('inquiry-modal');
+            const card = document.getElementById('inquiry-modal-card');
+            if (!modal || !card) return;
+
+            document.getElementById('modal-product-title').textContent = 'Fast OEM Customization Request';
+            document.getElementById('modal-supplier-name').textContent = 'Target: Sports Junction OEM / ODM Custom Lab';
+            const qtyInput = document.getElementById('modal-qty');
+            if (qtyInput) qtyInput.value = 100;
+            document.getElementById('modal-product-id').value = '';
+            document.getElementById('modal-supplier-id').value = '';
+            document.getElementById('modal-enquiry-source').value = 'FAST_OEM';
+            document.getElementById('modal-subject').value = 'Fast OEM Customization Request';
+
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                card.classList.remove('scale-95');
+            }, 10);
+        }
+
         function openInquiryModal(productTitle, supplierName, defaultQty, productId, supplierId) {
             const modal = document.getElementById('inquiry-modal');
             const card = document.getElementById('inquiry-modal-card');
@@ -558,7 +599,8 @@ $footerColumns = CmsPage::getByColumns(true);
 
             document.getElementById('modal-product-title').textContent = productTitle ? `Send Inquiry: ${productTitle}` : 'Send Factory Inquiry';
             document.getElementById('modal-supplier-name').textContent = supplierName ? `Target: ${supplierName}` : 'Target: Sports Junction Verified Pool';
-            document.getElementById('modal-qty').value = defaultQty || 100;
+            const qtyInput = document.getElementById('modal-qty');
+            if (qtyInput) qtyInput.value = defaultQty || 100;
 
             document.getElementById('modal-product-id').value = productId || '';
             document.getElementById('modal-supplier-id').value = supplierId || '';

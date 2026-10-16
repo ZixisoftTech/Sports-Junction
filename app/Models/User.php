@@ -266,7 +266,8 @@ class User extends Model
                    u.state, u.city,
                    u.status, u.email_verified_at, u.last_login_at, u.created_at, u.updated_at,
                    c.name AS country_name,
-                   (SELECT COUNT(*) FROM product_inquiries pi WHERE pi.buyer_user_id = u.id OR (pi.enquiry_source != 'CONTACT_US' AND LOWER(pi.buyer_email) = LOWER(u.email))) AS total_enquiries
+                   (SELECT COUNT(*) FROM product_inquiries pi WHERE pi.buyer_user_id = u.id OR (pi.enquiry_source != 'CONTACT_US' AND LOWER(pi.buyer_email) = LOWER(u.email))) AS total_enquiries,
+                   (SELECT pcr.id FROM profile_change_requests pcr WHERE pcr.user_id = u.id AND pcr.status = 'PENDING' LIMIT 1) AS pending_profile_change_id
             FROM users u
             LEFT JOIN countries c ON u.country_id = c.id
             WHERE {$whereSql}

@@ -25,14 +25,26 @@ class ProductApprovalController extends Controller
 
     public function data(): void
     {
-        $filter = (string)($this->request->get('filter') ?? $this->request->input('filter') ?? 'ALL');
-        $records = Product::getPendingApprovals($filter);
-        $this->json([
-            'draw'            => 1,
-            'recordsTotal'    => count($records),
-            'recordsFiltered' => count($records),
-            'data'            => $records,
-        ]);
+        $draw = (int)($this->request->get('draw') ?? $this->request->input('draw') ?? 1);
+        try {
+            $filter = (string)($this->request->get('filter') ?? $this->request->input('filter') ?? 'ALL');
+            $records = Product::getPendingApprovals($filter);
+            $this->json([
+                'draw'            => $draw,
+                'recordsTotal'    => count($records),
+                'recordsFiltered' => count($records),
+                'data'            => $records,
+            ]);
+        } catch (\Throwable $e) {
+            error_log("Product approvals DataTables error: " . $e->getMessage());
+            $this->json([
+                'draw'            => $draw,
+                'recordsTotal'    => 0,
+                'recordsFiltered' => 0,
+                'data'            => [],
+                'error'           => 'Unable to load catalog approvals. Please retry.',
+            ]);
+        }
     }
 
     public function show(array $params): void

@@ -302,6 +302,45 @@ class SupplierApprovalController extends Controller
         }
     }
 
+    public function toggleStatus(array $params): void
+    {
+        $token = $this->request->input('_csrf') ?? $this->request->input('csrf_token') ?? $this->request->header('X-CSRF-Token');
+        CSRF::validateOrFail($token);
+
+        $id = (int)($params['id'] ?? 0);
+        $supplier = Supplier::findById($id);
+        if (!$supplier) {
+            $this->json(['success' => false, 'message' => 'Supplier not found.'], 404);
+            return;
+        }
+
+        $currentStatus = $supplier['status'] ?? 'ACTIVE';
+        $requestedStatus = strtoupper(trim((string)($this->request->input('status') ?? '')));
+        if (!in_array($requestedStatus, ['ACTIVE', 'INACTIVE'], true)) {
+            $requestedStatus = ($currentStatus === 'ACTIVE') ? 'INACTIVE' : 'ACTIVE';
+        }
+
+        Supplier::setStatus($id, $requestedStatus);
+
+        AuditLogger::log(
+            'STATUS_CHANGE',
+            'Supplier',
+            $id,
+            $supplier['company_name'],
+            ['status' => $currentStatus],
+            "Super Admin changed supplier account status to {$requestedStatus}"
+        );
+
+        $this->json([
+            'success'    => true,
+            'new_status' => $requestedStatus,
+            'message'    => $requestedStatus === 'ACTIVE'
+                ? "Supplier '{$supplier['company_name']}' has been activated."
+                : "Supplier '{$supplier['company_name']}' has been deactivated. Product publishing and protected access are now blocked.",
+            'metrics'    => Supplier::getMetrics(),
+        ]);
+    }
+
     public function delete(array $params): void
     {
         $token = $this->request->input('_csrf') ?? $this->request->input('csrf_token') ?? $this->request->header('X-CSRF-Token');
