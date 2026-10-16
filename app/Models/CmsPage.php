@@ -10,10 +10,24 @@ class CmsPage extends Model
 {
     public const CATEGORIES = [
         'ABOUT' => 'About Sports Junction',
-        'ORDER_PROTECTION' => 'Order protection',
-        'SOURCE' => 'Source on Sports Junction',
-        'HELP_CENTER' => 'Help Center',
-        'SELL' => 'Sell on Sports Junction'
+        'TOP_SECTORS' => 'Top Sectors',
+        'SOURCING' => 'Sourcing Solutions',
+        'PLATFORM_ADMIN' => 'Platform & Admin',
+        'ORDER_PROTECTION' => 'Help & Order Protection',
+        'SOURCE' => 'Sourcing Solutions (Legacy)',
+        'HELP_CENTER' => 'Help Center (Legacy)',
+        'SELL' => 'Sell & Admin (Legacy)'
+    ];
+
+    /**
+     * Standard 5 footer columns in order
+     */
+    public const FOOTER_COLUMNS = [
+        'ABOUT' => 'About Sports Junction',
+        'TOP_SECTORS' => 'Top Sectors',
+        'SOURCING' => 'Sourcing Solutions',
+        'PLATFORM_ADMIN' => 'Platform & Admin',
+        'ORDER_PROTECTION' => 'Help & Order Protection'
     ];
 
     /**
@@ -74,14 +88,19 @@ class CmsPage extends Model
 
         $grouped = [
             'ABOUT' => [],
-            'ORDER_PROTECTION' => [],
-            'SOURCE' => [],
-            'HELP_CENTER' => [],
-            'SELL' => []
+            'TOP_SECTORS' => [],
+            'SOURCING' => [],
+            'PLATFORM_ADMIN' => [],
+            'ORDER_PROTECTION' => []
         ];
 
         foreach ($rows as $row) {
             $cat = $row['column_category'] ?? 'ABOUT';
+            // Map legacy aliases to 5 standard columns
+            if ($cat === 'SOURCE') $cat = 'SOURCING';
+            if ($cat === 'HELP_CENTER') $cat = 'ORDER_PROTECTION';
+            if ($cat === 'SELL') $cat = 'PLATFORM_ADMIN';
+
             if (!isset($grouped[$cat])) {
                 $grouped[$cat] = [];
             }
@@ -121,6 +140,13 @@ class CmsPage extends Model
      */
     public static function update(int $id, array $data): bool
     {
+        $existing = self::findById($id);
+        if (!$existing) {
+            return false;
+        }
+
+        $merged = array_merge($existing, $data);
+
         $sql = "
             UPDATE `cms_pages`
             SET 
@@ -139,15 +165,15 @@ class CmsPage extends Model
 
         self::execute($sql, [
             ':id' => $id,
-            ':title' => $data['title'],
-            ':slug' => $data['slug'],
-            ':cat' => $data['column_category'] ?? 'ABOUT',
-            ':content' => $data['content'] ?? null,
-            ':url' => !empty($data['external_url']) ? $data['external_url'] : null,
-            ':meta_title' => !empty($data['meta_title']) ? trim((string)$data['meta_title']) : null,
-            ':meta_description' => !empty($data['meta_description']) ? trim((string)$data['meta_description']) : null,
-            ':order' => (int) ($data['sort_order'] ?? 0),
-            ':active' => !empty($data['is_active']) ? 1 : 0
+            ':title' => $merged['title'],
+            ':slug' => $merged['slug'],
+            ':cat' => $merged['column_category'] ?? 'ABOUT',
+            ':content' => $merged['content'] ?? null,
+            ':url' => !empty($merged['external_url']) ? $merged['external_url'] : null,
+            ':meta_title' => !empty($merged['meta_title']) ? trim((string)$merged['meta_title']) : null,
+            ':meta_description' => !empty($merged['meta_description']) ? trim((string)$merged['meta_description']) : null,
+            ':order' => (int) ($merged['sort_order'] ?? 0),
+            ':active' => !empty($merged['is_active']) ? 1 : 0
         ]);
 
         return true;

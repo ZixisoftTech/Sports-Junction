@@ -88,12 +88,19 @@ $baseUrl = Response::baseUrl();
                     </div>
 
                     <div class="mb-3">
-                        <label for="tagIcon" class="form-label small fw-semibold">Icon Symbol</label>
-                        <div class="input-group input-group-sm">
-                            <span class="input-group-text bg-white" id="tagIconPreviewBox">
-                                <span class="material-symbols-outlined text-primary fs-5" id="tagIconPreview">verified</span>
-                            </span>
-                            <input type="text" class="form-control" id="tagIcon" name="icon" value="verified" placeholder="verified, fact_check, groups...">
+                        <label for="tagIconFile" class="form-label small fw-semibold">Certification Tag Icon / Badge Image</label>
+                        <input type="hidden" name="icon" id="tagIcon" value="">
+                        <div class="d-flex align-items-center gap-2 p-2 border rounded bg-light">
+                            <div class="border rounded bg-white d-flex align-items-center justify-content-center overflow-hidden flex-shrink-0" style="width: 48px; height: 48px;" id="tagIconPreviewBox">
+                                <img id="tagIconImgPreview" src="" class="d-none object-fit-contain" style="max-width: 100%; max-height: 100%;" alt="Tag Icon Preview">
+                                <span class="material-symbols-outlined text-teal-700 fs-4" id="tagIconPreview">verified</span>
+                            </div>
+                            <div class="flex-grow-1">
+                                <input type="file" class="form-control form-control-sm" id="tagIconFile" name="icon_file" accept="image/png,image/jpeg,image/svg+xml,image/webp">
+                                <div class="form-text text-muted" style="font-size: 11px;">
+                                    PNG, SVG, JPG, WEBP &bull; 1:1 Aspect Ratio (64x64px, Max 2MB)
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -129,12 +136,24 @@ document.addEventListener('DOMContentLoaded', function () {
     const tagModal = new bootstrap.Modal(tagModalEl);
     const form = document.getElementById('tagForm');
     const modalTitle = document.getElementById('tagModalLabel');
-    const iconInput = document.getElementById('tagIcon');
+    const iconFileInput = document.getElementById('tagIconFile');
+    const iconImgPreview = document.getElementById('tagIconImgPreview');
     const iconPreview = document.getElementById('tagIconPreview');
+    const iconHiddenInput = document.getElementById('tagIcon');
 
-    if (iconInput && iconPreview) {
-        iconInput.addEventListener('input', function() {
-            iconPreview.textContent = this.value.trim() || 'verified';
+    if (iconFileInput) {
+        iconFileInput.addEventListener('change', function () {
+            if (this.files && this.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    if (iconImgPreview) {
+                        iconImgPreview.src = e.target.result;
+                        iconImgPreview.classList.remove('d-none');
+                    }
+                    if (iconPreview) iconPreview.classList.add('d-none');
+                };
+                reader.readAsDataURL(this.files[0]);
+            }
         });
     }
 
@@ -155,11 +174,12 @@ document.addEventListener('DOMContentLoaded', function () {
                 width: '60px',
                 orderable: false,
                 render: function(data) {
-                    const ic = data || 'verified';
-                    if (ic.startsWith('/') || ic.startsWith('http')) {
-                        return `<img src="${baseUrl}${ic}" style="width:24px;height:24px;object-fit:contain;">`;
+                    const ic = data || '';
+                    if (ic.startsWith('/') || ic.startsWith('http') || ic.includes('.') || ic.includes('uploads')) {
+                        const imgUrl = window.SportsJunction ? window.SportsJunction.formatImageUrl(ic) : (baseUrl + ic);
+                        return `<img src="${imgUrl}" style="width:28px;height:28px;object-fit:contain;" class="rounded border p-0.5 bg-white shadow-2xs" alt="Tag Icon">`;
                     }
-                    return `<span class="material-symbols-outlined text-teal-700 fs-5">${ic}</span>`;
+                    return `<span class="material-symbols-outlined text-teal-700 fs-5">${ic || 'verified'}</span>`;
                 }
             },
             {
@@ -228,8 +248,17 @@ document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('btnAddNewTag').addEventListener('click', function () {
         form.reset();
         document.getElementById('tagId').value = '';
+        if (iconHiddenInput) iconHiddenInput.value = '';
+        if (iconFileInput) iconFileInput.value = '';
+        if (iconImgPreview) {
+            iconImgPreview.src = '';
+            iconImgPreview.classList.add('d-none');
+        }
+        if (iconPreview) {
+            iconPreview.classList.remove('d-none');
+            iconPreview.textContent = 'verified';
+        }
         modalTitle.textContent = 'Add New Certification Tag';
-        if (iconPreview) iconPreview.textContent = 'verified';
         tagModal.show();
     });
 
@@ -246,9 +275,28 @@ document.addEventListener('DOMContentLoaded', function () {
                     document.getElementById('tagCode').value = d.code || '';
                     document.getElementById('tagBadgeColor').value = d.badge_color || 'teal';
                     document.getElementById('tagDescription').value = d.description || '';
-                    document.getElementById('tagIcon').value = d.icon || 'verified';
                     document.getElementById('tagStatus').value = d.status || 'ACTIVE';
-                    if (iconPreview) iconPreview.textContent = d.icon || 'verified';
+
+                    const iconVal = d.icon || '';
+                    if (iconHiddenInput) iconHiddenInput.value = iconVal;
+                    if (iconFileInput) iconFileInput.value = '';
+
+                    const isImg = iconVal.startsWith('/') || iconVal.startsWith('http') || iconVal.includes('.') || iconVal.includes('uploads');
+                    if (isImg && iconImgPreview) {
+                        const imgUrl = window.SportsJunction ? window.SportsJunction.formatImageUrl(iconVal) : (baseUrl + iconVal);
+                        iconImgPreview.src = imgUrl;
+                        iconImgPreview.classList.remove('d-none');
+                        if (iconPreview) iconPreview.classList.add('d-none');
+                    } else {
+                        if (iconImgPreview) {
+                            iconImgPreview.src = '';
+                            iconImgPreview.classList.add('d-none');
+                        }
+                        if (iconPreview) {
+                            iconPreview.classList.remove('d-none');
+                            iconPreview.textContent = iconVal || 'verified';
+                        }
+                    }
 
                     modalTitle.textContent = `Edit Tag: ${d.name}`;
                     tagModal.show();

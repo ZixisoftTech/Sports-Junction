@@ -394,4 +394,62 @@ class EnquiryManagementController extends Controller
             Exporter::exportCsv($filename, $headers, $rows);
         }
     }
+
+    /**
+     * Secure Attachment Download (Task 13)
+     * GET /admin/enquiries/attachment/{id}
+     */
+    public function downloadAttachment(array|string $params): void
+    {
+        $id = is_array($params) ? ($params['id'] ?? 0) : $params;
+        $enquiryId = (int) $id;
+
+        $authUser = $this->authUser();
+        if (!$authUser) {
+            http_response_code(401);
+            echo "Unauthorized: Please log in to download enquiry attachments.";
+            exit;
+        }
+
+        $role = strtoupper($authUser['role'] ?? '');
+        $enquiry = ProductInquiry::findById($enquiryId, true);
+        if (!$enquiry || empty($enquiry['attachment_path'])) {
+            http_response_code(404);
+            echo "Attachment not found.";
+            exit;
+        }
+
+        // Strict Server-Side RBAC Enforcement (Task 13 & 14)
+        $isSuperAdmin = ($role === 'SUPER_ADMIN');
+        $isOwnerBuyer = ($role === 'BUYER' && (int)($enquiry['buyer_user_id'] ?? 0) === (int)$authUser['id']);
+        $isAssignedSupplier = ($role === 'SUPPLIER' && (int)($enquiry['effective_supplier_id'] ?? 0) === (int)($authUser['supplier_id'] ?? 0));
+
+        if (!$isSuperAdmin && !$isOwnerBuyer && !$isAssignedSupplier) {
+            http_response_code(403);
+            echo "Forbidden: You do not have permission to access this attachment.";
+            exit;
+        }
+
+        $baseDir = dirname(__DIR__, 2);
+        $fullPath = $baseDir . '/' . ltrim($enquiry['attachment_path'], '/');
+
+        if (!file_exists($fullPath) || !is_readable($fullPath)) {
+            http_response_code(404);
+            echo "File not found on storage server.";
+            exit;
+        }
+
+        $filename = !empty($enquiry['attachment_name']) ? $enquiry['attachment_name'] : basename($fullPath);
+        $mime = !empty($enquiry['attachment_mime']) ? $enquiry['attachment_mime'] : 'application/octet-stream';
+
+        header('Content-Description: File Transfer');
+        header('Content-Type: ' . $mime);
+        header('Content-Disposition: attachment; filename="' . basename($filename) . '"');
+        header('Expires: 0');
+        header('Cache-Control: must-revalidate');
+        header('Pragma: public');
+        header('Content-Length: ' . filesize($fullPath));
+        readfile($fullPath);
+        exit;
+    }
 }

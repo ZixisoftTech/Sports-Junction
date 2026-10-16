@@ -18,6 +18,11 @@ abstract class Model
         return self::$db;
     }
 
+    public static function getConnection(): PDO
+    {
+        return self::db();
+    }
+
     public static function beginTransaction(): bool
     {
         if (!self::db()->inTransaction()) {

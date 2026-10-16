@@ -396,6 +396,7 @@ class SupplierPortalController extends Controller
         }
 
         try {
+            Product::beginTransaction();
             Product::saveSupplierEdit($id, (int)$supplier['id'], $input, $primaryImage, $galleryImages, $deletedImageIds);
 
             // Sync product certificates if provided
@@ -403,6 +404,8 @@ class SupplierPortalController extends Controller
                 $certIds = is_array($input['certificate_ids']) ? $input['certificate_ids'] : array_filter(explode(',', (string)$input['certificate_ids']));
                 \App\Models\ProductCertificate::syncForProduct($id, $certIds);
             }
+
+            Product::commit();
 
             Mailer::sendProductSubmitted($supplier['email'], $supplier['company_name'], (string)$input['name']);
 
@@ -414,6 +417,7 @@ class SupplierPortalController extends Controller
             }
             $this->redirect('/supplier/products');
         } catch (\Throwable $e) {
+            Product::rollBack();
             $errMsg = 'Failed to update product: ' . $e->getMessage();
             if ($isAjax) {
                 $this->json(['success' => false, 'message' => $errMsg], 500);

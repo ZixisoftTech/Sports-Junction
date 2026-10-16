@@ -355,6 +355,7 @@ class ProductController extends Controller
         }
 
         try {
+            Product::beginTransaction();
             Product::update($id, $input, $newImages, $deletedImageIds);
 
             // Sync product certificates if provided
@@ -367,12 +368,15 @@ class ProductController extends Controller
                 \App\Helpers\AuditLogger::log('UPDATE', 'Product', $id, $product['title'] ?? ('Product #' . $id), null, "Reassigned product supplier from #{$oldSupplierId} to #{$newSupplierId}");
             }
 
+            Product::commit();
+
             $this->json([
                 'success' => true,
                 'id'      => $id,
                 'message' => 'Product updated successfully.'
             ]);
         } catch (\Throwable $e) {
+            Product::rollBack();
             $this->json(['success' => false, 'message' => 'Failed to update product: ' . $e->getMessage()], 500);
         }
     }

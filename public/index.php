@@ -230,6 +230,8 @@ $router->post('/api/admin/buyers/{id}/toggle-status', [BuyerManagementController
 // Super Admin Centralized Enquiry Management
 $router->get('/admin/enquiries', [EnquiryManagementController::class, 'index'], [AuthMiddleware::class]);
 $router->get('/admin/rfq-oem', [EnquiryManagementController::class, 'rfqOem'], [AuthMiddleware::class]);
+$router->get('/admin/enquiries/attachment/{id}', [EnquiryManagementController::class, 'downloadAttachment']);
+$router->get('/admin/rfq-oem/attachment/{id}', [EnquiryManagementController::class, 'downloadAttachment']);
 $router->get('/admin/enquiries/{id}', [EnquiryManagementController::class, 'show'], [AuthMiddleware::class]);
 $router->post('/admin/enquiries/{id}/reply', [EnquiryManagementController::class, 'reply'], [AuthMiddleware::class]);
 $router->get('/api/admin/enquiries/data', [EnquiryManagementController::class, 'data'], [AuthMiddleware::class]);

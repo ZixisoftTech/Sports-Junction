@@ -15,8 +15,8 @@ $baseUrl = Response::baseUrl();
                     <a href="<?= htmlspecialchars($baseUrl) ?>/admin/masters/countries" class="btn btn-light btn-sm fw-semibold px-3">
                         <i class="bi bi-globe-americas me-1 text-primary"></i> Countries
                     </a>
-                    <a href="<?= htmlspecialchars($baseUrl) ?>/admin/masters/cities" class="btn btn-outline-light btn-sm fw-semibold px-3">
-                        <i class="bi bi-buildings me-1"></i> Cities
+                    <a href="<?= htmlspecialchars($baseUrl) ?>/admin/masters/product-certificates" class="btn btn-outline-light btn-sm fw-semibold px-3">
+                        <i class="bi bi-patch-check me-1"></i> Certificates
                     </a>
                 </div>
             </div>
@@ -41,32 +41,32 @@ $baseUrl = Response::baseUrl();
         </div>
     </div>
 
-    <!-- States -->
+    <!-- Product Certificates -->
     <div class="col-sm-6 col-xl-2">
         <div class="card h-100 border-0 shadow-sm">
             <div class="card-body p-3">
                 <div class="d-flex align-items-center justify-content-between mb-2">
-                    <span class="text-muted small fw-bold text-uppercase">States</span>
-                    <span class="p-2 bg-info bg-opacity-10 text-info rounded-circle"><i class="bi bi-map fs-5"></i></span>
+                    <span class="text-muted small fw-bold text-uppercase">Certificates</span>
+                    <span class="p-2 bg-info bg-opacity-10 text-info rounded-circle"><i class="bi bi-patch-check fs-5"></i></span>
                 </div>
-                <h3 class="fw-bold mb-1 text-dark"><?= number_format($counts['total_states'] ?? 0) ?></h3>
-                <div class="small text-success"><i class="bi bi-check-circle-fill me-1"></i><?= $counts['active_states'] ?? 0 ?> Active</div>
-                <a href="<?= htmlspecialchars($baseUrl) ?>/admin/masters/states" class="stretched-link"></a>
+                <h3 class="fw-bold mb-1 text-dark"><?= number_format($counts['total_certificates'] ?? 0) ?></h3>
+                <div class="small text-info"><i class="bi bi-award me-1"></i>Standards</div>
+                <a href="<?= htmlspecialchars($baseUrl) ?>/admin/masters/product-certificates" class="stretched-link"></a>
             </div>
         </div>
     </div>
 
-    <!-- Cities -->
+    <!-- Certification Tags -->
     <div class="col-sm-6 col-xl-2">
         <div class="card h-100 border-0 shadow-sm">
             <div class="card-body p-3">
                 <div class="d-flex align-items-center justify-content-between mb-2">
-                    <span class="text-muted small fw-bold text-uppercase">Cities</span>
-                    <span class="p-2 bg-success bg-opacity-10 text-success rounded-circle"><i class="bi bi-buildings fs-5"></i></span>
+                    <span class="text-muted small fw-bold text-uppercase">Cert Tags</span>
+                    <span class="p-2 bg-success bg-opacity-10 text-success rounded-circle"><i class="bi bi-bookmark-check fs-5"></i></span>
                 </div>
-                <h3 class="fw-bold mb-1 text-dark"><?= number_format($counts['total_cities'] ?? 0) ?></h3>
-                <div class="small text-success"><i class="bi bi-check-circle-fill me-1"></i><?= $counts['active_cities'] ?? 0 ?> Active</div>
-                <a href="<?= htmlspecialchars($baseUrl) ?>/admin/masters/cities" class="stretched-link"></a>
+                <h3 class="fw-bold mb-1 text-dark"><?= number_format($counts['total_tags'] ?? 0) ?></h3>
+                <div class="small text-success"><i class="bi bi-tag me-1"></i>Compliance</div>
+                <a href="<?= htmlspecialchars($baseUrl) ?>/admin/masters/certification-tags" class="stretched-link"></a>
             </div>
         </div>
     </div>

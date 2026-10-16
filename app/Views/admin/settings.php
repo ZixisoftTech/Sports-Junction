@@ -74,7 +74,7 @@ $logoUrl = !empty($settings['site_logo']) ? ($baseUrl . $settings['site_logo']) 
                             <div class="col-sm-8">
                                 <label class="form-label fw-bold small text-slate-800">Change Website Logo</label>
                                 <input type="file" name="site_logo" id="siteLogoInput" accept="image/png,image/jpeg,image/webp,image/svg+xml" class="form-control form-control-sm mb-1" onchange="previewLogo(this)">
-                                <div class="form-text small" style="font-size: 11px;">Recommended: Transparent PNG, WEBP or SVG. Max size: 5MB.</div>
+                                <div class="form-text small" style="font-size: 11px;">Recommended: 240×60px (4:1 horizontal ratio), Transparent PNG, SVG, JPG, or WEBP &bull; Max size: 5MB.</div>
                             </div>
                         </div>
 
@@ -152,13 +152,6 @@ $logoUrl = !empty($settings['site_logo']) ? ($baseUrl . $settings['site_logo']) 
 
                             <div>
                                 <label class="form-label fw-bold small text-slate-800 d-flex align-items-center gap-1.5">
-                                    <i class="bi bi-linkedin text-primary fs-6"></i> LinkedIn URL
-                                </label>
-                                <input type="url" name="social_linkedin" value="<?= htmlspecialchars($settings['social_linkedin'] ?? '') ?>" placeholder="https://linkedin.com/company/yourhandle" class="form-control form-control-sm">
-                            </div>
-
-                            <div>
-                                <label class="form-label fw-bold small text-slate-800 d-flex align-items-center gap-1.5">
                                     <i class="bi bi-twitter-x fs-6"></i> Twitter / X URL
                                 </label>
                                 <input type="url" name="social_twitter" value="<?= htmlspecialchars($settings['social_twitter'] ?? '') ?>" placeholder="https://x.com/yourhandle" class="form-control form-control-sm">
@@ -169,20 +162,6 @@ $logoUrl = !empty($settings['site_logo']) ? ($baseUrl . $settings['site_logo']) 
                                     <i class="bi bi-instagram text-danger fs-6"></i> Instagram URL
                                 </label>
                                 <input type="url" name="social_instagram" value="<?= htmlspecialchars($settings['social_instagram'] ?? '') ?>" placeholder="https://instagram.com/yourhandle" class="form-control form-control-sm">
-                            </div>
-
-                            <div>
-                                <label class="form-label fw-bold small text-slate-800 d-flex align-items-center gap-1.5">
-                                    <i class="bi bi-youtube text-danger fs-6"></i> YouTube Channel URL
-                                </label>
-                                <input type="url" name="social_youtube" value="<?= htmlspecialchars($settings['social_youtube'] ?? '') ?>" placeholder="https://youtube.com/@yourchannel" class="form-control form-control-sm">
-                            </div>
-
-                            <div>
-                                <label class="form-label fw-bold small text-slate-800 d-flex align-items-center gap-1.5">
-                                    <i class="bi bi-tiktok text-dark fs-6"></i> TikTok URL
-                                </label>
-                                <input type="url" name="social_tiktok" value="<?= htmlspecialchars($settings['social_tiktok'] ?? '') ?>" placeholder="https://tiktok.com/@yourhandle" class="form-control form-control-sm">
                             </div>
                         </div>
                     </div>

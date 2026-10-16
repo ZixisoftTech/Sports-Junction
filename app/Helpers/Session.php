@@ -118,6 +118,11 @@ class Session
         return $flashValue;
     }
 
+    public static function getFlash(string $key, mixed $default = null): mixed
+    {
+        return self::flash($key) ?? $default;
+    }
+
     public static function hasFlash(string $key): bool
     {
         self::start();

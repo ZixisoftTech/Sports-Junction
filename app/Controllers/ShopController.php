@@ -73,7 +73,7 @@ class ShopController extends Controller
         $categories = Category::allActive();
         $result = Product::getFilteredProducts($filters);
 
-        $pageTitle = htmlspecialchars($category['name']) . ' — Verified Indian Manufacturers & Wholesale Suppliers';
+        $pageTitle = $category['name'] . ' — Verified Indian Manufacturers & Wholesale Suppliers';
         $metaDescription = $category['description'] ?? "Source {$category['name']} directly from verified factory manufacturing plants in India at wholesale ex-factory pricing.";
 
         $this->render('frontend/products', [
@@ -115,7 +115,7 @@ class ShopController extends Controller
         $categories = Category::allActive();
         $result = Product::getFilteredProducts($filters);
 
-        $pageTitle = htmlspecialchars($subcategory['name']) . ' Wholesale Manufacturers — ' . htmlspecialchars($category['name']);
+        $pageTitle = $subcategory['name'] . ' Wholesale Manufacturers — ' . $category['name'];
         $metaDescription = $subcategory['description'] ?? "Factory direct sourcing for {$subcategory['name']} with custom logo OEM printing and low MOQ.";
 
         $this->render('frontend/products', [
@@ -254,6 +254,59 @@ class ShopController extends Controller
 
         if (!$validator->validate($rules)) {
             $this->json(['success' => false, 'message' => $validator->firstError()], 422);
+            return;
+        }
+
+        // Handle File Attachment Upload (Task 13)
+        if (!empty($_FILES['attachment']['name']) && $_FILES['attachment']['error'] === UPLOAD_ERR_OK) {
+            $file = $_FILES['attachment'];
+            $maxSize = 10 * 1024 * 1024; // 10MB
+            if ($file['size'] > $maxSize) {
+                $this->json(['success' => false, 'message' => 'Attachment exceeds the 10MB file size limit.'], 422);
+                return;
+            }
+
+            $allowedExts = ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png', 'webp'];
+            $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+
+            $finfo = finfo_open(FILEINFO_MIME_TYPE);
+            $mime = finfo_file($finfo, $file['tmp_name']);
+            finfo_close($finfo);
+
+            $allowedMimes = [
+                'application/pdf',
+                'application/msword',
+                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                'image/jpeg',
+                'image/png',
+                'image/webp'
+            ];
+
+            if (!in_array($ext, $allowedExts, true) || !in_array($mime, $allowedMimes, true)) {
+                $this->json(['success' => false, 'message' => 'Invalid attachment format. Allowed formats: PDF, DOC, DOCX, JPG, PNG, WEBP.'], 422);
+                return;
+            }
+
+            $uploadDir = dirname(__DIR__, 2) . '/storage/uploads/inquiries';
+            if (!is_dir($uploadDir)) {
+                mkdir($uploadDir, 0755, true);
+            }
+
+            $cleanOriginalName = preg_replace('/[^a-zA-Z0-9_\.-]/', '_', $file['name']);
+            $savedFileName = 'inq_' . time() . '_' . bin2hex(random_bytes(6)) . '.' . $ext;
+            $destination = $uploadDir . '/' . $savedFileName;
+
+            if (move_uploaded_file($file['tmp_name'], $destination)) {
+                $input['attachment_path'] = 'storage/uploads/inquiries/' . $savedFileName;
+                $input['attachment_name'] = $cleanOriginalName;
+                $input['attachment_size'] = (int) $file['size'];
+                $input['attachment_mime'] = $mime;
+            } else {
+                $this->json(['success' => false, 'message' => 'Failed to store attachment. Please try again.'], 500);
+                return;
+            }
+        } elseif (!empty($_FILES['attachment']['error']) && $_FILES['attachment']['error'] !== UPLOAD_ERR_NO_FILE) {
+            $this->json(['success' => false, 'message' => 'File upload error occurred. Please try again.'], 422);
             return;
         }
 

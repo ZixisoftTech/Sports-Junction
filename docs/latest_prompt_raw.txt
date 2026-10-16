@@ -1,0 +1,49 @@
+<USER_REQUEST>
+# SPORTS JUNCTION — STRICT DEVELOPMENT, FIXING & TESTING EXECUTION ORDER
+
+## 1. NON-NEGOTIABLE EXECUTION RULES
+
+You are working on the existing Sports Junction B2B marketplace project.
+
+I have already provided the requirements, screenshots, design references, bug reports, and category/subcategory data. A significant portion of the previous work remains incomplete. Do not repeat the same mistake.
+
+**Your task is to finish every requirement, fix every reported error, verify every feature, and test the entire project. This is an implementation assignment, not a planning-only assignment.**
+
+Follow these mandatory rules:
+
+1. Do not skip, ignore, postpone, simplify, or silently remove any requirement I have already provided.
+2. Do not mark a task complete just because its UI has been created.
+3. Do not mark a task complete just because its API returns a successful response.
+4. Every task must be implemented, tested, and verified before moving to the next task.
+5. Work sequentially: Task 1 → implementation → testing → verification → Task 2.
+6. If a task fails testing, fix it and repeat the test until it passes. Do not move forward while a blocking defect remains in that task.
+7. After every individual task passes, run cross-feature integration tests.
+8. After all integration tests pass, run complete end-to-end testing of the entire project.
+9. Do not use mock data, hardcoded frontend data, fake success messages, or placeholder functionality to simulate completion when real database-backed functionality is required.
+10. Preserve existing working functionality. Do not break unrelated modules while fixing another module.
+11. Do not replace the existing architecture or rewrite the project from scratch unless technically necessary and justified.
+12. Inspect the actual project files, database schema, routes, controllers, models, JavaScript, and existing tests before making changes.
+13. Do not ask me to repeat requirements already included in this prompt or previous project context.
+14. If you encounte
+<truncated 27133 bytes>
+y possible requirement is complete and the final full-project test suite has run.    **STRICT EXECUTION OVERRIDE**
+
+Do not return a plan as your final deliverable. Do not stop after the first successful fix. Do not skip testing because of time, context length, or convenience.
+
+Before moving to the next task, provide an internal task-level pass/fail decision based on actual test evidence. Keep the requirement tracker updated in the repository. If you need to split execution into multiple sessions, persist the exact completed task IDs, test results, current task ID, and remaining tasks so work resumes without losing requirements.
+
+A task that has only been coded is not done. A task that has not been tested is not done. A task whose test failed is not done. A task whose test could not run must be marked `BLOCKED`, with the reason and required action.
+
+At the end, compare the original requirement list against the tracker line by line. Every requirement must have a recorded outcome. Run integration testing after all individual tasks pass, followed by full-project regression testing. Report actual results only. Never claim a test passed unless you have executed it and observed the passing result.
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-10-16T14:43:29+05:30.
+
+The user has uploaded 5 image(s):
+- /Users/chetansmac/.gemini/antigravity/brain/c6d553fc-051e-4891-a1e4-2659f06103b9/.user_uploaded/media_1792140640166.png
+- /Users/chetansmac/.gemini/antigravity/brain/c6d553fc-051e-4891-a1e4-2659f06103b9/.user_uploaded/media_1792140767464.png
+- /Users/chetansmac/.gemini/antigravity/brain/c6d553fc-051e-4891-a1e4-2659f06103b9/.user_uploaded/media_1792141851650.png
+- /Users/chetansmac/.gemini/antigravity/brain/c6d553fc-051e-4891-a1e4-2659f06103b9/.user_uploaded/media_1792141857812.png
+- /Users/chetansmac/.gemini/antigravity/brain/c6d553fc-051e-4891-a1e4-2659f06103b9/.user_uploaded/media_1792141865137.png
+You can embed these images in an artifact if you need the USER to review them.
+</ADDITIONAL_METADATA>

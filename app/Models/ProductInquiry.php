@@ -59,11 +59,13 @@ class ProductInquiry extends Model
             INSERT INTO product_inquiries (
                 enquiry_source, product_id, supplier_id, buyer_user_id, buyer_name, buyer_email, buyer_phone,
                 company_name, subject, target_quantity, target_price, lead_time_req, delivery_location,
-                required_delivery_date, specifications, status, ip_address, created_at
+                required_delivery_date, specifications, attachment_path, attachment_name, attachment_size,
+                attachment_mime, status, ip_address, created_at
             ) VALUES (
                 :enquiry_source, :product_id, :supplier_id, :buyer_user_id, :buyer_name, :buyer_email, :buyer_phone,
                 :company_name, :subject, :target_quantity, :target_price, :lead_time_req, :delivery_location,
-                :required_delivery_date, :specifications, :status, :ip_address, NOW()
+                :required_delivery_date, :specifications, :attachment_path, :attachment_name, :attachment_size,
+                :attachment_mime, :status, :ip_address, NOW()
             )
         ", [
             ':enquiry_source'         => $source,
@@ -81,6 +83,10 @@ class ProductInquiry extends Model
             ':delivery_location'      => !empty($data['delivery_location']) ? trim($data['delivery_location']) : null,
             ':required_delivery_date' => $reqDate,
             ':specifications'         => trim($data['specifications'] ?? ''),
+            ':attachment_path'        => !empty($data['attachment_path']) ? trim($data['attachment_path']) : null,
+            ':attachment_name'        => !empty($data['attachment_name']) ? trim($data['attachment_name']) : null,
+            ':attachment_size'        => !empty($data['attachment_size']) ? (int) $data['attachment_size'] : null,
+            ':attachment_mime'        => !empty($data['attachment_mime']) ? trim($data['attachment_mime']) : null,
             ':status'                 => $status,
             ':ip_address'             => !empty($_SERVER['REMOTE_ADDR']) ? substr($_SERVER['REMOTE_ADDR'], 0, 45) : null,
         ]);

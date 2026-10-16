@@ -146,6 +146,31 @@ $status = $enquiry['status'] ?? 'SUBMITTED';
                     <div class="text-slate-500 small fw-bold mb-1">Buyer Message / Technical Specifications / Customization Details</div>
                     <div class="p-3 rounded-3 bg-light border text-slate-800" style="white-space: pre-wrap;"><?= htmlspecialchars($enquiry['specifications'] ?? '') ?></div>
                 </div>
+
+                <?php if (!empty($enquiry['attachment_path'])): ?>
+                <div class="mt-4 p-3 rounded-3 bg-light border border-primary-subtle">
+                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="p-2.5 rounded-3 bg-primary bg-opacity-10 text-primary">
+                                <i class="bi bi-paperclip fs-5"></i>
+                            </div>
+                            <div>
+                                <div class="fw-bold text-slate-900 small"><?= htmlspecialchars($enquiry['attachment_name'] ?: 'Enquiry Attachment') ?></div>
+                                <div class="text-muted small" style="font-size: 11px;">
+                                    <?php 
+                                        $sizeKb = !empty($enquiry['attachment_size']) ? round($enquiry['attachment_size'] / 1024, 1) . ' KB' : 'Document';
+                                        $mime = !empty($enquiry['attachment_mime']) ? htmlspecialchars($enquiry['attachment_mime']) : 'File';
+                                    ?>
+                                    Size: <?= $sizeKb ?> &bull; Type: <?= $mime ?>
+                                </div>
+                            </div>
+                        </div>
+                        <a href="<?= $baseUrl ?>/admin/enquiries/attachment/<?= (int)$enquiry['id'] ?>" class="btn btn-sm btn-primary fw-bold px-3">
+                            <i class="bi bi-download me-1"></i> Download Attachment
+                        </a>
+                    </div>
+                </div>
+                <?php endif; ?>
             </div>
         </div>
 

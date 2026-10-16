@@ -198,10 +198,16 @@ class MasterApiController extends Controller
             }
         }
 
-        // Handle icon file upload if provided (e.g. for categories)
+        // Handle icon file upload if provided (for categories, certificates, tags, subcategories)
         if (isset($_FILES['icon_file']) && $_FILES['icon_file']['error'] !== UPLOAD_ERR_NO_FILE) {
             try {
-                $input['icon'] = Uploader::uploadImage($_FILES['icon_file'], 'categories/icons');
+                $iconFolder = match (strtolower($entity)) {
+                    'product-certificates', 'product_certificates' => 'certificates/icons',
+                    'certification-tags', 'certification_tags'     => 'tags/icons',
+                    'subcategories'                                => 'subcategories/icons',
+                    default                                        => 'categories/icons',
+                };
+                $input['icon'] = Uploader::uploadImage($_FILES['icon_file'], $iconFolder);
             } catch (\Throwable $e) {
                 $this->json(['success' => false, 'message' => 'Icon upload failed: ' . $e->getMessage()], 422);
                 return;
@@ -373,10 +379,16 @@ class MasterApiController extends Controller
             }
         }
 
-        // Handle icon file upload if provided (e.g. for categories)
+        // Handle icon file upload if provided (for categories, certificates, tags, subcategories)
         if (isset($_FILES['icon_file']) && $_FILES['icon_file']['error'] !== UPLOAD_ERR_NO_FILE) {
             try {
-                $input['icon'] = Uploader::uploadImage($_FILES['icon_file'], 'categories/icons');
+                $iconFolder = match (strtolower($entity)) {
+                    'product-certificates', 'product_certificates' => 'certificates/icons',
+                    'certification-tags', 'certification_tags'     => 'tags/icons',
+                    'subcategories'                                => 'subcategories/icons',
+                    default                                        => 'categories/icons',
+                };
+                $input['icon'] = Uploader::uploadImage($_FILES['icon_file'], $iconFolder);
             } catch (\Throwable $e) {
                 $this->json(['success' => false, 'message' => 'Icon upload failed: ' . $e->getMessage()], 422);
                 return;

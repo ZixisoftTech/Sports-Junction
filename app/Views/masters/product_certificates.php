@@ -77,12 +77,19 @@ $baseUrl = Response::baseUrl();
                             <input type="text" class="form-control form-control-sm text-uppercase" id="certCode" name="code" placeholder="e.g. CE, FIFA-PRO, ISO-9001" maxlength="50">
                         </div>
                         <div class="col-md-6">
-                            <label for="certIcon" class="form-label small fw-semibold">Icon Symbol</label>
-                            <div class="input-group input-group-sm">
-                                <span class="input-group-text bg-white" id="certIconPreviewBox">
-                                    <span class="material-symbols-outlined text-primary fs-5" id="certIconPreview">verified</span>
-                                </span>
-                                <input type="text" class="form-control" id="certIcon" name="icon" value="verified" placeholder="verified, sports_soccer...">
+                            <label for="certIconFile" class="form-label small fw-semibold">Certificate Icon / Badge Image</label>
+                            <input type="hidden" name="icon" id="certIcon" value="">
+                            <div class="d-flex align-items-center gap-2 p-2 border rounded bg-light">
+                                <div class="border rounded bg-white d-flex align-items-center justify-content-center overflow-hidden flex-shrink-0" style="width: 48px; height: 48px;" id="certIconPreviewBox">
+                                    <img id="certIconImgPreview" src="" class="d-none object-fit-contain" style="max-width: 100%; max-height: 100%;" alt="Icon Preview">
+                                    <span class="material-symbols-outlined text-primary fs-4" id="certIconPreview">workspace_premium</span>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <input type="file" class="form-control form-control-sm" id="certIconFile" name="icon_file" accept="image/png,image/jpeg,image/svg+xml,image/webp">
+                                    <div class="form-text text-muted" style="font-size: 11px;">
+                                        PNG, SVG, JPG, WEBP &bull; 1:1 Aspect Ratio (64x64px, Max 2MB)
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -124,12 +131,24 @@ document.addEventListener('DOMContentLoaded', function () {
     const certModal = new bootstrap.Modal(certModalEl);
     const form = document.getElementById('certificateForm');
     const modalTitle = document.getElementById('certificateModalLabel');
-    const iconInput = document.getElementById('certIcon');
+    const iconFileInput = document.getElementById('certIconFile');
+    const iconImgPreview = document.getElementById('certIconImgPreview');
     const iconPreview = document.getElementById('certIconPreview');
+    const iconHiddenInput = document.getElementById('certIcon');
 
-    if (iconInput && iconPreview) {
-        iconInput.addEventListener('input', function() {
-            iconPreview.textContent = this.value.trim() || 'verified';
+    if (iconFileInput) {
+        iconFileInput.addEventListener('change', function () {
+            if (this.files && this.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    if (iconImgPreview) {
+                        iconImgPreview.src = e.target.result;
+                        iconImgPreview.classList.remove('d-none');
+                    }
+                    if (iconPreview) iconPreview.classList.add('d-none');
+                };
+                reader.readAsDataURL(this.files[0]);
+            }
         });
     }
 
@@ -150,11 +169,12 @@ document.addEventListener('DOMContentLoaded', function () {
                 width: '60px',
                 orderable: false,
                 render: function(data) {
-                    const ic = data || 'verified';
-                    if (ic.startsWith('/') || ic.startsWith('http')) {
-                        return `<img src="${baseUrl}${ic}" style="width:24px;height:24px;object-fit:contain;">`;
+                    const ic = data || '';
+                    if (ic.startsWith('/') || ic.startsWith('http') || ic.includes('.') || ic.includes('uploads')) {
+                        const imgUrl = window.SportsJunction ? window.SportsJunction.formatImageUrl(ic) : (baseUrl + ic);
+                        return `<img src="${imgUrl}" style="width:28px;height:28px;object-fit:contain;" class="rounded border p-0.5 bg-white shadow-2xs" alt="Cert Icon">`;
                     }
-                    return `<span class="material-symbols-outlined text-primary fs-5">${ic}</span>`;
+                    return `<span class="material-symbols-outlined text-primary fs-5">${ic || 'workspace_premium'}</span>`;
                 }
             },
             {
@@ -216,8 +236,17 @@ document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('btnAddNewCertificate').addEventListener('click', function () {
         form.reset();
         document.getElementById('certId').value = '';
+        if (iconHiddenInput) iconHiddenInput.value = '';
+        if (iconFileInput) iconFileInput.value = '';
+        if (iconImgPreview) {
+            iconImgPreview.src = '';
+            iconImgPreview.classList.add('d-none');
+        }
+        if (iconPreview) {
+            iconPreview.classList.remove('d-none');
+            iconPreview.textContent = 'workspace_premium';
+        }
         modalTitle.textContent = 'Add New Product Certificate';
-        if (iconPreview) iconPreview.textContent = 'verified';
         certModal.show();
     });
 
@@ -234,9 +263,28 @@ document.addEventListener('DOMContentLoaded', function () {
                     document.getElementById('certCode').value = d.code || '';
                     document.getElementById('certAuthority').value = d.issuing_authority || '';
                     document.getElementById('certDescription').value = d.description || '';
-                    document.getElementById('certIcon').value = d.icon || 'verified';
                     document.getElementById('certStatus').value = d.status || 'ACTIVE';
-                    if (iconPreview) iconPreview.textContent = d.icon || 'verified';
+
+                    const iconVal = d.icon || '';
+                    if (iconHiddenInput) iconHiddenInput.value = iconVal;
+                    if (iconFileInput) iconFileInput.value = '';
+
+                    const isImg = iconVal.startsWith('/') || iconVal.startsWith('http') || iconVal.includes('.') || iconVal.includes('uploads');
+                    if (isImg && iconImgPreview) {
+                        const imgUrl = window.SportsJunction ? window.SportsJunction.formatImageUrl(iconVal) : (baseUrl + iconVal);
+                        iconImgPreview.src = imgUrl;
+                        iconImgPreview.classList.remove('d-none');
+                        if (iconPreview) iconPreview.classList.add('d-none');
+                    } else {
+                        if (iconImgPreview) {
+                            iconImgPreview.src = '';
+                            iconImgPreview.classList.add('d-none');
+                        }
+                        if (iconPreview) {
+                            iconPreview.classList.remove('d-none');
+                            iconPreview.textContent = iconVal || 'workspace_premium';
+                        }
+                    }
 
                     modalTitle.textContent = `Edit Certificate: ${d.name}`;
                     certModal.show();

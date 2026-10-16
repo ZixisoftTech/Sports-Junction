@@ -27,6 +27,8 @@ class AuditLog extends Model
             'active_states'        => (int) self::fetchColumn("SELECT COUNT(*) FROM states WHERE status = 'ACTIVE'"),
             'total_cities'         => (int) self::fetchColumn("SELECT COUNT(*) FROM cities"),
             'active_cities'        => (int) self::fetchColumn("SELECT COUNT(*) FROM cities WHERE status = 'ACTIVE'"),
+            'total_certificates'   => (int) self::fetchColumn("SELECT COUNT(*) FROM product_certificates"),
+            'total_tags'           => (int) self::fetchColumn("SELECT COUNT(*) FROM supplier_certification_tags"),
             'total_business_types' => (int) self::fetchColumn("SELECT COUNT(*) FROM business_types"),
             'total_price_units'    => (int) self::fetchColumn("SELECT COUNT(*) FROM price_units"),
             'total_moq_units'      => (int) self::fetchColumn("SELECT COUNT(*) FROM moq_units"),

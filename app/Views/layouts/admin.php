@@ -51,14 +51,6 @@ $activeMenu = $activeMenu ?? 'dashboard';
             <i class="bi bi-globe-americas"></i>
             <span>Countries</span>
         </a>
-        <a href="<?= htmlspecialchars($baseUrl) ?>/admin/masters/states" class="sj-nav-item <?= $activeMenu === 'states' ? 'active' : '' ?>">
-            <i class="bi bi-map"></i>
-            <span>States</span>
-        </a>
-        <a href="<?= htmlspecialchars($baseUrl) ?>/admin/masters/cities" class="sj-nav-item <?= $activeMenu === 'cities' ? 'active' : '' ?>">
-            <i class="bi bi-buildings"></i>
-            <span>Cities</span>
-        </a>
         <a href="<?= htmlspecialchars($baseUrl) ?>/admin/masters/business-types" class="sj-nav-item <?= $activeMenu === 'business_types' ? 'active' : '' ?>">
             <i class="bi bi-briefcase"></i>
             <span>Business Types</span>

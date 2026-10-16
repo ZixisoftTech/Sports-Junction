@@ -1,0 +1,637 @@
+<USER_REQUEST>
+# SPORTS JUNCTION — STRICT DEVELOPMENT, FIXING & TESTING EXECUTION ORDER
+
+## 1. NON-NEGOTIABLE EXECUTION RULES
+
+You are working on the existing Sports Junction B2B marketplace project.
+
+I have already provided the requirements, screenshots, design references, bug reports, and category/subcategory data. A significant portion of the previous work remains incomplete. Do not repeat the same mistake.
+
+**Your task is to finish every requirement, fix every reported error, verify every feature, and test the entire project. This is an implementation assignment, not a planning-only assignment.**
+
+Follow these mandatory rules:
+
+1. Do not skip, ignore, postpone, simplify, or silently remove any requirement I have already provided.
+2. Do not mark a task complete just because its UI has been created.
+3. Do not mark a task complete just because its API returns a successful response.
+4. Every task must be implemented, tested, and verified before moving to the next task.
+5. Work sequentially: Task 1 → implementation → testing → verification → Task 2.
+6. If a task fails testing, fix it and repeat the test until it passes. Do not move forward while a blocking defect remains in that task.
+7. After every individual task passes, run cross-feature integration tests.
+8. After all integration tests pass, run complete end-to-end testing of the entire project.
+9. Do not use mock data, hardcoded frontend data, fake success messages, or placeholder functionality to simulate completion when real database-backed functionality is required.
+10. Preserve existing working functionality. Do not break unrelated modules while fixing another module.
+11. Do not replace the existing architecture or rewrite the project from scratch unless technically necessary and justified.
+12. Inspect the actual project files, database schema, routes, controllers, models, JavaScript, and existing tests before making changes.
+13. Do not ask me to repeat requirements already included in this prompt or previous project context.
+14. If you encounter an environmental limitation, document the exact limitation and continue with all other tasks that can be completed. Never falsely report an untested task as passed.
+15. Do not stop after producing a plan, fixing one error, or completing a portion of the work.
+
+## 2. CREATE A REQUIREMENT TRACKER BEFORE CODING
+
+First, inspect the complete project and create a requirement tracker in the repository, for example:
+
+`docs/SPORTS_JUNCTION_IMPLEMENTATION_TRACKER.md`
+
+Include every requirement from this prompt and the existing project requirements.
+
+Every item must have these fields:
+
+- Unique task ID.
+- Exact requirement.
+- Relevant files/modules.
+- Implementation status.
+- Test case or verification procedure.
+- Test result.
+- Evidence or notes.
+- Remaining defects, if any.
+
+Use only these statuses:
+
+- `NOT_STARTED`
+- `IN_PROGRESS`
+- `IMPLEMENTED`
+- `TESTING`
+- `FAILED`
+- `BLOCKED`
+- `PASSED`
+
+**Only `PASSED` means complete.** `IMPLEMENTED` does not mean complete.
+
+Split large requirements into individually testable subtasks. Preserve the original requirement wording and create traceable subtasks so that no requirement disappears during implementation.
+
+Before coding, reconcile this tracker against:
+- This complete prompt.
+- Previously provided Sports Junction requirements.
+- Existing implementation and known incomplete features.
+- The reported screenshots and browser/server errors.
+- The supplied category/subcategory dataset.
+
+Do not delete or overwrite an existing tracker if it contains relevant progress. Update it while preserving useful history.
+
+## 3. MANDATORY TASK-BY-TASK WORKFLOW
+
+For every individual task, execute this exact sequence:
+
+**Step A — Inspect**
+- Inspect existing implementation and dependencies.
+- Identify the root cause or missing functionality.
+- Identify affected database tables, APIs, UI components, permissions, and dependent modules.
+
+**Step B — Implement**
+- Make the smallest safe change that fully satisfies the requirement.
+- Include database migrations or seed updates when required.
+- Include backend validation, authorization, error handling, and frontend integration.
+- Do not leave TODOs or incomplete placeholders for required functionality.
+
+**Step C — Test the implementation**
+- Run relevant syntax checks, static checks, unit tests, and integration tests.
+- Test both successful and failure scenarios.
+- Test relevant database changes and API responses.
+- Test the actual UI interaction in the running application where possible.
+
+**Step D — Fix failures**
+- Investigate every failed assertion, exception, console error, failed request, incorrect database update, or UI defect.
+- Fix the root cause, not just the visible symptom.
+- Repeat the failed test and relevant regression tests.
+
+**Step E — Verify**
+- Confirm the expected result in the actual running application.
+- Confirm data persists correctly after refresh or a new session when persistence is required.
+- Confirm permissions and related workflows work correctly.
+- Record the actual test command or verification procedure and its result.
+
+**Step F — Update the tracker**
+- Mark `PASSED` only when the acceptance criteria pass.
+- Record any residual limitation accurately.
+- Do not proceed to the next independent task while the current task has an unresolved blocking defect.
+
+Do not batch all development first and testing at the end. Testing is mandatory after each individual task.
+
+If a defect affects a shared dependency and prevents later tasks from working, fix and verify that dependency first, then resume the sequence.
+
+## 4. REQUIRED IMPLEMENTATION ORDER
+
+Follow this order, while respecting any technical dependency discovered during repository inspection.
+
+### Task 1 — Fix website settings and CMS fatal errors
+
+Reported errors:
+
+- `Call to undefined method App\Helpers\Session::getFlash()` in `app/Views/admin/settings.php`, line 36.
+- The same error in `app/Views/admin/cms_pages_list.php`, line 36.
+
+Required work:
+- Inspect `app/Helpers/Session.php`, `app/Core/Controller.php`, and all existing flash-message usage.
+- Identify the project's existing flash-message API.
+- Update the incompatible calls or implement a compatible method following the established architecture.
+- Avoid creating duplicate or inconsistent flash-message systems.
+- Verify success and error flash messages render and are consumed correctly.
+
+Individual acceptance tests:
+1. Open `/admin/settings` while authenticated.
+2. Confirm the page loads without a fatal error.
+3. Open `/admin/pages`.
+4. Confirm the page loads without a fatal error.
+5. Trigger a valid settings save and verify the success message.
+6. Trigger a validation failure and verify the error message.
+7. Refresh both pages and check that flash messages behave correctly.
+8. Inspect PHP logs and browser console for related errors.
+
+Do not continue until these checks pass.
+
+### Task 2 — Fix product update failure for ProductCertificate
+
+Reported error:
+
+`Failed to update product: Call to undefined method App\Models\ProductCertificate::getConnection()`
+
+Request failing:
+
+`/api/products/7`
+
+Required work:
+- Trace the product update endpoint, controller, service, product model, certificate model, and database layer.
+- Determine why `ProductCertificate` is being used as though it supports `getConnection()`.
+- Inspect the project's actual database abstraction and model interfaces.
+- Correct the root cause using the project's existing database conventions.
+- Check whether product certificates, certification tags, categories, subcategories, images, and supplier relationships are affected by product updates.
+- Use transactions where multiple related writes must succeed or roll back together.
+- Do not fix only product ID 7 with a special case.
+
+Acceptance tests:
+1. Update an existing product's basic fields.
+2. Update its category and subcategory.
+3. Update its certificates and certification tags.
+4. Update its images.
+5. Update a supplier-owned product through the supplier interface.
+6. Update a product through the Super Admin interface.
+7. Verify database persistence after refresh.
+8. Test invalid data and unauthorized updates.
+9. Verify failures return controlled API errors rather than HTTP 500.
+10. Confirm existing approval and publishing rules remain intact.
+
+Run these tests with representative existing products and suppliers. Do not assume that fixing the admin interface automatically fixes the supplier interface.
+
+### Task 3 — Fix buyer edit and deactivate functionality
+
+Required work:
+- Fix buyer editing in the Super Admin panel.
+- Fix buyer deactivation and reactivation.
+- Inspect the buyer API, controller, database update, modal behavior, and JavaScript.
+- Fix the accessibility/focus issue reported when closing the buyer modal:
+
+`Blocked aria-hidden on an element because its descendant retained focus.`
+
+Acceptance tests:
+1. Open a buyer record and verify every expected field.
+2. Edit buyer information and save.
+3. Refresh the page and verify the changes persist.
+4. Deactivate a buyer and confirm the status changes in the database.
+5. Verify the deactivated buyer cannot perform restricted authenticated actions.
+6. Reactivate the buyer and verify access is restored according to the application's rules.
+7. Verify existing enquiries and business history are preserved.
+8. Confirm modals open and close without trapped focus or incorrect `aria-hidden` behavior.
+9. Test validation failures and unauthorized requests.
+10. Verify that buyer cards, tables, buttons, and responsive layouts are visually correct.
+
+### Task 4 — Fix buyer country visibility
+
+Required work:
+- Trace country selection during buyer signup.
+- Verify whether the database stores the country ID, country name, or both.
+- Ensure the selected country is correctly resolved and displayed in Super Admin buyer view and edit screens.
+- Ensure country values are saved and updated consistently using the existing country master table.
+- Preserve compatibility with existing buyer records.
+
+Acceptance tests:
+1. Register a buyer with a selected country.
+2. Verify the saved database relationship.
+3. Open the buyer in Super Admin view.
+4. Open the buyer in edit mode.
+5. Save the buyer without changing the country and confirm it remains selected.
+6. Change the country and verify persistence.
+7. Test existing records with missing or invalid country references without crashing.
+
+### Task 5 — Fix category/subcategory dropdowns
+
+Required work:
+- Fix the non-working subcategory dropdown in the public marketplace.
+- Inspect parent-child relationships, API responses, frontend event handlers, filtering, and database queries.
+- Ensure categories and subcategories come from the database, not hardcoded arrays.
+- Ensure selecting a category loads only its active subcategories.
+- Ensure selecting a subcategory displays the correct products.
+- Ensure admin product forms and supplier product forms use the same correct hierarchy.
+- Handle empty categories, inactive records, and invalid relationships.
+
+Acceptance tests:
+1. Open the category dropdown.
+2. Hover over and click a category as appropriate for the existing design.
+3. Verify the correct subcategory menu opens.
+4. Verify the menu works with mouse and keyboard.
+5. Select a subcategory and confirm the correct product listing.
+6. Verify the category/subcategory relationship in product detail and filters.
+7. Test on desktop and mobile.
+8. Confirm there are no JavaScript errors or failed network requests.
+
+### Task 6 — Remove State and City sections from the admin sidebar
+
+Required work:
+- Remove State and City navigation headings/links from the admin panel as requested.
+- Check for references in navigation, breadcrumbs, dashboards, and menus.
+- Do not blindly drop database tables or delete country/state/city data that other modules depend on.
+- Preserve any location data still required by buyer or supplier registration.
+
+Acceptance tests:
+1. Verify State and City menu items no longer appear in the admin navigation.
+2. Confirm all remaining menu links work.
+3. Confirm buyer/supplier address fields continue to work.
+4. Confirm no unrelated data or master functionality is broken.
+
+### Task 7 — Replace icon-name inputs with image uploads
+
+Apply this to:
+- Product Certificates.
+- Certification Tags.
+- Categories.
+- Subcategories.
+- Any other relevant master form that currently expects an icon name.
+
+Required work:
+- Remove the requirement to type icon names such as `verified`.
+- Provide a file chooser for uploading an icon/image.
+- Show an image preview where appropriate.
+- Validate file type, file size, upload errors, and required fields.
+- Store the file safely and persist its reference in the database.
+- Show the saved image in admin tables, public category menus, product cards, and other relevant locations.
+- Support editing and replacing existing images.
+- Preserve existing records and provide a safe fallback for legacy records without images.
+
+For every relevant image and icon upload, visibly state its recommended dimensions and aspect ratio next to the input. Include accepted formats, maximum file size, and whether transparent backgrounds are supported. Make these rules consistent between admin and supplier forms where applicable.
+
+Do not invent dimensions without inspecting the actual display components. Determine appropriate dimensions from the UI layout, then document them beside each relevant upload field.
+
+Acceptance tests:
+1. Upload a valid image.
+2. Verify the image is saved and displayed.
+3. Edit a record and replace its image.
+4. Upload an invalid file and verify a clear validation error.
+5. Test missing required images where applicable.
+6. Confirm the icon-name text input is removed.
+7. Verify public pages and admin lists display images correctly.
+8. Confirm legacy records without images do not crash.
+
+### Task 8 — Add the supplied category/subcategory dataset to the database
+
+Use the complete category and subcategory list supplied in my original requirements. Treat each bold category heading as a parent category and the following items as its subcategories until the next category heading.
+
+Important:
+- Preserve the spelling and wording supplied in the original list.
+- Do not silently omit, rename, merge, or invent categories/subcategories.
+- A category without listed subcategories must still be created as a category.
+- Avoid duplicate rows when seeding repeatedly.
+- Preserve existing product relationships.
+- Use database seeders or migrations consistent with the current project.
+- Do not use a hardcoded frontend array as a substitute for database records.
+- Create a verification report containing the imported categories, their subcategories, and any ambiguous source grouping that needs to be flagged.
+
+Acceptance tests:
+1. Compare the supplied source list against the seed data.
+2. Verify every supplied category exists.
+3. Verify every supplied subcategory exists under the correct category.
+4. Verify category names are unique according to the project's normalization rules.
+5. Run the seeder twice and confirm no duplicates are created.
+6. Verify the admin category/subcategory CRUD works with imported records.
+7. Verify public category menus and product filters use the imported records.
+8. Confirm active/inactive status is respected.
+9. Report exact source item counts and any unresolved ambiguities.
+
+Do not claim completion until the source-to-database comparison passes.
+
+### Task 9 — Improve image and icon upload guidance throughout the application
+
+Inspect every relevant upload field used by Super Admin and suppliers, including:
+- Category images.
+- Subcategory images.
+- Certificate icons/images.
+- Certification tag icons/images.
+- Product primary images.
+- Product gallery images.
+- Supplier logo or business image, if supported.
+- Other existing image/document uploads.
+
+For every field:
+- Display recommended dimensions and aspect ratio.
+- State accepted formats.
+- State maximum file size.
+- Explain whether the image is cropped, contained, or displayed at its original ratio.
+- Provide a preview and validation feedback.
+- Use consistent guidance between create and edit forms.
+- Ensure uploaded files are safely validated server-side, not just in JavaScript.
+
+Test every upload field individually.
+
+### Task 10 — Fix footer design and dynamic CMS links
+
+Required design:
+- Recreate the supplied Sports Junction footer reference.
+- Use a dark navy/black background, clear column headings, readable links, and the established brand accent colors.
+- Organize footer links into five configurable columns.
+- Keep the layout responsive.
+- Avoid hardcoded footer links when they should be managed through CMS settings.
+- Ensure the footer appears consistently across applicable public pages.
+
+Required functionality:
+- Super Admin can create, edit, activate/deactivate, order, and delete CMS pages, subject to existing business rules.
+- Admin can assign each CMS page to a footer column.
+- CMS page links render dynamically from database records.
+- Public CMS pages render the saved content at the correct URL.
+- Active pages appear in the footer; inactive pages do not.
+- Preserve URL slug validation and avoid duplicate slugs.
+- The “Manage Footer CMS Pages” and “View Live Site” links must work.
+
+Acceptance tests:
+1. Verify the footer layout against the supplied screenshot.
+2. Create a CMS page.
+3. Assign it to a footer column.
+4. Confirm it appears in the correct column.
+5. Open the public page and verify its content.
+6. Edit the page and verify updates.
+7. Deactivate the page and verify the footer link disappears.
+8. Reactivate it and verify the link returns.
+9. Test duplicate slugs, validation errors, and deletion dependencies.
+10. Test desktop, tablet, and mobile layouts.
+
+### Task 11 — Add exactly three social platforms
+
+Add only these three social platform icons and links:
+- X.
+- Instagram.
+- Facebook.
+
+Required locations:
+- Website Contact Us page.
+- Public website footer.
+- Website Settings in Super Admin.
+
+Required behavior:
+- Admin can save or update each URL.
+- Only valid, configured links are displayed.
+- Links open safely in a new tab.
+- Use recognizable icons, with accessible labels.
+- Do not add other social platforms.
+- Ensure these settings are database-backed and persist after refresh.
+
+Acceptance tests:
+1. Save each of the three URLs in Website Settings.
+2. Verify the Contact Us page displays the correct links.
+3. Verify the footer displays the correct links.
+4. Edit a URL and confirm both locations update.
+5. Clear a URL and confirm the corresponding icon is hidden.
+6. Confirm no additional social platforms are displayed.
+
+### Task 12 — Fix the complete Website Settings page
+
+Required work:
+- Fix the `Session::getFlash()` fatal error.
+- Verify website branding, contact details, social links, and footer settings.
+- Ensure settings are persisted in the database and reflected on the public website.
+- Ensure all form fields have validation and clear success/error feedback.
+- Preserve existing settings and defaults.
+
+Acceptance tests:
+1. Open `/admin/settings`.
+2. Edit branding settings and save.
+3. Edit official support contact information and save.
+4. Edit the three social URLs and save.
+5. Verify the values persist after refresh.
+6. Verify the public site uses the saved settings.
+7. Verify validation and failure handling.
+8. Confirm there are no PHP fatal errors, HTTP 500 errors, or JavaScript exceptions.
+
+### Task 13 — Fix the All Enquiries form and admin records
+
+Required work:
+- Add a file upload option to the public All Enquiries form.
+- Save the enquiry and its attachment metadata in the database.
+- Store files using the project's secure file-storage conventions.
+- Make enquiry details and permitted attachments accessible from the Super Admin panel.
+- Validate file type and size on the server.
+- Ensure files are not publicly executable or accessible to unauthorized users.
+- Preserve the enquiry source and all existing enquiry fields.
+- Do not confuse general enquiries, Contact Us submissions, and product-specific enquiries.
+
+Acceptance tests:
+1. Submit an enquiry without an attachment if attachments are optional.
+2. Submit an enquiry with a valid attachment.
+3. Verify the enquiry appears in the admin list.
+4. Open the enquiry and verify the attachment metadata.
+5. Download the attachment with authorized access.
+6. Verify unauthorized access is denied.
+7. Test invalid file types, oversized files, and upload failures.
+8. Verify enquiry data remains correct after refresh.
+
+### Task 14 — Verify buyer and supplier management permissions
+
+Inspect all buyer and supplier management workflows and verify:
+- Super Admin can view, edit, activate, deactivate, and manage the relevant records.
+- Supplier approval and suspension rules remain enforced.
+- Buyers and suppliers can access only their own permitted information.
+- Supplier products and enquiries are correctly scoped to their supplier.
+- Product updates do not bypass approval workflows.
+- Existing business history is preserved when a user is deactivated.
+- Server-side authorization is enforced on every relevant endpoint.
+
+Do not rely on hiding buttons in the frontend as a security measure.
+
+Test each role independently with authenticated requests.
+
+### Task 15 — Fix visual design and UI consistency across affected pages
+
+Review the actual rendered UI of:
+- Admin dashboard and navigation.
+- Website Settings.
+- Footer CMS list and create/edit forms.
+- Buyer list, view, and edit screens.
+- Supplier management screens.
+- Product Certificates.
+- Certification Tags.
+- Categories and Subcategories.
+- Product create/edit forms.
+- Public category/subcategory navigation.
+- Public footer and Contact Us.
+- All Enquiries forms and admin details.
+
+Requirements:
+- Use the existing Sports Junction design system and supplied screenshots.
+- Fix broken spacing, alignment, cards, buttons, tables, modals, and responsive layouts.
+- Ensure long text and image previews do not overflow.
+- Add loading, empty, success, and error states where appropriate.
+- Preserve accessible keyboard interaction and focus behavior.
+- Do not make unrelated visual redesigns that conflict with the supplied references.
+
+Test actual rendered pages, not only source code.
+
+## 5. CROSS-FEATURE INTEGRATION TESTING — MANDATORY
+
+After every individual task has passed, test the connections between modules.
+
+At minimum, verify these complete workflows:
+
+**Workflow A — Categories and products**
+1. Admin creates a category with an uploaded image.
+2. Admin creates a subcategory with an uploaded image.
+3. Supplier creates a product under that category/subcategory.
+4. Supplier submits the product for approval if required.
+5. Admin reviews and approves the product.
+6. Product appears in the correct public listing.
+7. Category dropdown and subcategory dropdown work.
+8. Product can be edited and updated without the ProductCertificate error.
+
+**Workflow B — Buyer registration and administration**
+1. Buyer selects a country and registers.
+2. Buyer completes required verification.
+3. Admin views the buyer.
+4. Country is visible in view and edit screens.
+5. Admin edits and saves the buyer.
+6. Admin deactivates and reactivates the buyer.
+7. Buyer permissions change correctly.
+8. Existing enquiries and history remain intact.
+
+**Workflow C — Website settings and CMS**
+1. Admin saves website branding and contact details.
+2. Admin configures X, Instagram, and Facebook.
+3. Admin creates and activates a CMS page.
+4. The footer displays the correct link under the correct column.
+5. The public CMS page opens.
+6. The Contact Us page displays the configured social links.
+7. The website reflects saved settings after refresh.
+8. No flash-message fatal errors occur.
+
+**Workflow D — Enquiries and attachments**
+1. Visitor submits a general enquiry with a permitted attachment.
+2. Admin views the enquiry.
+3. Admin accesses the attachment securely.
+4. Admin can search and manage the enquiry.
+5. Product-specific and general enquiry records remain correctly distinguished.
+
+**Workflow E — Supplier and admin product editing**
+1. Admin creates or edits a product and selects the correct supplier.
+2. Supplier sees only their own permitted products.
+3. Supplier updates an allowed field.
+4. Product approval rules are enforced.
+5. Admin can review the updated product.
+6. No database abstraction or ProductCertificate errors occur.
+7. Product images and certificate icons remain correct.
+
+If a workflow fails, fix the root cause and rerun that workflow before proceeding.
+
+## 6. COMPLETE PROJECT REGRESSION TESTING
+
+After every individual task and all integration workflows pass, run the complete project test suite.
+
+Do not skip this stage even if individual tests passed.
+
+### Backend checks
+- Run all available automated tests.
+- Run PHP syntax checks across changed and relevant PHP files.
+- Check routes, controllers, models, services, database queries, and migrations.
+- Check database integrity and foreign-key relationships.
+- Check validation, transactions, authentication, and authorization.
+- Check all relevant API responses and HTTP status codes.
+- Inspect PHP and application logs for errors and warnings.
+
+### Frontend checks
+- Check browser console errors and warnings.
+- Check failed network requests and HTTP 4xx/5xx responses.
+- Test modals, forms, dropdowns, uploads, tables, filters, and navigation.
+- Test responsive behavior.
+- Verify keyboard navigation, accessible focus, and modal closing behavior.
+- Confirm loading, empty, success, and failure states.
+
+### End-to-end checks
+- Test the full buyer registration-to-enquiry journey.
+- Test the full supplier registration-to-product approval journey.
+- Test Super Admin management of buyers, suppliers, products, categories, certificates, tags, settings, CMS pages, and enquiries.
+- Verify public pages display real database data.
+- Verify all critical workflows work after refresh and a new authenticated session.
+- Verify no unrelated existing feature has regressed.
+
+Use the actual project's existing test framework and browser automation tools where available. Add targeted tests for previously untested critical paths. Do not claim that manual testing, browser automation, or the entire suite ran unless it actually did.
+
+## 7. BUG HANDLING AND RE-TEST RULES
+
+For every failure:
+
+1. Record the exact failure.
+2. Reproduce it.
+3. Identify the root cause.
+4. Implement the fix.
+5. Repeat the test that failed.
+6. Run related regression tests.
+7. Update the tracker with the result.
+
+If a shared component or model is changed, identify and retest every module that uses it.
+
+Do not suppress exceptions, disable validation, weaken authorization, hide errors, or return fake successful responses just to make tests pass.
+
+Do not delete business data or database records to make a test pass. Use safe test data and clean up only the test data you created.
+
+Do not expose credentials, tokens, SMTP passwords, or other secrets in source code, logs, screenshots, or the final report.
+
+## 8. FINAL COMPLETION GATE
+
+The project is not complete until all of the following are true:
+
+- Every original requirement is represented in the tracker.
+- Every individual task has been implemented and tested.
+- Every task is marked `PASSED` or is explicitly identified as blocked by a documented external limitation.
+- Every reported error has been reproduced, fixed, and retested, or has a clearly documented unresolved cause.
+- The complete category/subcategory dataset has been reconciled against the supplied source.
+- All integration workflows pass.
+- Full-project regression testing has been executed.
+- No unresolved critical or high-severity defects remain.
+- No known requirement has been silently omitted.
+- No feature has been falsely reported as tested.
+
+**Do not label the whole project as passed if any required task remains unverified.** If a genuine environmental blocker prevents a test, identify the exact blocker, the affected test, the evidence gathered, and the remaining manual action. Continue all other work that can be completed.
+
+## 9. FINAL REPORT — EVIDENCE REQUIRED
+
+At completion, provide:
+
+1. Total number of requirements and subtasks tracked.
+2. Number passed, failed, blocked, and not started.
+3. A task-by-task completion table with test evidence.
+4. Every changed file grouped by feature.
+5. Database migrations and seeders executed.
+6. Category/subcategory source-to-database reconciliation results.
+7. Automated test commands and their actual results.
+8. Manual and browser end-to-end test results.
+9. Any remaining defects or environmental blockers.
+10. Confirmation that the full-project regression suite was run.
+11. Confirmation that no known requirement was skipped.
+
+Do not provide a generic summary such as “all fixed” without evidence.
+
+**START NOW:** Inspect the existing Sports Junction repository and database. Build the complete requirement tracker, then execute the tasks in order using the mandatory implement → test → fix → retest → verify → mark PASSED workflow. Continue until every possible requirement is complete and the final full-project test suite has run.    **STRICT EXECUTION OVERRIDE**
+
+Do not return a plan as your final deliverable. Do not stop after the first successful fix. Do not skip testing because of time, context length, or convenience.
+
+Before moving to the next task, provide an internal task-level pass/fail decision based on actual test evidence. Keep the requirement tracker updated in the repository. If you need to split execution into multiple sessions, persist the exact completed task IDs, test results, current task ID, and remaining tasks so work resumes without losing requirements.
+
+A task that has only been coded is not done. A task that has not been tested is not done. A task whose test failed is not done. A task whose test could not run must be marked `BLOCKED`, with the reason and required action.
+
+At the end, compare the original requirement list against the tracker line by line. Every requirement must have a recorded outcome. Run integration testing after all individual tasks pass, followed by full-project regression testing. Report actual results only. Never claim a test passed unless you have executed it and observed the passing result.
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-10-16T14:43:29+05:30.
+
+The user has uploaded 5 image(s):
+- /Users/chetansmac/.gemini/antigravity/brain/c6d553fc-051e-4891-a1e4-2659f06103b9/.user_uploaded/media_1792140640166.png
+- /Users/chetansmac/.gemini/antigravity/brain/c6d553fc-051e-4891-a1e4-2659f06103b9/.user_uploaded/media_1792140767464.png
+- /Users/chetansmac/.gemini/antigravity/brain/c6d553fc-051e-4891-a1e4-2659f06103b9/.user_uploaded/media_1792141851650.png
+- /Users/chetansmac/.gemini/antigravity/brain/c6d553fc-051e-4891-a1e4-2659f06103b9/.user_uploaded/media_1792141857812.png
+- /Users/chetansmac/.gemini/antigravity/brain/c6d553fc-051e-4891-a1e4-2659f06103b9/.user_uploaded/media_1792141865137.png
+You can embed these images in an artifact if you need the USER to review them.
+</ADDITIONAL_METADATA>

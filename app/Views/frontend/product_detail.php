@@ -433,7 +433,14 @@ $supplierCertificationTags = !empty($product['supplier_id']) ? \App\Models\Suppl
                         <?php foreach ($productCertificates as $cert): ?>
                             <div class="p-4 rounded-xl bg-teal-50/50 border border-teal-200/80 space-y-1">
                                 <div class="flex items-center gap-2 mb-1">
-                                    <span class="material-symbols-outlined text-[22px] text-teal-700"><?= htmlspecialchars($cert['icon'] ?: 'verified') ?></span>
+                                    <?php 
+                                    $cIcon = trim($cert['icon'] ?? 'verified');
+                                    $isImg = (str_starts_with($cIcon, '/') || str_starts_with($cIcon, 'http') || str_contains($cIcon, '.'));
+                                    if ($isImg): ?>
+                                        <img src="<?= htmlspecialchars(\App\Core\Response::formatImageUrl($cIcon)) ?>" class="w-5 h-5 object-contain rounded" alt="">
+                                    <?php else: ?>
+                                        <span class="material-symbols-outlined text-[22px] text-teal-700"><?= htmlspecialchars($cIcon ?: 'verified') ?></span>
+                                    <?php endif; ?>
                                     <h5 class="font-bold text-xs text-slate-900"><?= htmlspecialchars($cert['name']) ?></h5>
                                 </div>
                                 <?php if (!empty($cert['issuing_authority'])): ?>
@@ -459,7 +466,14 @@ $supplierCertificationTags = !empty($product['supplier_id']) ? \App\Models\Suppl
                         <?php foreach ($supplierCertificationTags as $stag): ?>
                             <div class="p-4 rounded-xl bg-blue-50/50 border border-blue-200/80 space-y-1">
                                 <div class="flex items-center gap-2 mb-1">
-                                    <span class="material-symbols-outlined text-[22px] text-blue-700"><?= htmlspecialchars($stag['icon'] ?: 'verified_user') ?></span>
+                                    <?php 
+                                    $sIcon = trim($stag['icon'] ?? 'verified_user');
+                                    $isStagImg = (str_starts_with($sIcon, '/') || str_starts_with($sIcon, 'http') || str_contains($sIcon, '.'));
+                                    if ($isStagImg): ?>
+                                        <img src="<?= htmlspecialchars(\App\Core\Response::formatImageUrl($sIcon)) ?>" class="w-5 h-5 object-contain rounded" alt="">
+                                    <?php else: ?>
+                                        <span class="material-symbols-outlined text-[22px] text-blue-700"><?= htmlspecialchars($sIcon ?: 'verified_user') ?></span>
+                                    <?php endif; ?>
                                     <h5 class="font-bold text-xs text-slate-900"><?= htmlspecialchars($stag['name']) ?></h5>
                                 </div>
                                 <?php if (!empty($stag['category'])): ?>

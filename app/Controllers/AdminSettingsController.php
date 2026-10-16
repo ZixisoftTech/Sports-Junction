@@ -57,11 +57,8 @@ class AdminSettingsController extends Controller
         $workingHours = trim((string) $this->request->post('working_hours', ''));
 
         $socialFacebook = trim((string) $this->request->post('social_facebook', ''));
-        $socialLinkedin = trim((string) $this->request->post('social_linkedin', ''));
         $socialTwitter = trim((string) $this->request->post('social_twitter', ''));
         $socialInstagram = trim((string) $this->request->post('social_instagram', ''));
-        $socialYoutube = trim((string) $this->request->post('social_youtube', ''));
-        $socialTiktok = trim((string) $this->request->post('social_tiktok', ''));
 
         // Handle Logo Upload
         if (!empty($_FILES['site_logo']['name']) && $_FILES['site_logo']['error'] === UPLOAD_ERR_OK) {
@@ -107,12 +104,13 @@ class AdminSettingsController extends Controller
         SiteSetting::set('contact_address', $contactAddress, 'contact');
         SiteSetting::set('working_hours', $workingHours, 'contact');
 
+        // Task 11: Exactly three social platforms (Facebook, X, Instagram)
         SiteSetting::set('social_facebook', $socialFacebook, 'social');
-        SiteSetting::set('social_linkedin', $socialLinkedin, 'social');
         SiteSetting::set('social_twitter', $socialTwitter, 'social');
         SiteSetting::set('social_instagram', $socialInstagram, 'social');
-        SiteSetting::set('social_youtube', $socialYoutube, 'social');
-        SiteSetting::set('social_tiktok', $socialTiktok, 'social');
+        SiteSetting::set('social_linkedin', '', 'social');
+        SiteSetting::set('social_youtube', '', 'social');
+        SiteSetting::set('social_tiktok', '', 'social');
 
         Session::flash('success', 'Website settings, branding, and contact details updated successfully.');
         $this->redirect('/admin/settings');

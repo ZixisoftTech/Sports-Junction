@@ -307,6 +307,8 @@ $csrfToken = \App\Helpers\CSRF::generate();
             </div>
         </form>
     </div>
+</div>
+
 <!-- Review Profile Changes Modal -->
 <div class="modal fade" id="profileReviewModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
@@ -731,7 +733,11 @@ function rejectProfileRequest(requestId) {
             Swal.fire('Error', xhr.responseJSON?.message || 'Server error.', 'error');
         }
     });
-}
-
+// Prevent 'Blocked aria-hidden on an element because its descendant retained focus'
+$(document).on('hide.bs.modal', '.modal', function () {
+    if (document.activeElement && this.contains(document.activeElement)) {
+        document.activeElement.blur();
+    }
+});
 </script>
 <?php $pageScripts = ob_get_clean(); ?>

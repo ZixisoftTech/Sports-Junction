@@ -118,7 +118,14 @@ $supplierTags = !empty($supplierId) ? \App\Models\SupplierCertificationTag::getF
                         <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Certifications & Audits:</span>
                         <?php foreach ($supplierTags as $tag): ?>
                             <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-teal-50 text-teal-800 border border-teal-200 text-xs font-semibold" title="<?= htmlspecialchars($tag['description'] ?? '') ?>">
-                                <span class="material-symbols-outlined text-[15px] text-teal-600"><?= htmlspecialchars($tag['icon'] ?: 'verified') ?></span>
+                                <?php 
+                                $tIcon = trim($tag['icon'] ?? 'verified');
+                                $isTagImg = (str_starts_with($tIcon, '/') || str_starts_with($tIcon, 'http') || str_contains($tIcon, '.'));
+                                if ($isTagImg): ?>
+                                    <img src="<?= htmlspecialchars(\App\Core\Response::formatImageUrl($tIcon)) ?>" class="w-3.5 h-3.5 object-contain rounded" alt="">
+                                <?php else: ?>
+                                    <span class="material-symbols-outlined text-[15px] text-teal-600"><?= htmlspecialchars($tIcon ?: 'verified') ?></span>
+                                <?php endif; ?>
                                 <span><?= htmlspecialchars($tag['name']) ?></span>
                             </span>
                         <?php endforeach; ?>

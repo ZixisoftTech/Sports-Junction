@@ -169,30 +169,100 @@ $footerColumns = CmsPage::getByColumns(true);
                             <span>ALL CATEGORIES</span>
                             <span class="material-symbols-outlined text-[14px] transition-transform duration-200" id="allCategoriesNavCaret">expand_more</span>
                         </button>
-                        <!-- Mega Menu Dropdown -->
-                        <div id="allCategoriesNavMenu" class="absolute top-full left-0 mt-2 w-72 bg-white rounded-xl shadow-2xl border border-slate-200 p-2 hidden z-[9999] max-h-[75vh] overflow-y-auto">
-                            <?php if (!empty($categories)): ?>
-                                <?php foreach ($categories as $catItem): ?>
-                                    <a href="<?= htmlspecialchars($baseUrl) ?>/category/<?= htmlspecialchars($catItem['slug']) ?>" class="flex items-center justify-between px-3 py-2.5 rounded-lg text-slate-800 hover:bg-blue-50 hover:text-blue-900 text-xs font-semibold transition-all">
-                                        <span class="flex items-center gap-2.5">
-                                            <?php 
-                                            $catIcon = trim($catItem['icon'] ?? 'sports_tennis');
-                                            $isImageIcon = (str_starts_with($catIcon, '/') || str_starts_with($catIcon, 'http') || str_contains($catIcon, '.'));
-                                            if ($isImageIcon): ?>
-                                                <img src="<?= htmlspecialchars(Response::formatImageUrl($catIcon)) ?>" class="w-4 h-4 object-contain rounded" alt="">
-                                            <?php else: ?>
-                                                <span class="material-symbols-outlined text-[18px] text-blue-900"><?= htmlspecialchars($catIcon) ?></span>
+                        <!-- Mega Menu Dropdown with Flyout Subcategories -->
+                        <div id="allCategoriesNavMenu" class="absolute top-full left-0 mt-2 bg-white rounded-2xl shadow-2xl border border-slate-200 hidden z-[9999] flex flex-col md:flex-row overflow-hidden max-w-[95vw] md:max-w-none min-w-[280px]">
+                            <!-- Left: Categories List -->
+                            <div class="w-full md:w-72 shrink-0 bg-white p-2 border-b md:border-b-0 md:border-r border-slate-100 max-h-[75vh] overflow-y-auto no-scrollbar" id="categoryNavList">
+                                <?php if (!empty($categories)): ?>
+                                    <?php foreach ($categories as $idx => $catItem): ?>
+                                        <?php 
+                                        $hasSubs = !empty($catItem['subcategories']); 
+                                        $catIcon = trim($catItem['icon'] ?? 'sports_tennis');
+                                        $isImageIcon = (str_starts_with($catIcon, '/') || str_starts_with($catIcon, 'http') || str_contains($catIcon, '.'));
+                                        ?>
+                                        <div class="category-nav-group mb-0.5" data-cat-index="<?= $idx ?>">
+                                            <div class="category-nav-item flex items-center justify-between px-3 py-2.5 rounded-xl text-slate-800 hover:bg-blue-50 hover:text-blue-900 text-xs font-semibold cursor-pointer transition-all <?= $idx === 0 ? 'bg-blue-50/80 text-blue-900' : '' ?>"
+                                                 data-category-slug="<?= htmlspecialchars($catItem['slug']) ?>"
+                                                 data-category-name="<?= htmlspecialchars($catItem['name']) ?>"
+                                                 data-has-subcats="<?= $hasSubs ? '1' : '0' ?>"
+                                                 onmouseenter="switchFlyoutCategory(<?= $idx ?>)">
+                                                <a href="<?= htmlspecialchars($baseUrl) ?>/category/<?= htmlspecialchars($catItem['slug']) ?>" class="flex items-center gap-2.5 flex-1 min-w-0 pr-1 text-inherit">
+                                                    <?php if ($isImageIcon): ?>
+                                                        <img src="<?= htmlspecialchars(Response::formatImageUrl($catIcon)) ?>" class="w-4 h-4 object-contain rounded shrink-0" alt="">
+                                                    <?php else: ?>
+                                                        <span class="material-symbols-outlined text-[18px] text-blue-900 shrink-0"><?= htmlspecialchars($catIcon) ?></span>
+                                                    <?php endif; ?>
+                                                    <span class="truncate"><?= htmlspecialchars($catItem['name']) ?></span>
+                                                </a>
+
+                                                <div class="flex items-center gap-1 shrink-0">
+                                                    <?php if ($hasSubs): ?>
+                                                        <!-- Desktop Chevron Indicator -->
+                                                        <span class="hidden md:inline-flex material-symbols-outlined text-[14px] text-slate-400">chevron_right</span>
+                                                        <!-- Mobile Accordion Trigger -->
+                                                        <button type="button" class="md:hidden p-1 rounded-md text-slate-400 hover:text-slate-800 hover:bg-slate-200 transition-colors cursor-pointer" onclick="toggleMobileSubcat(event, <?= $idx ?>)" title="Toggle subcategories">
+                                                            <span class="material-symbols-outlined text-[16px] transition-transform duration-200" id="mobileChevron-<?= $idx ?>">expand_more</span>
+                                                        </button>
+                                                    <?php endif; ?>
+                                                </div>
+                                            </div>
+
+                                            <?php if ($hasSubs): ?>
+                                                <!-- Mobile Inline Drawer (collapsible) -->
+                                                <div class="mobile-subcat-drawer hidden md:hidden pl-7 pr-2 py-1.5 space-y-1 bg-slate-50 border-l-2 border-blue-600 rounded-r-lg my-1" id="mobileDrawer-<?= $idx ?>">
+                                                    <a href="<?= htmlspecialchars($baseUrl) ?>/category/<?= htmlspecialchars($catItem['slug']) ?>" class="block py-1 text-[11px] font-bold text-blue-800 hover:underline">
+                                                        View All in <?= htmlspecialchars($catItem['name']) ?> &rarr;
+                                                    </a>
+                                                    <?php foreach ($catItem['subcategories'] as $sub): ?>
+                                                        <a href="<?= htmlspecialchars($baseUrl) ?>/category/<?= htmlspecialchars($catItem['slug']) ?>/<?= htmlspecialchars($sub['slug']) ?>" class="flex items-center justify-between py-1 text-xs text-slate-700 hover:text-blue-900 font-medium">
+                                                            <span class="truncate"><?= htmlspecialchars($sub['name']) ?></span>
+                                                            <span class="text-[10px] text-slate-400 font-semibold"><?= (int)($sub['product_count'] ?? 0) ?></span>
+                                                        </a>
+                                                    <?php endforeach; ?>
+                                                </div>
                                             <?php endif; ?>
-                                            <span><?= htmlspecialchars($catItem['name']) ?></span>
-                                        </span>
-                                        <span class="material-symbols-outlined text-[14px] text-slate-400">chevron_right</span>
+                                        </div>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+                                <div class="border-t border-slate-100 mt-2 pt-2">
+                                    <a href="<?= htmlspecialchars($baseUrl) ?>/products" class="block text-center text-blue-900 font-bold py-1.5 hover:underline text-[11px]">
+                                        Browse All Products &rarr;
                                     </a>
-                                <?php endforeach; ?>
-                            <?php endif; ?>
-                            <div class="border-t border-slate-100 mt-1 pt-1.5">
-                                <a href="<?= htmlspecialchars($baseUrl) ?>/products" class="block text-center text-blue-900 font-bold py-1.5 hover:underline text-[11px]">
-                                    Browse All Products &rarr;
-                                </a>
+                                </div>
+                            </div>
+
+                            <!-- Right: Desktop Subcategory Flyout Panel -->
+                            <div class="hidden md:flex flex-col w-80 lg:w-96 p-4 bg-slate-50/70 border-l border-slate-100 max-h-[75vh] overflow-y-auto no-scrollbar" id="desktopFlyoutPanel">
+                                <div class="flex items-center justify-between pb-2.5 border-b border-slate-200/80 mb-3">
+                                    <div class="min-w-0 pr-2">
+                                        <h4 id="flyoutCatTitle" class="font-bold text-sm text-slate-900 truncate">
+                                            <?= htmlspecialchars($categories[0]['name'] ?? 'Categories') ?>
+                                        </h4>
+                                        <span id="flyoutSubcatCount" class="text-[11px] text-slate-500 font-medium">
+                                            <?= !empty($categories[0]['subcategories']) ? count($categories[0]['subcategories']) . ' active subcategories' : 'Verified Manufacturing Hub' ?>
+                                        </span>
+                                    </div>
+                                    <a id="flyoutCatAllLink" href="<?= htmlspecialchars($baseUrl) ?>/category/<?= htmlspecialchars($categories[0]['slug'] ?? '') ?>" class="text-[11px] font-bold text-blue-700 hover:text-blue-900 hover:underline shrink-0 flex items-center gap-0.5">
+                                        <span>View All</span>
+                                        <span class="material-symbols-outlined text-[13px]">arrow_forward</span>
+                                    </a>
+                                </div>
+
+                                <!-- Subcategories Container -->
+                                <div id="flyoutSubcatList" class="flex-1 space-y-1.5">
+                                    <!-- Rendered dynamically by JavaScript -->
+                                </div>
+
+                                <!-- Bottom Quick OEM / RFQ strip -->
+                                <div class="mt-4 pt-3 border-t border-slate-200/80 flex items-center justify-between text-[11px] text-slate-600 bg-white p-2.5 rounded-xl border border-slate-100 shadow-2xs">
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="material-symbols-outlined text-[16px] text-teal-600">verified</span>
+                                        <span class="font-medium">Direct Factory Pricing</span>
+                                    </div>
+                                    <button type="button" onclick="openRfqModal()" class="font-bold text-blue-900 hover:underline cursor-pointer">
+                                        Post RFQ &rarr;
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -283,6 +353,12 @@ $footerColumns = CmsPage::getByColumns(true);
                     <textarea name="specifications" id="modal-specs" required rows="3" placeholder="Specify custom logo requirements, colors, packaging boxes, or destination port for CIF quote..." class="w-full bg-surface-container-low px-3 py-2 text-on-surface rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-primary outline-none transition-all"></textarea>
                 </div>
 
+                <div>
+                    <label class="block text-xs font-bold text-on-surface-variant mb-1 uppercase tracking-wider">Tech Pack / Specs File Attachment (Optional)</label>
+                    <input type="file" name="attachment" id="modal-attachment" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.webp" class="w-full bg-surface-container-low px-3 py-1.5 text-on-surface rounded-lg text-xs outline-none focus:bg-white focus:ring-2 focus:ring-primary file:mr-3 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 transition-all">
+                    <div class="text-[11px] text-slate-500 mt-1">Accepted: PDF, Word (.doc, .docx), Images (.jpg, .png, .webp) &bull; Max 10MB</div>
+                </div>
+
                 <div class="p-3 bg-surface-container-low rounded-lg flex items-center justify-between text-xs text-on-surface-variant">
                     <span class="flex items-center gap-1.5"><span class="material-symbols-outlined text-[16px] text-teal-600">shield</span> Guaranteed Response</span>
                     <span class="font-mono text-primary font-bold">&lt; 2.4 Hours Avg.</span>
@@ -307,17 +383,17 @@ $footerColumns = CmsPage::getByColumns(true);
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             
             <!-- Column Grid -->
-            <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-8 lg:gap-10 pb-12">
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-8 lg:gap-10 pb-12">
                 
                 <!-- Col 1: About Sports Junction -->
                 <div>
                     <h4 class="font-headline font-bold text-xs sm:text-sm text-white mb-4 tracking-tight uppercase">
-                        About <?= htmlspecialchars($siteName) ?>
+                        ABOUT <?= htmlspecialchars(strtoupper($siteName)) ?>
                     </h4>
                     <ul class="space-y-2.5 text-xs text-slate-400">
                         <?php if (!empty($footerColumns['ABOUT'])): ?>
                             <?php foreach ($footerColumns['ABOUT'] as $p): ?>
-                                <?php $url = !empty($p['external_url']) ? htmlspecialchars($baseUrl . $p['external_url']) : htmlspecialchars($baseUrl . '/page/' . $p['slug']); ?>
+                                <?php $url = !empty($p['external_url']) ? (str_starts_with($p['external_url'], 'http') ? htmlspecialchars($p['external_url']) : htmlspecialchars($baseUrl . $p['external_url'])) : htmlspecialchars($baseUrl . '/page/' . $p['slug']); ?>
                                 <li>
                                     <a href="<?= $url ?>" class="hover:text-teal-400 transition-colors block leading-relaxed">
                                         <?= htmlspecialchars($p['title']) ?>
@@ -335,52 +411,88 @@ $footerColumns = CmsPage::getByColumns(true);
                 <!-- Col 2: Top Sectors -->
                 <div>
                     <h4 class="font-headline font-bold text-xs sm:text-sm text-white mb-4 tracking-tight uppercase">
-                        Top Sectors
+                        TOP SECTORS
                     </h4>
                     <ul class="space-y-2.5 text-xs text-slate-400">
-                        <li><a href="<?= $baseUrl ?>/category/cricket-and-field-sports" class="hover:text-teal-400 transition-colors block">Cricket Bats &amp; Pads</a></li>
-                        <li><a href="<?= $baseUrl ?>/category/football-and-inflatables" class="hover:text-teal-400 transition-colors block">Match Footballs</a></li>
-                        <li><a href="<?= $baseUrl ?>/category/agility-and-speed-training" class="hover:text-teal-400 transition-colors block">Agility Hurdles &amp; Ladders</a></li>
-                        <li><a href="<?= $baseUrl ?>/category/sports-and-fitness" class="hover:text-teal-400 transition-colors block">Commercial Gym Equipment</a></li>
-                        <li><a href="<?= $baseUrl ?>/category/apparel-and-accessories" class="hover:text-teal-400 transition-colors block">Sportswear &amp; Uniforms</a></li>
+                        <?php if (!empty($footerColumns['TOP_SECTORS'])): ?>
+                            <?php foreach ($footerColumns['TOP_SECTORS'] as $p): ?>
+                                <?php $url = !empty($p['external_url']) ? (str_starts_with($p['external_url'], 'http') ? htmlspecialchars($p['external_url']) : htmlspecialchars($baseUrl . $p['external_url'])) : htmlspecialchars($baseUrl . '/page/' . $p['slug']); ?>
+                                <li>
+                                    <a href="<?= $url ?>" class="hover:text-teal-400 transition-colors block leading-relaxed">
+                                        <?= htmlspecialchars($p['title']) ?>
+                                    </a>
+                                </li>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <li><a href="<?= $baseUrl ?>/category/cricket-and-field-sports" class="hover:text-teal-400 transition-colors block">Cricket Bats &amp; Pads</a></li>
+                            <li><a href="<?= $baseUrl ?>/category/football-and-inflatables" class="hover:text-teal-400 transition-colors block">Match Footballs</a></li>
+                            <li><a href="<?= $baseUrl ?>/category/agility-and-speed-training" class="hover:text-teal-400 transition-colors block">Agility Hurdles &amp; Ladders</a></li>
+                            <li><a href="<?= $baseUrl ?>/category/sports-and-fitness" class="hover:text-teal-400 transition-colors block">Commercial Gym Equipment</a></li>
+                            <li><a href="<?= $baseUrl ?>/category/apparel-and-accessories" class="hover:text-teal-400 transition-colors block">Sportswear &amp; Uniforms</a></li>
+                        <?php endif; ?>
                     </ul>
                 </div>
 
                 <!-- Col 3: Sourcing Solutions -->
                 <div>
                     <h4 class="font-headline font-bold text-xs sm:text-sm text-white mb-4 tracking-tight uppercase">
-                        Sourcing Solutions
+                        SOURCING SOLUTIONS
                     </h4>
                     <ul class="space-y-2.5 text-xs text-slate-400">
-                        <li><a href="<?= $baseUrl ?>/products" class="hover:text-teal-400 transition-colors block">Direct Factory Catalog</a></li>
-                        <li><a href="javascript:void(0)" onclick="openRfqModal()" class="hover:text-teal-400 transition-colors block">Request for Quotation (RFQ)</a></li>
-                        <li><a href="<?= $baseUrl ?>/contact" class="hover:text-teal-400 transition-colors block">Contact Us &amp; Support</a></li>
-                        <li><a href="<?= $baseUrl ?>/sitemap.xml" target="_blank" class="hover:text-teal-400 transition-colors block">XML Sitemap</a></li>
+                        <?php if (!empty($footerColumns['SOURCING'])): ?>
+                            <?php foreach ($footerColumns['SOURCING'] as $p): ?>
+                                <?php $url = !empty($p['external_url']) ? (str_starts_with($p['external_url'], 'http') ? htmlspecialchars($p['external_url']) : htmlspecialchars($baseUrl . $p['external_url'])) : htmlspecialchars($baseUrl . '/page/' . $p['slug']); ?>
+                                <li>
+                                    <a href="<?= $url ?>" class="hover:text-teal-400 transition-colors block leading-relaxed">
+                                        <?= htmlspecialchars($p['title']) ?>
+                                    </a>
+                                </li>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <li><a href="<?= $baseUrl ?>/products" class="hover:text-teal-400 transition-colors block">Direct Factory Catalog</a></li>
+                            <li><a href="javascript:void(0)" onclick="openRfqModal()" class="hover:text-teal-400 transition-colors block">Request for Quotation (RFQ)</a></li>
+                            <li><a href="<?= $baseUrl ?>/contact" class="hover:text-teal-400 transition-colors block">Contact Us &amp; Support</a></li>
+                            <li><a href="<?= $baseUrl ?>/sitemap.xml" target="_blank" class="hover:text-teal-400 transition-colors block">XML Sitemap</a></li>
+                        <?php endif; ?>
                     </ul>
                 </div>
 
                 <!-- Col 4: Platform & Admin -->
                 <div>
                     <h4 class="font-headline font-bold text-xs sm:text-sm text-white mb-4 tracking-tight uppercase">
-                        Platform &amp; Admin
+                        PLATFORM &amp; ADMIN
                     </h4>
                     <ul class="space-y-2.5 text-xs text-slate-400">
-                        <li><a href="<?= $baseUrl ?>/admin/login" class="hover:text-teal-400 transition-colors block">Super Admin Portal</a></li>
-                        <li><a href="<?= $baseUrl ?>/admin/products" class="hover:text-teal-400 transition-colors block">Product Publishing Hub</a></li>
-                        <li><a href="<?= $baseUrl ?>/seller/login" class="hover:text-teal-400 transition-colors block">Supplier Portal</a></li>
-                        <li><a href="<?= $baseUrl ?>/page/policies-and-rules" class="hover:text-teal-400 transition-colors block">Terms &amp; Manufacturing SLA</a></li>
+                        <?php if (!empty($footerColumns['PLATFORM_ADMIN'])): ?>
+                            <?php foreach ($footerColumns['PLATFORM_ADMIN'] as $p): ?>
+                                <?php 
+                                    $url = !empty($p['external_url']) ? (str_starts_with($p['external_url'], 'http') ? htmlspecialchars($p['external_url']) : htmlspecialchars($baseUrl . $p['external_url'])) : htmlspecialchars($baseUrl . '/page/' . $p['slug']); 
+                                    $isSuperAdmin = stripos($p['title'], 'Super Admin') !== false;
+                                ?>
+                                <li>
+                                    <a href="<?= $url ?>" class="<?= $isSuperAdmin ? 'text-emerald-400 hover:text-emerald-300 font-semibold' : 'hover:text-teal-400' ?> transition-colors block leading-relaxed">
+                                        <?= htmlspecialchars($p['title']) ?>
+                                    </a>
+                                </li>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <li><a href="<?= $baseUrl ?>/admin/login" class="text-emerald-400 hover:text-emerald-300 font-semibold transition-colors block">Super Admin Portal &rarr;</a></li>
+                            <li><a href="<?= $baseUrl ?>/admin/dashboard" class="hover:text-teal-400 transition-colors block">Master CRUD Management</a></li>
+                            <li><a href="<?= $baseUrl ?>/admin/products" class="hover:text-teal-400 transition-colors block">Product Publishing Hub</a></li>
+                            <li><a href="<?= $baseUrl ?>/page/policies-and-rules" class="hover:text-teal-400 transition-colors block">Terms &amp; Manufacturing SLA</a></li>
+                        <?php endif; ?>
                     </ul>
                 </div>
 
                 <!-- Col 5: Help & Protection -->
                 <div>
                     <h4 class="font-headline font-bold text-xs sm:text-sm text-white mb-4 tracking-tight uppercase">
-                        Help &amp; Protection
+                        HELP &amp; PROTECTION
                     </h4>
                     <ul class="space-y-2.5 text-xs text-slate-400">
                         <?php if (!empty($footerColumns['ORDER_PROTECTION'])): ?>
                             <?php foreach ($footerColumns['ORDER_PROTECTION'] as $p): ?>
-                                <?php $url = !empty($p['external_url']) ? htmlspecialchars($baseUrl . $p['external_url']) : htmlspecialchars($baseUrl . '/page/' . $p['slug']); ?>
+                                <?php $url = !empty($p['external_url']) ? (str_starts_with($p['external_url'], 'http') ? htmlspecialchars($p['external_url']) : htmlspecialchars($baseUrl . $p['external_url'])) : htmlspecialchars($baseUrl . '/page/' . $p['slug']); ?>
                                 <li>
                                     <a href="<?= $url ?>" class="hover:text-teal-400 transition-colors block leading-relaxed">
                                         <?= htmlspecialchars($p['title']) ?>
@@ -406,7 +518,7 @@ $footerColumns = CmsPage::getByColumns(true);
                     
                     <!-- Trust Seals -->
                     <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-[11px] font-semibold text-slate-300">
-                        <span class="inline-flex w-3.5 h-3.5 rounded-full bg-emerald-600 items-center justify-center text-white text-[9px] font-black">✓</span>
+                        <span class="inline-flex w-3.5 h-3.5 rounded-full bg-emerald-600 items-center justify-center text-white text-[9px] font-black">&#10003;</span>
                         <span>ID Check</span>
                     </div>
 
@@ -421,7 +533,7 @@ $footerColumns = CmsPage::getByColumns(true);
                     </div>
 
                     <div class="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-[11px] font-bold text-slate-300">
-                        <span class="text-amber-400 font-extrabold text-[12px]">✔</span>
+                        <span class="text-amber-400 font-extrabold text-[12px]">&#10004;</span>
                         <span>VERISIGN</span>
                     </div>
 
@@ -442,50 +554,49 @@ $footerColumns = CmsPage::getByColumns(true);
                     <span class="px-2 py-0.5 rounded bg-blue-950 text-blue-300 border border-blue-900 font-black text-[10px] italic">PayPal</span>
 
                     <span class="px-2 py-0.5 rounded bg-black text-white font-semibold text-[10px] border border-slate-800 flex items-center gap-0.5">
-                        <span class="text-[11px]"></span>Pay
+                        <span class="text-[11px]">&apple;</span>Pay
                     </span>
 
                     <span class="px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-300 font-bold text-[10px]">T/T Wire</span>
 
                 </div>
 
-                <!-- Right: Stay Connected (Social Channels) -->
+                <!-- Right: Stay Connected (Task 11: Exactly Three Social Platforms: Facebook, X, Instagram) -->
+                <?php 
+                    $hasFacebook = !empty(trim($siteSettings['social_facebook'] ?? ''));
+                    $hasTwitter = !empty(trim($siteSettings['social_twitter'] ?? ''));
+                    $hasInstagram = !empty(trim($siteSettings['social_instagram'] ?? ''));
+                    $hasAnySocial = $hasFacebook || $hasTwitter || $hasInstagram;
+                ?>
+                <?php if ($hasAnySocial): ?>
                 <div class="flex flex-col sm:flex-row items-center gap-3 shrink-0">
                     <span class="font-headline font-bold text-xs text-white tracking-tight">Stay Connected</span>
                     <div class="flex items-center gap-2">
                         
                         <!-- Facebook -->
-                        <a href="<?= htmlspecialchars($siteSettings['social_facebook'] ?? '#') ?>" target="_blank" rel="noopener noreferrer" class="w-7 h-7 rounded-full bg-slate-900 hover:bg-blue-600 hover:text-white text-slate-400 border border-slate-800 flex items-center justify-center transition-all" title="Facebook">
-                            <span class="font-bold text-xs">f</span>
-                        </a>
-
-                        <!-- LinkedIn -->
-                        <a href="<?= htmlspecialchars($siteSettings['social_linkedin'] ?? '#') ?>" target="_blank" rel="noopener noreferrer" class="w-7 h-7 rounded-full bg-slate-900 hover:bg-sky-600 hover:text-white text-slate-400 border border-slate-800 flex items-center justify-center transition-all" title="LinkedIn">
-                            <span class="font-bold text-[11px]">in</span>
-                        </a>
+                        <?php if ($hasFacebook): ?>
+                            <a href="<?= htmlspecialchars(trim($siteSettings['social_facebook'])) ?>" target="_blank" rel="noopener noreferrer" class="w-7 h-7 rounded-full bg-slate-900 hover:bg-blue-600 hover:text-white text-slate-400 border border-slate-800 flex items-center justify-center transition-all" title="Facebook" aria-label="Facebook">
+                                <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+                            </a>
+                        <?php endif; ?>
 
                         <!-- Twitter / X -->
-                        <a href="<?= htmlspecialchars($siteSettings['social_twitter'] ?? '#') ?>" target="_blank" rel="noopener noreferrer" class="w-7 h-7 rounded-full bg-slate-900 hover:bg-white hover:text-black text-slate-400 border border-slate-800 flex items-center justify-center transition-all" title="Twitter / X">
-                            <span class="font-bold text-[11px]">𝕏</span>
-                        </a>
+                        <?php if ($hasTwitter): ?>
+                            <a href="<?= htmlspecialchars(trim($siteSettings['social_twitter'])) ?>" target="_blank" rel="noopener noreferrer" class="w-7 h-7 rounded-full bg-slate-900 hover:bg-white hover:text-black text-slate-400 border border-slate-800 flex items-center justify-center transition-all" title="X" aria-label="X">
+                                <svg class="w-3 h-3 fill-current" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                            </a>
+                        <?php endif; ?>
 
                         <!-- Instagram -->
-                        <a href="<?= htmlspecialchars($siteSettings['social_instagram'] ?? '#') ?>" target="_blank" rel="noopener noreferrer" class="w-7 h-7 rounded-full bg-slate-900 hover:bg-pink-600 hover:text-white text-slate-400 border border-slate-800 flex items-center justify-center transition-all" title="Instagram">
-                            <span class="font-bold text-[13px]">📸</span>
-                        </a>
-
-                        <!-- YouTube -->
-                        <a href="<?= htmlspecialchars($siteSettings['social_youtube'] ?? '#') ?>" target="_blank" rel="noopener noreferrer" class="w-7 h-7 rounded-full bg-slate-900 hover:bg-red-600 hover:text-white text-slate-400 border border-slate-800 flex items-center justify-center transition-all" title="YouTube">
-                            <span class="font-bold text-[11px]">▶</span>
-                        </a>
-
-                        <!-- TikTok -->
-                        <a href="<?= htmlspecialchars($siteSettings['social_tiktok'] ?? '#') ?>" target="_blank" rel="noopener noreferrer" class="w-7 h-7 rounded-full bg-slate-900 hover:bg-slate-700 hover:text-white text-slate-400 border border-slate-800 flex items-center justify-center transition-all" title="TikTok">
-                            <span class="font-bold text-[11px]">♪</span>
-                        </a>
+                        <?php if ($hasInstagram): ?>
+                            <a href="<?= htmlspecialchars(trim($siteSettings['social_instagram'])) ?>" target="_blank" rel="noopener noreferrer" class="w-7 h-7 rounded-full bg-slate-900 hover:bg-pink-600 hover:text-white text-slate-400 border border-slate-800 flex items-center justify-center transition-all" title="Instagram" aria-label="Instagram">
+                                <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
+                            </a>
+                        <?php endif; ?>
 
                     </div>
                 </div>
+                <?php endif; ?>
 
             </div>
 
@@ -508,6 +619,104 @@ $footerColumns = CmsPage::getByColumns(true);
     <!-- Interactive Scripts for Modal & Inquiries -->
     <script>
         const baseUrl = '<?= $baseUrl ?>';
+        const navCategoriesData = <?= json_encode(array_values(array_map(function($c) {
+            return [
+                'name' => (string)($c['name'] ?? ''),
+                'slug' => (string)($c['slug'] ?? ''),
+                'subcategories' => array_values(array_map(function($s) {
+                    return [
+                        'name' => (string)($s['name'] ?? ''),
+                        'slug' => (string)($s['slug'] ?? ''),
+                        'product_count' => (int)($s['product_count'] ?? 0)
+                    ];
+                }, $c['subcategories'] ?? []))
+            ];
+        }, $categories ?? [])), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        function switchFlyoutCategory(index) {
+            if (!navCategoriesData || !navCategoriesData[index]) return;
+            const cat = navCategoriesData[index];
+
+            // Update active highlight on category list
+            const groups = document.querySelectorAll('.category-nav-group');
+            groups.forEach((group, idx) => {
+                const item = group.querySelector('.category-nav-item');
+                if (!item) return;
+                if (idx === index) {
+                    item.classList.add('bg-blue-50/80', 'text-blue-900', 'font-bold');
+                } else {
+                    item.classList.remove('bg-blue-50/80', 'text-blue-900', 'font-bold');
+                }
+            });
+
+            // Update flyout header
+            const titleEl = document.getElementById('flyoutCatTitle');
+            const countEl = document.getElementById('flyoutSubcatCount');
+            const allLinkEl = document.getElementById('flyoutCatAllLink');
+            const listEl = document.getElementById('flyoutSubcatList');
+
+            if (titleEl) titleEl.textContent = cat.name;
+            if (allLinkEl) allLinkEl.href = `${baseUrl}/category/${encodeURIComponent(cat.slug)}`;
+
+            const subs = cat.subcategories || [];
+            if (countEl) {
+                countEl.textContent = subs.length > 0 ? `${subs.length} active subcategories` : 'Verified Manufacturing Hub';
+            }
+
+            if (!listEl) return;
+            listEl.innerHTML = '';
+
+            if (subs.length === 0) {
+                listEl.innerHTML = `
+                    <div class="py-8 text-center bg-white rounded-xl border border-slate-200/60 p-4">
+                        <span class="material-symbols-outlined text-[32px] text-slate-300 mb-1">category</span>
+                        <p class="text-xs text-slate-600 font-medium">Explore all verified products in ${escapeHtml(cat.name)}</p>
+                        <a href="${baseUrl}/category/${encodeURIComponent(cat.slug)}" class="inline-flex items-center gap-1.5 mt-3 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs transition-colors">
+                            <span>Browse ${escapeHtml(cat.name)} Products</span>
+                            <span class="material-symbols-outlined text-[13px]">arrow_forward</span>
+                        </a>
+                    </div>
+                `;
+                return;
+            }
+
+            subs.forEach(sub => {
+                const link = document.createElement('a');
+                link.href = `${baseUrl}/category/${encodeURIComponent(cat.slug)}/${encodeURIComponent(sub.slug)}`;
+                link.className = 'flex items-center justify-between px-3 py-2.5 rounded-xl bg-white border border-slate-200/70 hover:border-blue-500 hover:bg-blue-50/60 hover:text-blue-900 text-xs font-semibold text-slate-700 transition-all shadow-2xs group';
+                link.innerHTML = `
+                    <span class="flex items-center gap-2 truncate">
+                        <span class="w-1.5 h-1.5 rounded-full bg-blue-600 group-hover:scale-125 transition-transform shrink-0"></span>
+                        <span class="truncate group-hover:translate-x-0.5 transition-transform">${escapeHtml(sub.name)}</span>
+                    </span>
+                    <span class="text-[10px] text-slate-400 font-bold bg-slate-100 group-hover:bg-blue-100 group-hover:text-blue-800 px-1.5 py-0.5 rounded-md shrink-0 ml-2">${sub.product_count}</span>
+                `;
+                listEl.appendChild(link);
+            });
+        }
+
+        function toggleMobileSubcat(event, index) {
+            event.stopPropagation();
+            event.preventDefault();
+            const drawer = document.getElementById(`mobileDrawer-${index}`);
+            const chevron = document.getElementById(`mobileChevron-${index}`);
+            if (!drawer) return;
+            const isHidden = drawer.classList.contains('hidden');
+            if (isHidden) {
+                drawer.classList.remove('hidden');
+                if (chevron) chevron.classList.add('rotate-180');
+            } else {
+                drawer.classList.add('hidden');
+                if (chevron) chevron.classList.remove('rotate-180');
+            }
+        }
 
         // Toggle All Categories Dropdown on Click/Tap
         document.addEventListener('DOMContentLoaded', function() {
@@ -524,6 +733,7 @@ $footerColumns = CmsPage::getByColumns(true);
                     if (isClosed) {
                         catMenu.classList.remove('hidden');
                         if (catCaret) catCaret.classList.add('rotate-180');
+                        switchFlyoutCategory(0);
                     } else {
                         catMenu.classList.add('hidden');
                         if (catCaret) catCaret.classList.remove('rotate-180');
