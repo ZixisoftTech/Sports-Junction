@@ -158,8 +158,14 @@ $subcategories = $subcategories ?? [];
                         <select class="form-select" id="prodSupplier" name="supplier_id" data-original-supplier="<?= (int)($product['supplier_id'] ?? 0) ?>" required>
                             <option value="">Select Approved Manufacturer...</option>
                             <?php if (!empty($suppliers)): foreach ($suppliers as $sup): ?>
-                                <option value="<?= $sup['id'] ?>" <?= ((int)($product['supplier_id'] ?? 0) === (int)$sup['id']) ? 'selected' : '' ?>>
-                                    <?= htmlspecialchars($sup['company_name'] ?? $sup['contact_person'] ?? 'Supplier #' . $sup['id']) ?>
+                                <?php 
+                                    $supName = !empty(trim($sup['company_name'] ?? '')) 
+                                        ? trim($sup['company_name']) 
+                                        : (!empty(trim($sup['contact_person'] ?? '')) ? trim($sup['contact_person']) : 'Supplier #' . $sup['id']);
+                                    $supExtra = !empty($sup['business_type_name']) ? ' (' . $sup['business_type_name'] . ')' : '';
+                                ?>
+                                <option value="<?= (int)$sup['id'] ?>" <?= ((int)($product['supplier_id'] ?? 0) === (int)$sup['id']) ? 'selected' : '' ?>>
+                                    <?= htmlspecialchars($supName . $supExtra) ?>
                                 </option>
                             <?php endforeach; endif; ?>
                         </select>

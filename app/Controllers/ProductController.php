@@ -46,6 +46,10 @@ class ProductController extends Controller
         $moqUnits = MoqUnit::allActive();
         $countries = Country::allActive();
         $certificates = \App\Models\ProductCertificate::allActive();
+        $suppliers = \App\Models\Supplier::allApproved();
+        if (empty($suppliers)) {
+            $suppliers = \App\Models\Supplier::allActive();
+        }
 
         $this->render('products/form', [
             'pageTitle'              => 'Add New Product',

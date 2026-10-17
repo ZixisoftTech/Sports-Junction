@@ -412,6 +412,26 @@ $restoreCode = '
 shell_exec('/Applications/XAMPP/xamppfiles/bin/php -r ' . escapeshellarg($restoreCode));
 
 // -------------------------------------------------------------------------
+// SECTION 6: Super Admin Add Product — Supplier Selection Verification
+// -------------------------------------------------------------------------
+echo "\n--- [SECTION 6] Super Admin Add Product: Supplier Selection ---\n";
+
+$prodCtrl = new \App\Controllers\ProductController(new \App\Core\Request(), new \App\Core\Response());
+ob_start();
+$prodCtrl->create();
+$createProductHtml = ob_get_clean();
+
+preg_match('/<select[^>]*id="prodSupplier"[^>]*>(.*?)<\/select>/is', $createProductHtml, $supSelectMatches);
+$supSelectHtml = $supSelectMatches[1] ?? '';
+preg_match_all('/<option\s+value="(\d+)"/i', $supSelectHtml, $supOptions);
+$supplierOptionCount = count($supOptions[1] ?? []);
+
+assertCondition(
+    $supplierOptionCount > 0,
+    "Super Admin Add Product page renders supplier select with available approved manufacturers (found {$supplierOptionCount} options)"
+);
+
+// -------------------------------------------------------------------------
 // SUMMARY
 // -------------------------------------------------------------------------
 echo "\n======================================================================\n";
