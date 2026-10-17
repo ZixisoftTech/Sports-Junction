@@ -5,6 +5,8 @@ namespace App\Core;
 
 use App\Helpers\Env;
 
+require_once __DIR__ . '/Request.php';
+
 class Response
 {
     private int $statusCode = 200;
@@ -72,6 +74,11 @@ class Response
         }
 
         return rtrim($scriptDir, '/');
+    }
+
+    public static function formatImageUrl(?string $path): string
+    {
+        return \App\Helpers\Uploader::imageUrl($path);
     }
 
     public function send(string $content, int $statusCode = 200): void

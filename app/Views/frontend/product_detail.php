@@ -12,15 +12,9 @@ if (empty($galleryImages) && !empty($primaryImg)) {
 $currentUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . "://" . ($_SERVER['HTTP_HOST'] ?? 'localhost') . ($_SERVER['REQUEST_URI'] ?? '');
 
 $authUser = \App\Helpers\Session::get('auth_user');
-$isOwnProduct = false;
-if ($authUser && ($authUser['role'] ?? '') === 'SUPPLIER') {
-    $mySupplier = \App\Models\Supplier::findByUserId((int)$authUser['id']);
-    if ($mySupplier && (int)$mySupplier['id'] === (int)($product['supplier_id'] ?? 0)) {
-        $isOwnProduct = true;
-    }
-}
+$isOwnProduct = \App\Models\Supplier::isOwnedByCurrentSupplier($product);
 
-$productCertificates = \App\Models\ProductCertificate::getForProduct((int)$product['id']);
+$productCertificates = !empty($product['certificates']) ? $product['certificates'] : \App\Models\ProductCertificate::getForProduct((int)$product['id']);
 $supplierCertificationTags = !empty($product['supplier_id']) ? \App\Models\SupplierCertificationTag::getForSupplier((int)$product['supplier_id']) : [];
 ?>
 
@@ -84,12 +78,25 @@ $supplierCertificationTags = !empty($product['supplier_id']) ? \App\Models\Suppl
             <div class="relative w-full aspect-square bg-white rounded-2xl border border-surface-container shadow-sm overflow-hidden flex items-center justify-center p-4">
                 <img id="mainProductDisplay" src="<?= htmlspecialchars($primaryImg) ?>" alt="<?= htmlspecialchars($product['name']) ?>" onerror="this.onerror=null;this.src='<?= htmlspecialchars($baseUrl) ?>/assets/images/logo.jpg';" class="max-h-full max-w-full object-contain transition-all duration-300">
                 
-                <div class="absolute top-4 left-4">
-                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-teal-600 text-white text-[11px] font-bold shadow-md">
-                        <span class="material-symbols-outlined text-[14px]">verified</span>
-                        <span>Audited Factory Plant</span>
-                    </span>
-                </div>
+                <?php if (!empty($productCertificates)): ?>
+                    <div class="absolute top-4 left-4 z-10 flex flex-wrap gap-2 items-start max-w-[85%] pointer-events-none">
+                        <?php foreach ($productCertificates as $cert): ?>
+                            <?php 
+                                $cIcon = trim($cert['icon'] ?? 'verified');
+                                $isImg = (str_starts_with($cIcon, '/') || str_starts_with($cIcon, 'http') || str_contains($cIcon, '.'));
+                                $iconUrl = $isImg ? \App\Core\Response::formatImageUrl($cIcon) : '';
+                            ?>
+                            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/95 backdrop-blur-md text-slate-800 text-[11px] font-bold shadow-md border border-slate-200/90 tracking-wide">
+                                <?php if ($isImg): ?>
+                                    <img src="<?= htmlspecialchars($iconUrl) ?>" alt="<?= htmlspecialchars($cert['name']) ?>" class="w-4 h-4 object-contain rounded-xs shrink-0" onerror="this.style.display='none';">
+                                <?php else: ?>
+                                    <span class="material-symbols-outlined text-[15px] text-amber-500 shrink-0"><?= htmlspecialchars($cIcon ?: 'verified') ?></span>
+                                <?php endif; ?>
+                                <span class="truncate"><?= htmlspecialchars($cert['name']) ?></span>
+                            </span>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
             </div>
 
             <!-- Thumbnail Carousel / Selector -->
@@ -151,7 +158,6 @@ $supplierCertificationTags = !empty($product['supplier_id']) ? \App\Models\Suppl
                     <?php if ((float)$product['max_price'] > (float)$product['min_price']): ?>
                         - $<?= number_format((float)$product['max_price'], 2) ?>
                     <?php endif; ?>
-                    <span class="text-xs font-normal text-outline">/ <?= htmlspecialchars($product['price_unit_name'] ?? 'Piece') ?></span>
                 </div>
                 <div class="flex items-center gap-4 text-xs font-medium text-on-surface pt-1">
                     <span>MOQ: <strong class="text-blue-900"><?= (int)$product['moq_quantity'] ?> <?= htmlspecialchars($product['moq_unit_name'] ?? 'pieces') ?></strong></span>
@@ -409,7 +415,7 @@ $supplierCertificationTags = !empty($product['supplier_id']) ? \App\Models\Suppl
                         </tr>
                         <tr>
                             <td class="py-3 px-4 font-semibold text-outline">Export Packaging</td>
-                            <td class="py-3 px-4 text-on-surface font-medium">Heavy-duty export corrugated master cartons with plastic corner protectors and moisture desiccant bags</td>
+                            <td class="py-3 px-4 text-on-surface font-medium"><?= !empty(trim((string)($product['export_packaging'] ?? ''))) ? htmlspecialchars($product['export_packaging']) : 'Standard export packaging (available upon request)' ?></td>
                         </tr>
                     </tbody>
                 </table>
@@ -533,10 +539,29 @@ $supplierCertificationTags = !empty($product['supplier_id']) ? \App\Models\Suppl
                         }
                     ?>
                     <div class="bg-white rounded-2xl border border-surface-container shadow-sm hover:shadow-md transition-all overflow-hidden flex flex-col justify-between group">
-                        <div class="w-full h-44 bg-gray-100 overflow-hidden">
+                        <div class="relative w-full h-44 bg-gray-100 overflow-hidden">
                             <a href="<?= $relUrl ?>">
                                 <img src="<?= htmlspecialchars($relImg) ?>" alt="<?= htmlspecialchars($rel['name']) ?>" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
                             </a>
+                            <?php if (!empty($rel['certificates'])): ?>
+                                <div class="absolute top-2 left-2 flex flex-col gap-1 items-start max-w-[85%] pointer-events-none">
+                                    <?php foreach ($rel['certificates'] as $c): ?>
+                                        <?php 
+                                            $cIcon = trim($c['icon'] ?? 'verified');
+                                            $isImg = (str_starts_with($cIcon, '/') || str_starts_with($cIcon, 'http') || str_contains($cIcon, '.'));
+                                            $iconUrl = $isImg ? \App\Core\Response::formatImageUrl($cIcon) : '';
+                                        ?>
+                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/95 backdrop-blur-md text-[9px] font-bold text-slate-800 shadow-sm border border-slate-200/80 max-w-full">
+                                            <?php if ($isImg): ?>
+                                                <img src="<?= htmlspecialchars($iconUrl) ?>" alt="" class="w-3 h-3 object-contain rounded-xs shrink-0" onerror="this.style.display='none';">
+                                            <?php else: ?>
+                                                <span class="material-symbols-outlined text-[11px] text-amber-500 shrink-0"><?= htmlspecialchars($cIcon ?: 'verified') ?></span>
+                                            <?php endif; ?>
+                                            <span class="truncate"><?= htmlspecialchars($c['name']) ?></span>
+                                        </span>
+                                    <?php endforeach; ?>
+                                </div>
+                            <?php endif; ?>
                         </div>
                         <div class="p-4 flex flex-col flex-1 justify-between">
                             <div>
@@ -545,7 +570,6 @@ $supplierCertificationTags = !empty($product['supplier_id']) ? \App\Models\Suppl
                                 </h4>
                                 <div class="font-headline font-bold text-sm text-blue-900 mt-1">
                                     $<?= number_format((float)$rel['min_price'], 2) ?>
-                                    <span class="text-[10px] font-normal text-outline">/ unit</span>
                                 </div>
                                 <div class="text-[11px] text-outline mt-0.5">
                                     MOQ: <?= (int)$rel['moq_quantity'] ?> <?= htmlspecialchars($rel['moq_unit_name'] ?? 'units') ?>
@@ -588,6 +612,10 @@ $supplierCertificationTags = !empty($product['supplier_id']) ? \App\Models\Suppl
     }
 
     function launchProductChat() {
+        <?php if ($isOwnProduct): ?>
+            alert('You cannot start a chat about your own product.');
+            return;
+        <?php endif; ?>
         if (typeof openProductChat === 'function') {
             openProductChat({
                 id: <?= (int)$product['id'] ?>,

@@ -113,12 +113,9 @@ class BuyerManagementController extends Controller
             [
                 'old_email'  => $buyer['email'],
                 'old_status' => $buyer['status'],
+                'new_status' => $result['new_status'],
             ],
-            [
-                'new_email'     => $email,
-                'new_status'    => $result['new_status'],
-                'email_changed' => $result['email_changed'],
-            ]
+            "Updated buyer profile for {$name} ({$email})"
         );
 
         $msg = 'Buyer profile updated successfully.';
@@ -161,8 +158,8 @@ class BuyerManagementController extends Controller
             'Buyer',
             $buyerId,
             $buyer['email'],
-            ['status' => $buyer['status']],
-            ['status' => $requestedStatus]
+            ['old_status' => $buyer['status'], 'new_status' => $requestedStatus],
+            "Changed buyer status from {$buyer['status']} to {$requestedStatus}"
         );
 
         $this->json([

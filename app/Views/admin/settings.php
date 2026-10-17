@@ -3,8 +3,8 @@
  * Admin Website Settings View
  * Manage Website Logo, Contact Info, Social Media Handles & Footer Links
  */
-$baseUrl = $baseUrl ?? '';
-$logoUrl = !empty($settings['site_logo']) ? ($baseUrl . $settings['site_logo']) : ($baseUrl . '/assets/images/logo.jpg');
+$baseUrl = !empty($baseUrl) ? $baseUrl : \App\Core\Response::baseUrl();
+$logoUrl = !empty($settings['site_logo']) ? ($baseUrl . $settings['site_logo']) : ($baseUrl . '/assets/images/logo.png');
 ?>
 
 <div class="container-fluid py-4">

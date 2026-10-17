@@ -6,10 +6,15 @@ namespace App\Controllers;
 use App\Core\Controller;
 use App\Helpers\CSRF;
 use App\Helpers\Validator;
+use App\Helpers\Mailer;
+use App\Helpers\Env;
 use App\Models\Category;
+use App\Models\Country;
 use App\Models\Product;
 use App\Models\ProductInquiry;
 use App\Models\Subcategory;
+use App\Models\Supplier;
+use App\Models\SiteSetting;
 
 class ShopController extends Controller
 {
@@ -181,24 +186,22 @@ class ShopController extends Controller
     {
         $input = $this->request->all();
 
-        $user = $this->authUser();
-        if ($user && ($user['role'] ?? '') === 'SUPPLIER') {
-            $supplierRecord = \App\Models\Supplier::findByUserId((int)$user['id']);
-            if ($supplierRecord) {
-                if (!empty($input['product_id'])) {
-                    $prodCheck = Product::findById((int)$input['product_id']);
-                    if ($prodCheck && (int)($prodCheck['supplier_id'] ?? 0) === (int)$supplierRecord['id']) {
-                        $this->json(['success' => false, 'message' => 'You cannot submit inquiries on your own products.'], 403);
-                        return;
-                    }
-                }
-                if (!empty($input['supplier_id']) && (int)$input['supplier_id'] === (int)$supplierRecord['id']) {
-                    $this->json(['success' => false, 'message' => 'You cannot submit inquiries to your own supplier store.'], 403);
+        $currentSupplierId = \App\Models\Supplier::currentSupplierId();
+        if ($currentSupplierId > 0) {
+            if (!empty($input['product_id'])) {
+                $prodCheck = Product::findById((int)$input['product_id']);
+                if ($prodCheck && (int)($prodCheck['supplier_id'] ?? 0) === $currentSupplierId) {
+                    $this->json(['success' => false, 'message' => 'You cannot submit inquiries on your own products.'], 403);
                     return;
                 }
             }
+            if (!empty($input['supplier_id']) && (int)$input['supplier_id'] === $currentSupplierId) {
+                $this->json(['success' => false, 'message' => 'You cannot submit inquiries to your own supplier store.'], 403);
+                return;
+            }
         }
 
+        $user = $this->authUser();
         if ($user && ($user['role'] ?? '') === 'BUYER') {
             $liveUser = \App\Models\User::findById((int)$user['id']);
             if ($liveUser && ($liveUser['status'] ?? '') === 'INACTIVE') {
@@ -218,6 +221,12 @@ class ShopController extends Controller
             if (empty($input['buyer_phone']) && !empty($liveUser['phone'])) {
                 $input['buyer_phone'] = ($liveUser['country_code'] ?? '+91') . ' ' . $liveUser['phone'];
             }
+            if (empty($input['country_id']) && !empty($liveUser['country_id'])) {
+                $input['country_id'] = (int)$liveUser['country_id'];
+            }
+            if (empty($input['country_name']) && !empty($liveUser['country_name'])) {
+                $input['country_name'] = $liveUser['country_name'];
+            }
         }
 
         // Auto-resolve supplier_id and source from product if product_id is passed
@@ -227,6 +236,10 @@ class ShopController extends Controller
             if ($prod) {
                 if (empty($input['supplier_id']) && !empty($prod['supplier_id'])) {
                     $input['supplier_id'] = (int)$prod['supplier_id'];
+                }
+                if ($currentSupplierId > 0 && (int)($prod['supplier_id'] ?? 0) === $currentSupplierId) {
+                    $this->json(['success' => false, 'message' => 'You cannot submit inquiries on your own products.'], 403);
+                    return;
                 }
                 if (empty($input['subject'])) {
                     $input['subject'] = 'Product Inquiry: ' . ($prod['title'] ?? $prod['name'] ?? '');
@@ -244,6 +257,28 @@ class ShopController extends Controller
                 };
             }
         }
+
+        // Resolve and validate Country
+        $countryId = !empty($input['country_id']) ? (int)$input['country_id'] : null;
+        $countryName = trim((string)($input['country_name'] ?? ''));
+        if ($countryId && empty($countryName)) {
+            $c = \App\Models\Country::findById($countryId);
+            if ($c) $countryName = $c['name'];
+        } elseif (!$countryId && !empty($countryName)) {
+            $c = \App\Models\Country::fetch("SELECT id, name FROM countries WHERE LOWER(name) = LOWER(:name) LIMIT 1", [':name' => $countryName]);
+            if ($c) {
+                $countryId = (int)$c['id'];
+                $countryName = $c['name'];
+            }
+        }
+
+        if (empty($countryId) && empty($countryName)) {
+            $this->json(['success' => false, 'message' => 'Please select your country.'], 422);
+            return;
+        }
+
+        $input['country_id'] = $countryId;
+        $input['country_name'] = $countryName;
 
         $validator = Validator::make($input);
         $rules = [
@@ -312,6 +347,36 @@ class ShopController extends Controller
 
         try {
             $id = ProductInquiry::create($input);
+            $input['id'] = $id;
+
+            // Task 6: Transactional Email Notifications
+            try {
+                $buyerSent = Mailer::sendEnquiryConfirmationToBuyer($input);
+                $supplierSent = false;
+                if (!empty($input['supplier_id'])) {
+                    $supplier = Supplier::findById((int)$input['supplier_id']);
+                    if ($supplier) {
+                        $supplierSent = Mailer::sendEnquiryNotificationToSupplier($input, $supplier);
+                    }
+                }
+                $siteSettings = SiteSetting::getAllKeyed();
+                $adminEmail = $siteSettings['contact_email'] ?? Env::get('SUPER_ADMIN_EMAIL', 'support@sportsjunction.com');
+                $adminSent = Mailer::sendEnquiryNotificationToAdmin($input, $adminEmail);
+
+                $notifyStatus = ($buyerSent || $supplierSent || $adminSent) ? 'SENT' : 'FAILED';
+                ProductInquiry::execute("
+                    UPDATE product_inquiries 
+                    SET email_notified_at = NOW(), email_notification_status = :status 
+                    WHERE id = :id
+                ", [':status' => $notifyStatus, ':id' => $id]);
+            } catch (\Throwable $mailErr) {
+                ProductInquiry::execute("
+                    UPDATE product_inquiries 
+                    SET email_notified_at = NOW(), email_notification_status = 'FAILED', email_notification_error = :err 
+                    WHERE id = :id
+                ", [':err' => $mailErr->getMessage(), ':id' => $id]);
+            }
+
             $this->json([
                 'success' => true,
                 'id'      => $id,
@@ -334,11 +399,14 @@ class ShopController extends Controller
             $buyerDetails = \App\Models\User::findById((int)$user['id']);
         }
 
+        $countries = \App\Models\Country::allActive();
+
         $this->render('frontend/contact', [
             'pageTitle'       => 'Contact Us — Sports Junction B2B Manufacturing Marketplace',
             'metaDescription' => 'Contact Sports Junction for bulk sports manufacturing enquiries, supplier partnerships, or B2B procurement assistance.',
             'categories'      => $categories,
             'buyerDetails'    => $buyerDetails,
+            'countries'       => $countries,
         ], 'frontend');
     }
 
@@ -366,22 +434,47 @@ class ShopController extends Controller
             if (empty($input['company_name']) && !empty($liveUser['company_name'])) {
                 $input['company_name'] = $liveUser['company_name'];
             }
+            if (empty($input['country_id']) && !empty($liveUser['country_id'])) {
+                $input['country_id'] = (int)$liveUser['country_id'];
+            }
+            if (empty($input['country_name']) && !empty($liveUser['country_name'])) {
+                $input['country_name'] = $liveUser['country_name'];
+            }
         }
 
-        $name    = trim((string)($input['buyer_name'] ?? $input['name'] ?? ''));
-        $email   = trim((string)($input['buyer_email'] ?? $input['email'] ?? ''));
-        $phone   = trim((string)($input['buyer_phone'] ?? $input['phone'] ?? ''));
-        $company = trim((string)($input['company_name'] ?? ''));
-        $subject = trim((string)($input['subject'] ?? 'General Contact Us Message'));
-        $message = trim((string)($input['specifications'] ?? $input['message'] ?? ''));
+        $name        = trim((string)($input['buyer_name'] ?? $input['name'] ?? ''));
+        $email       = trim((string)($input['buyer_email'] ?? $input['email'] ?? ''));
+        $phone       = trim((string)($input['buyer_phone'] ?? $input['phone'] ?? ''));
+        $company     = trim((string)($input['company_name'] ?? ''));
+        $subject     = trim((string)($input['subject'] ?? 'General Contact Us Message'));
+        $message     = trim((string)($input['specifications'] ?? $input['message'] ?? ''));
+
+        // Resolve Country
+        $countryId   = !empty($input['country_id']) ? (int)$input['country_id'] : null;
+        $countryName = trim((string)($input['country_name'] ?? ''));
+        if ($countryId && empty($countryName)) {
+            $c = \App\Models\Country::findById($countryId);
+            if ($c) $countryName = $c['name'];
+        } elseif (!$countryId && !empty($countryName)) {
+            $c = \App\Models\Country::fetch("SELECT id, name FROM countries WHERE LOWER(name) = LOWER(:name) LIMIT 1", [':name' => $countryName]);
+            if ($c) {
+                $countryId = (int)$c['id'];
+                $countryName = $c['name'];
+            }
+        }
 
         if ($name === '' || $email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL) || strlen($message) < 5) {
             $this->json(['success' => false, 'message' => 'Please provide your Full Name, a valid Email Address, and a detailed Message (at least 5 characters).'], 422);
             return;
         }
 
+        if (empty($countryId) && empty($countryName)) {
+            $this->json(['success' => false, 'message' => 'Please select your country.'], 422);
+            return;
+        }
+
         try {
-            $id = ProductInquiry::create([
+            $inquiryData = [
                 'enquiry_source'    => 'CONTACT_US',
                 'product_id'        => null,
                 'supplier_id'       => null,
@@ -389,13 +482,40 @@ class ShopController extends Controller
                 'buyer_name'        => $name,
                 'buyer_email'       => $email,
                 'buyer_phone'       => $phone ?: null,
+                'country_id'        => $countryId,
+                'country_name'      => $countryName,
                 'company_name'      => $company ?: null,
                 'subject'           => $subject,
                 'target_quantity'   => max(1, (int)($input['target_quantity'] ?? 1)),
                 'delivery_location' => !empty($input['delivery_location']) ? trim((string)$input['delivery_location']) : null,
                 'specifications'    => $message,
                 'status'            => 'SUBMITTED',
-            ]);
+            ];
+
+            $id = ProductInquiry::create($inquiryData);
+            $inquiryData['id'] = $id;
+
+            // Task 7: Send Contact Us Emails
+            try {
+                $userSent = Mailer::sendContactUsConfirmationToUser($inquiryData);
+
+                $siteSettings = SiteSetting::getAllKeyed();
+                $adminEmail = $siteSettings['contact_email'] ?? Env::get('SUPER_ADMIN_EMAIL', 'support@sportsjunction.com');
+                $adminSent = Mailer::sendContactUsNotificationToAdmin($inquiryData, $adminEmail);
+
+                $notifyStatus = ($userSent || $adminSent) ? 'SENT' : 'FAILED';
+                ProductInquiry::execute("
+                    UPDATE product_inquiries 
+                    SET email_notified_at = NOW(), email_notification_status = :status 
+                    WHERE id = :id
+                ", [':status' => $notifyStatus, ':id' => $id]);
+            } catch (\Throwable $mailErr) {
+                ProductInquiry::execute("
+                    UPDATE product_inquiries 
+                    SET email_notified_at = NOW(), email_notification_status = 'FAILED', email_notification_error = :err 
+                    WHERE id = :id
+                ", [':err' => $mailErr->getMessage(), ':id' => $id]);
+            }
 
             $this->json([
                 'success' => true,

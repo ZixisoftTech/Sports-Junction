@@ -292,6 +292,10 @@ $baseUrl = Response::baseUrl();
                     <button type="submit" class="btn btn-danger btn-sm">Confirm Rejection</button>
                 </div>
             </form>
+        </div>
+    </div>
+</div>
+
 <!-- Review Supplier Profile Changes Modal -->
 <div class="modal fade" id="profileReviewModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
@@ -314,10 +318,128 @@ $baseUrl = Response::baseUrl();
     </div>
 </div>
 
+<!-- User Credentials & Password Inspection Modal -->
+<div class="modal fade" id="userCredentialsModal" tabindex="-1" aria-labelledby="userCredentialsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow-lg border-0 rounded-4">
+            <div class="modal-header bg-dark text-white py-3 px-4">
+                <h5 class="modal-title fs-6 fw-bold" id="userCredentialsModalLabel">
+                    <i class="bi bi-key-fill text-warning me-2"></i>Account Access &amp; Credentials
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div id="credLoadingState" class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading credentials...</span>
+                    </div>
+                    <p class="text-muted small mt-2 mb-0">Decrypting account credentials securely...</p>
+                </div>
+
+                <div id="credErrorState" class="alert alert-danger py-2 d-none"></div>
+
+                <div id="credContentState" class="d-none">
+                    <!-- User Header Info -->
+                    <div class="d-flex align-items-center justify-content-between mb-3 pb-3 border-bottom">
+                        <div>
+                            <h6 class="fw-bold mb-0 text-slate-900" id="credUserName">-</h6>
+                            <span class="text-muted small" id="credUserCompany">-</span>
+                        </div>
+                        <span class="badge bg-primary-subtle text-primary border px-2.5 py-1.5" id="credUserRole">SUPPLIER</span>
+                    </div>
+
+                    <!-- Email Field -->
+                    <div class="mb-3">
+                        <label class="form-label text-muted small fw-semibold mb-1">Email / Username</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light"><i class="bi bi-envelope"></i></span>
+                            <input type="text" class="form-control font-monospace" id="credEmail" readonly>
+                            <button class="btn btn-outline-secondary" type="button" onclick="copyCredValue('credEmail', 'Email copied!')" title="Copy Email">
+                                <i class="bi bi-clipboard"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Password Field -->
+                    <div class="mb-3" id="vaultPasswordSection">
+                        <label class="form-label text-muted small fw-semibold mb-1">Account Password</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light"><i class="bi bi-lock"></i></span>
+                            <input type="password" class="form-control font-monospace" id="credPassword" readonly>
+                            <button class="btn btn-outline-secondary" type="button" id="btnToggleCredPass" onclick="toggleCredPasswordVisibility()" title="Show/Hide Password">
+                                <i class="bi bi-eye" id="toggleCredPassIcon"></i>
+                            </button>
+                            <button class="btn btn-outline-secondary" type="button" onclick="copyCredValue('credPassword', 'Password copied!')" title="Copy Password">
+                                <i class="bi bi-clipboard"></i>
+                            </button>
+                        </div>
+                        <div class="form-text text-muted small mt-1">
+                            <i class="bi bi-info-circle me-1"></i>Copy this password to log in via the regular seller portal.
+                        </div>
+                    </div>
+
+                    <!-- No Vault Password Notice -->
+                    <div class="alert alert-warning py-2 mb-3 d-none" id="noVaultPasswordAlert">
+                        <div class="d-flex align-items-start gap-2">
+                            <i class="bi bi-exclamation-triangle-fill text-warning mt-0.5"></i>
+                            <div class="small">
+                                <strong>Original password unavailable:</strong> This account was created prior to the password vault. You can set a new password below to log in immediately.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Direct Login Portal Link -->
+                    <div class="mb-4 p-3 bg-light rounded-3 border text-center">
+                        <span class="text-muted small d-block mb-2">Use the standard login page to sign in:</span>
+                        <a href="#" target="_blank" id="credLoginLink" class="btn btn-outline-dark btn-sm px-3 fw-bold">
+                            <i class="bi bi-box-arrow-up-right me-1"></i>Open Seller Login Page
+                        </a>
+                    </div>
+
+                    <!-- Reset / Set Password Section -->
+                    <div class="border-top pt-3">
+                        <a class="text-decoration-none small fw-bold text-primary d-flex align-items-center justify-content-between cursor-pointer" data-bs-toggle="collapse" href="#collapseSetPassword">
+                            <span><i class="bi bi-gear-fill me-1"></i>Change / Set Account Password</span>
+                            <i class="bi bi-chevron-down"></i>
+                        </a>
+                        <div class="collapse mt-2" id="collapseSetPassword">
+                            <form id="adminSetPasswordForm" onsubmit="handleAdminSetPassword(event)">
+                                <input type="hidden" id="credTargetUserId" value="">
+                                <div class="mb-2">
+                                    <label class="form-label text-muted small mb-1">New Password (min 6 characters)</label>
+                                    <div class="input-group input-group-sm">
+                                        <input type="text" class="form-control" id="newAdminPasswordInput" placeholder="Enter new password" required minlength="6">
+                                        <button class="btn btn-outline-secondary" type="button" onclick="generateRandomCredPassword()">Generate</button>
+                                        <button class="btn btn-primary" type="submit" id="btnSubmitAdminPassword">Update</button>
+                                    </div>
+                                </div>
+                                <div id="setPasswordFeedback" class="small mt-1"></div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer py-2 bg-light border-top">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
 let suppliersDt = null;
 const csrfToken = '<?= htmlspecialchars(CSRF::token()) ?>';
 const baseUrl = '<?= htmlspecialchars($baseUrl) ?>';
+
+function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
 
 document.addEventListener('DOMContentLoaded', function() {
     suppliersDt = $('#suppliersTable').DataTable({
@@ -334,29 +456,26 @@ document.addEventListener('DOMContentLoaded', function() {
             {
                 data: 'company_name',
                 render: function(data, type, row) {
-                    let revBadge = row.pending_profile_change_id
-                        ? `<div class="mt-1"><button type="button" class="btn btn-xs btn-warning text-dark fw-bold py-0.5 px-2 rounded-pill shadow-xs" onclick="openProfileReviewModal(${row.pending_profile_change_id})" title="Review submitted factory edits"><i class="bi bi-clock-history me-1"></i>Review Changes</button></div>`
-                        : '';
-                    return `<div class="fw-bold text-dark">${data}</div><small class="text-muted">${row.address || ''}</small>${revBadge}`;
+                    return `<div class="fw-bold text-dark">${escapeHtml(data)}</div><small class="text-muted">${escapeHtml(row.address || '')}</small>`;
                 }
             },
             { data: 'contact_person' },
             { 
                 data: 'business_type_name',
                 render: function(data) {
-                    return `<span class="badge bg-light text-dark border">${data || 'Manufacturer'}</span>`;
+                    return `<span class="badge bg-light text-dark border">${escapeHtml(data || 'Manufacturer')}</span>`;
                 }
             },
             {
                 data: null,
                 render: function(data, type, row) {
-                    return `${row.city_name || ''}, ${row.state_name || ''}<br><small class="text-muted">${row.country_name || ''}</small>`;
+                    return `${escapeHtml(row.city_name || '')}, ${escapeHtml(row.state_name || '')}<br><small class="text-muted">${escapeHtml(row.country_name || '')}</small>`;
                 }
             },
             {
                 data: null,
                 render: function(data, type, row) {
-                    return `<div><i class="bi bi-envelope text-muted me-1"></i>${row.email}</div><small class="text-muted"><i class="bi bi-telephone text-muted me-1"></i>${row.country_code || ''} ${row.phone || ''}</small>`;
+                    return `<div><i class="bi bi-envelope text-muted me-1"></i>${escapeHtml(row.email)}</div><small class="text-muted"><i class="bi bi-telephone text-muted me-1"></i>${escapeHtml(row.country_code || '')} ${escapeHtml(row.phone || '')}</small>`;
                 }
             },
             {
@@ -381,7 +500,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             appBadge = '<span class="badge bg-secondary text-white"><i class="bi bi-pause-circle me-1"></i>Suspended</span>';
                             break;
                         default:
-                            appBadge = `<span class="badge bg-light text-muted border">${data}</span>`;
+                            appBadge = `<span class="badge bg-light text-muted border">${escapeHtml(data)}</span>`;
                     }
                     return `<div class="d-flex flex-column gap-1">${accBadge}${appBadge}</div>`;
                 }
@@ -397,8 +516,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 className: 'text-end text-nowrap',
                 orderable: false,
                 render: function(data, type, row) {
-                    let actions = `<button class="btn btn-sm btn-outline-primary py-1 px-2 me-1" onclick="viewSupplier(${row.id})" title="View Details"><i class="bi bi-eye"></i></button>`;
+                    let actions = '';
+
+                    if (row.pending_profile_change_id) {
+                        actions += `<button class="btn btn-sm btn-warning text-dark fw-bold py-1 px-2.5 me-1.5 shadow-xs position-relative" onclick="openProfileReviewModal(${row.pending_profile_change_id})" title="Review pending factory profile changes" style="border-radius:6px; font-size:12px;"><i class="bi bi-clock-history me-1"></i>Review Changes<span class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-white rounded-circle"></span></button>`;
+                    }
+
+                    actions += `<button class="btn btn-sm btn-outline-primary py-1 px-2 me-1" onclick="viewSupplier(${row.id})" title="View Details"><i class="bi bi-eye"></i></button>`;
                     actions += `<button class="btn btn-sm btn-outline-secondary py-1 px-2 me-1" onclick="editSupplier(${row.id})" title="Edit Details"><i class="bi bi-pencil-square"></i></button>`;
+                    actions += `<button class="btn btn-sm btn-outline-primary py-1 px-2 me-1" onclick="showCredentialsModal(${row.id}, '${escapeQuotes(row.company_name)}', 'SUPPLIER')" title="View Password & Login Credentials"><i class="bi bi-key-fill"></i></button>`;
 
                     const isActive = row.status === 'ACTIVE';
                     const toggleTitle = isActive ? 'Deactivate Supplier Account' : 'Activate Supplier Account';
@@ -821,11 +947,17 @@ function openProfileReviewModal(requestId) {
     $('#prModalBody').html('<div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></div>');
     $('#prModalActions').html('');
 
-    fetch(`${baseUrl}/api/admin/profile-requests/${requestId}`)
-        .then(r => r.json())
-        .then(res => {
-            if (!res.success) {
-                $('#prModalBody').html(`<div class="alert alert-danger">${res.message || 'Error loading request.'}</div>`);
+    $.ajax({
+        url: `${baseUrl}/api/admin/profile-requests/${requestId}`,
+        method: 'GET',
+        headers: {
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        dataType: 'json',
+        success: function(res) {
+            if (!res.success || !res.data) {
+                $('#prModalBody').html(`<div class="alert alert-danger">${escapeHtml(res.message || 'Error loading request.')}</div>`);
                 return;
             }
 
@@ -851,10 +983,10 @@ function openProfileReviewModal(requestId) {
 
                 diffRows += `
                     <tr class="${changed ? 'table-warning' : ''}">
-                        <td class="fw-bold text-dark">${label}</td>
-                        <td class="text-muted">${oldVal}</td>
+                        <td class="fw-bold text-dark">${escapeHtml(label)}</td>
+                        <td class="text-muted">${k === 'logo' ? oldVal : escapeHtml(oldVal)}</td>
                         <td class="${changed ? 'fw-bold text-primary' : 'text-muted'}">
-                            ${newVal}
+                            ${k === 'logo' ? newVal : escapeHtml(newVal)}
                             ${changed ? '<span class="badge bg-warning text-dark ms-1">Modified</span>' : ''}
                         </td>
                     </tr>
@@ -863,7 +995,7 @@ function openProfileReviewModal(requestId) {
 
             const html = `
                 <div class="mb-3">
-                    <span class="badge bg-secondary mb-2">${r.role} FACTORY ACCOUNT</span>
+                    <span class="badge bg-secondary mb-2">${escapeHtml(r.role)} FACTORY ACCOUNT</span>
                     <p class="text-muted small mb-0">The manufacturer submitted updated business profile details. Review the side-by-side comparison below:</p>
                 </div>
                 <div class="table-responsive rounded-3 border mb-3">
@@ -894,57 +1026,289 @@ function openProfileReviewModal(requestId) {
                     <i class="bi bi-check-circle me-1"></i> Approve &amp; Publish Changes
                 </button>
             `);
-        });
+        },
+        error: function(xhr) {
+            const msg = xhr.responseJSON?.message || 'Failed to load profile revision details.';
+            $('#prModalBody').html(`<div class="alert alert-danger mb-0"><i class="bi bi-exclamation-triangle-fill me-2"></i>${escapeHtml(msg)}</div>`);
+        }
+    });
 }
 
 function approveProfileRequest(requestId) {
-    if (!confirm('Approve and apply these factory profile changes immediately?')) return;
+    Swal.fire({
+        title: 'Approve Profile Changes?',
+        text: 'This will publish the factory profile changes live immediately.',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#16a34a',
+        cancelButtonColor: '#64748b',
+        confirmButtonText: 'Yes, Approve & Publish'
+    }).then((result) => {
+        if (!result.isConfirmed) return;
 
-    fetch(`${baseUrl}/api/admin/profile-requests/${requestId}/approve`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-Token': csrfToken
-        },
-        body: JSON.stringify({ _csrf: csrfToken })
-    })
-    .then(r => r.json())
-    .then(res => {
-        if (res.success) {
-            alert(res.message);
-            bootstrap.Modal.getInstance(document.getElementById('profileReviewModal')).hide();
-            suppliersDt.ajax.reload();
-        } else {
-            alert(res.message || 'Approval failed.');
-        }
+        $.ajax({
+            url: `${baseUrl}/api/admin/profile-requests/${requestId}/approve`,
+            method: 'POST',
+            headers: {
+                'X-CSRF-Token': csrfToken,
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            data: { _csrf: csrfToken },
+            dataType: 'json',
+            success: function(res) {
+                if (res.success) {
+                    Swal.fire('Approved!', res.message || 'Profile changes published live.', 'success');
+                    bootstrap.Modal.getInstance(document.getElementById('profileReviewModal')).hide();
+                    suppliersDt.ajax.reload();
+                } else {
+                    Swal.fire('Error', res.message || 'Approval failed.', 'error');
+                }
+            },
+            error: function(xhr) {
+                Swal.fire('Error', xhr.responseJSON?.message || 'Server error occurred during approval.', 'error');
+            }
+        });
     });
 }
 
 function rejectProfileRequest(requestId) {
     const reason = $('#prRejectReason').val();
     if (!reason || reason.trim() === '') {
-        alert('Please specify a rejection reason for user feedback.');
+        Swal.fire('Notice', 'Please specify a rejection reason for user feedback.', 'warning');
         $('#prRejectReason').focus();
         return;
     }
 
-    fetch(`${baseUrl}/api/admin/profile-requests/${requestId}/reject`, {
-        method: 'POST',
+    Swal.fire({
+        title: 'Reject Profile Changes?',
+        text: 'The factory profile will remain unchanged, and feedback will be recorded.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc2626',
+        cancelButtonColor: '#64748b',
+        confirmButtonText: 'Yes, Reject Revision'
+    }).then((result) => {
+        if (!result.isConfirmed) return;
+
+        $.ajax({
+            url: `${baseUrl}/api/admin/profile-requests/${requestId}/reject`,
+            method: 'POST',
+            headers: {
+                'X-CSRF-Token': csrfToken,
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            data: { _csrf: csrfToken, reason: reason },
+            dataType: 'json',
+            success: function(res) {
+                if (res.success) {
+                    Swal.fire('Rejected', res.message || 'Profile revision rejected.', 'info');
+                    bootstrap.Modal.getInstance(document.getElementById('profileReviewModal')).hide();
+                    suppliersDt.ajax.reload();
+                } else {
+                    Swal.fire('Error', res.message || 'Rejection failed.', 'error');
+                }
+            },
+            error: function(xhr) {
+                Swal.fire('Error', xhr.responseJSON?.message || 'Server error occurred during rejection.', 'error');
+            }
+        });
+    });
+}
+
+// Prevent 'Blocked aria-hidden on an element because its descendant retained focus'
+$(document).on('hide.bs.modal', '.modal', function () {
+    if (document.activeElement && this.contains(document.activeElement)) {
+        document.activeElement.blur();
+    }
+});
+
+function showCredentialsModal(id, nameOrCompany, type) {
+    const apiBase = (typeof baseUrl !== 'undefined') ? baseUrl : '';
+    const modalEl = document.getElementById('userCredentialsModal');
+    const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+
+    // Reset initial UI state
+    document.getElementById('credLoadingState').classList.remove('d-none');
+    document.getElementById('credContentState').classList.add('d-none');
+    document.getElementById('credErrorState').classList.add('d-none');
+    document.getElementById('setPasswordFeedback').innerHTML = '';
+    document.getElementById('newAdminPasswordInput').value = '';
+
+    const collapseEl = document.getElementById('collapseSetPassword');
+    const bsCollapse = bootstrap.Collapse.getInstance(collapseEl);
+    if (bsCollapse) {
+        bsCollapse.hide();
+    } else {
+        collapseEl.classList.remove('show');
+    }
+
+    // Reset password visibility
+    const passInput = document.getElementById('credPassword');
+    passInput.type = 'password';
+    const passIcon = document.getElementById('toggleCredPassIcon');
+    if (passIcon) {
+        passIcon.className = 'bi bi-eye';
+    }
+
+    modal.show();
+
+    const endpoint = (type === 'SUPPLIER') 
+        ? `${apiBase}/api/admin/suppliers/${id}/credentials` 
+        : `${apiBase}/api/admin/users/${id}/credentials`;
+
+    fetch(endpoint, {
         headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-Token': csrfToken
-        },
-        body: JSON.stringify({ _csrf: csrfToken, reason: reason })
+            'Accept': 'application/json'
+        }
     })
     .then(r => r.json())
-    .then(res => {
-        if (res.success) {
-            alert(res.message);
-            bootstrap.Modal.getInstance(document.getElementById('profileReviewModal')).hide();
-            suppliersDt.ajax.reload();
-        } else {
-            alert(res.message || 'Rejection failed.');
+    .then(data => {
+        document.getElementById('credLoadingState').classList.add('d-none');
+        if (!data.success || !data.user) {
+            document.getElementById('credErrorState').textContent = data.message || 'Unable to retrieve user credentials.';
+            document.getElementById('credErrorState').classList.remove('d-none');
+            return;
         }
+
+        const user = data.user;
+        document.getElementById('credUserName').textContent = user.name || nameOrCompany || 'Account';
+        document.getElementById('credUserCompany').textContent = user.company_name ? `(${user.company_name})` : '';
+        document.getElementById('credUserRole').textContent = (user.role === 'SUPPLIER') ? 'SELLER / SUPPLIER' : (user.role || 'USER');
+        document.getElementById('credEmail').value = user.email || '';
+        document.getElementById('credTargetUserId').value = user.id;
+
+        const loginUrl = user.login_url ? `${apiBase}${user.login_url}` : `${apiBase}/seller/login`;
+        document.getElementById('credLoginLink').setAttribute('href', loginUrl);
+
+        if (user.has_vault_password && user.password) {
+            passInput.value = user.password;
+            document.getElementById('vaultPasswordSection').classList.remove('d-none');
+            document.getElementById('noVaultPasswordAlert').classList.add('d-none');
+        } else {
+            passInput.value = '';
+            document.getElementById('vaultPasswordSection').classList.add('d-none');
+            document.getElementById('noVaultPasswordAlert').classList.remove('d-none');
+            // Auto-expand password reset form
+            new bootstrap.Collapse(collapseEl, { show: true });
+        }
+
+        document.getElementById('credContentState').classList.remove('d-none');
+    })
+    .catch(err => {
+        document.getElementById('credLoadingState').classList.add('d-none');
+        document.getElementById('credErrorState').textContent = 'Network or server error loading credentials.';
+        document.getElementById('credErrorState').classList.remove('d-none');
+    });
+}
+
+function copyCredValue(elementId, successMsg) {
+    const val = document.getElementById(elementId).value;
+    if (!val) return;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(val).then(() => {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    toast: true,
+                    position: 'top-end',
+                    icon: 'success',
+                    title: successMsg || 'Copied to clipboard',
+                    showConfirmButton: false,
+                    timer: 2000
+                });
+            } else {
+                alert(successMsg || 'Copied!');
+            }
+        });
+    } else {
+        const input = document.getElementById(elementId);
+        input.select();
+        document.execCommand('copy');
+        alert(successMsg || 'Copied!');
+    }
+}
+
+function toggleCredPasswordVisibility() {
+    const input = document.getElementById('credPassword');
+    const icon = document.getElementById('toggleCredPassIcon');
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.className = 'bi bi-eye-slash';
+    } else {
+        input.type = 'password';
+        icon.className = 'bi bi-eye';
+    }
+}
+
+function generateRandomCredPassword() {
+    const chars = 'abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789!@#$%&*';
+    let pass = '';
+    for (let i = 0; i < 12; i++) {
+        pass += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    document.getElementById('newAdminPasswordInput').value = pass;
+}
+
+function handleAdminSetPassword(e) {
+    e.preventDefault();
+    const userId = document.getElementById('credTargetUserId').value;
+    const newPass = document.getElementById('newAdminPasswordInput').value.trim();
+    const feedback = document.getElementById('setPasswordFeedback');
+    const submitBtn = document.getElementById('btnSubmitAdminPassword');
+
+    if (!newPass || newPass.length < 6) {
+        feedback.innerHTML = '<span class="text-danger">Password must be at least 6 characters.</span>';
+        return;
+    }
+
+    feedback.innerHTML = '<span class="text-muted"><span class="spinner-border spinner-border-sm me-1"></span>Updating password...</span>';
+    submitBtn.disabled = true;
+
+    const apiBase = (typeof baseUrl !== 'undefined') ? baseUrl : '';
+    const token = (typeof csrfToken !== 'undefined') ? csrfToken : '';
+
+    fetch(`${apiBase}/api/admin/users/${userId}/set-password`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRF-TOKEN': token
+        },
+        body: new URLSearchParams({
+            password: newPass,
+            csrf_token: token
+        })
+    })
+    .then(r => r.json())
+    .then(data => {
+        submitBtn.disabled = false;
+        if (data.success) {
+            feedback.innerHTML = '<span class="text-success"><i class="bi bi-check-circle me-1"></i>Password updated successfully!</span>';
+            const passInput = document.getElementById('credPassword');
+            passInput.value = newPass;
+            document.getElementById('vaultPasswordSection').classList.remove('d-none');
+            document.getElementById('noVaultPasswordAlert').classList.add('d-none');
+            
+            // Auto copy new password
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(newPass);
+            }
+
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    toast: true,
+                    position: 'top-end',
+                    icon: 'success',
+                    title: 'Password updated & copied to clipboard!',
+                    showConfirmButton: false,
+                    timer: 2500
+                });
+            }
+        } else {
+            feedback.innerHTML = `<span class="text-danger">${escapeQuotes(data.message || 'Failed to update password.')}</span>`;
+        }
+    })
+    .catch(err => {
+        submitBtn.disabled = false;
+        feedback.innerHTML = '<span class="text-danger">Network error while updating password.</span>';
     });
 }
 </script>

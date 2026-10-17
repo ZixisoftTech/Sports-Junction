@@ -286,14 +286,14 @@ try {
     SiteSetting::set('social_twitter', "https://x.com/sj_test_{$time}", 'social');
     SiteSetting::set('social_instagram', "https://instagram.com/sj_test_{$time}", 'social');
 
-    // 2. Create dynamic CMS page in ORDER_PROTECTION column
+    // 2. Create dynamic CMS page in TOP_SECTORS column
     $cmsSlug = 'buyer-protection-guarantee-' . $time;
     $cmsId = CmsPage::create([
         'title'           => 'Buyer Protection Guarantee ' . $time,
         'slug'            => $cmsSlug,
         'content'         => '<p>Comprehensive escrow and factory inspection coverage.</p>',
         'meta_title'      => 'Buyer Protection Guarantee',
-        'footer_column'   => 'ORDER_PROTECTION',
+        'footer_column'   => 'TOP_SECTORS',
         'sort_order'      => 10,
         'is_active'       => 1,
     ]);
@@ -351,6 +351,7 @@ try {
     curl_setopt($ch, CURLOPT_POSTFIELDS, [
         'buyer_name'      => 'Workflow D Officer',
         'buyer_email'     => "techpack_{$time}@apexsports.com",
+        'country_id'      => 1,
         'company_name'    => 'Apex Sports Global',
         'target_quantity' => '1000',
         'specifications'  => 'International grade rugby balls according to attached spec sheet.',

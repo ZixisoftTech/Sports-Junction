@@ -5,6 +5,8 @@ $prefillName = $buyerDetails['name'] ?? '';
 $prefillEmail = $buyerDetails['email'] ?? '';
 $prefillPhone = !empty($buyerDetails['phone']) ? (($buyerDetails['country_code'] ?? '+91') . ' ' . $buyerDetails['phone']) : '';
 $prefillCompany = $buyerDetails['company_name'] ?? '';
+$prefillCountryId = (int)($buyerDetails['country_id'] ?? 0);
+$countriesList = !empty($countries) ? $countries : \App\Models\Country::allActive();
 ?>
 
 <section class="py-5 bg-slate-900 text-white border-bottom border-slate-800">
@@ -134,13 +136,25 @@ $prefillCompany = $buyerDetails['company_name'] ?? '';
 
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
-                                <label class="block text-xs font-extrabold uppercase tracking-wider text-slate-600 mb-1">Enquiry Subject <span class="text-red-500">*</span></label>
-                                <input type="text" name="subject" required placeholder="e.g., Bulk Cricket Kit Procurement / Partnership" class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-600 focus:outline-none">
+                                <label class="block text-xs font-extrabold uppercase tracking-wider text-slate-600 mb-1">Country / Territory <span class="text-red-500">*</span></label>
+                                <select name="country_id" id="contactCountrySelect" required class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-600 focus:outline-none bg-white">
+                                    <option value="">Select Country *</option>
+                                    <?php foreach ($countriesList as $c): ?>
+                                        <option value="<?= (int)$c['id'] ?>" data-name="<?= htmlspecialchars($c['name']) ?>" <?= ($prefillCountryId === (int)$c['id'] || (empty($prefillCountryId) && $c['name'] === 'India')) ? 'selected' : '' ?>>
+                                            <?= $c['flag'] ?? '' ?> <?= htmlspecialchars($c['name']) ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
                             </div>
                             <div>
                                 <label class="block text-xs font-extrabold uppercase tracking-wider text-slate-600 mb-1">City / Delivery Location</label>
                                 <input type="text" name="delivery_location" placeholder="e.g., Mumbai, Maharashtra" class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-600 focus:outline-none">
                             </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-extrabold uppercase tracking-wider text-slate-600 mb-1">Enquiry Subject <span class="text-red-500">*</span></label>
+                            <input type="text" name="subject" required placeholder="e.g., Bulk Cricket Kit Procurement / Partnership" class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-600 focus:outline-none">
                         </div>
 
                         <div>
@@ -170,6 +184,14 @@ document.getElementById('contactUsForm')?.addEventListener('submit', async funct
 
     try {
         const formData = new FormData(this);
+        const sel = document.getElementById('contactCountrySelect');
+        if (sel && sel.selectedIndex >= 0) {
+            const opt = sel.options[sel.selectedIndex];
+            if (opt && opt.dataset.name) {
+                formData.set('country_name', opt.dataset.name);
+            }
+        }
+
         const res = await fetch('<?= $baseUrl ?>/api/contact', {
             method: 'POST',
             body: formData,
@@ -180,20 +202,32 @@ document.getElementById('contactUsForm')?.addEventListener('submit', async funct
         btn.innerHTML = origText;
 
         if (data.success) {
-            Swal.fire({
-                icon: 'success',
-                title: 'Message Received!',
-                text: data.message,
-                confirmButtonColor: '#1e3a8a'
-            });
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Message Received!',
+                    text: data.message,
+                    confirmButtonColor: '#1e3a8a'
+                });
+            } else {
+                alert(data.message || 'Thank you! Your message has been received.');
+            }
             this.reset();
         } else {
-            Swal.fire('Submission Error', data.message || 'Please check your inputs.', 'error');
+            if (typeof Swal !== 'undefined') {
+                Swal.fire('Submission Error', data.message || 'Please check your inputs.', 'error');
+            } else {
+                alert(data.message || 'Submission Error. Please check your inputs.');
+            }
         }
     } catch (err) {
         btn.disabled = false;
         btn.innerHTML = origText;
-        Swal.fire('Error', 'Network error while submitting your message.', 'error');
+        if (typeof Swal !== 'undefined') {
+            Swal.fire('Error', 'Network error while submitting your message.', 'error');
+        } else {
+            alert('Network error while submitting your message.');
+        }
     }
 });
 </script>

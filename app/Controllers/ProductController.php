@@ -24,6 +24,7 @@ class ProductController extends Controller
         $moqUnits = MoqUnit::allActive();
         $countries = Country::allActive();
         $suppliers = \App\Models\Supplier::allApproved();
+        $metrics = Product::getApprovalMetrics();
 
         $this->render('products/index', [
             'pageTitle'       => 'Product Management',
@@ -33,6 +34,7 @@ class ProductController extends Controller
             'moqUnits'        => $moqUnits,
             'countries'       => $countries,
             'suppliers'       => $suppliers,
+            'metrics'         => $metrics,
             'metaDescription' => 'Enterprise management of sports equipment catalog, factory specifications, wholesale pricing tiers and homepage featured products.',
         ]);
     }
@@ -358,11 +360,11 @@ class ProductController extends Controller
             Product::beginTransaction();
             Product::update($id, $input, $newImages, $deletedImageIds);
 
-            // Sync product certificates if provided
-            if (isset($input['certificate_ids'])) {
-                $certIds = is_array($input['certificate_ids']) ? $input['certificate_ids'] : array_filter(explode(',', (string)$input['certificate_ids']));
-                \App\Models\ProductCertificate::syncForProduct($id, $certIds);
-            }
+            // Sync product certificates
+            $certIds = !empty($input['certificate_ids']) 
+                ? (is_array($input['certificate_ids']) ? $input['certificate_ids'] : array_filter(explode(',', (string)$input['certificate_ids'])))
+                : [];
+            \App\Models\ProductCertificate::syncForProduct($id, $certIds);
 
             if ($supplierChanged) {
                 \App\Helpers\AuditLogger::log('UPDATE', 'Product', $id, $product['title'] ?? ('Product #' . $id), null, "Reassigned product supplier from #{$oldSupplierId} to #{$newSupplierId}");
@@ -482,6 +484,12 @@ class ProductController extends Controller
         \App\Helpers\BulkProductImporter::downloadTemplate($format, true);
     }
 
+    public function downloadImportReference(): void
+    {
+        $format = (string)$this->request->get('format', 'xlsx');
+        \App\Helpers\BulkProductImporter::downloadReferenceData($format, true);
+    }
+
     public function bulkPreview(): void
     {
         if (empty($_FILES['file']) || $_FILES['file']['error'] !== UPLOAD_ERR_OK) {
@@ -496,16 +504,22 @@ class ProductController extends Controller
             return;
         }
 
-        $storedTmp = tempnam(sys_get_temp_dir(), 'sj_bulk_') . '.' . $ext;
-        if (!move_uploaded_file($tmpFile, $storedTmp)) {
+        $supplierId = !empty($_POST['supplier_id']) ? (int)$_POST['supplier_id'] : null;
+
+        $storedTmp = \App\Helpers\BulkProductImporter::getSafeTempFile('sj_bulk_', $ext);
+        if (!move_uploaded_file($tmpFile, $storedTmp) && !copy($tmpFile, $storedTmp)) {
             $this->json(['success' => false, 'message' => 'Failed to process uploaded file.'], 500);
             return;
         }
 
-        $result = \App\Helpers\BulkProductImporter::parseAndValidate($storedTmp, null, true);
-        @unlink($storedTmp);
-
-        $this->json($result);
+        try {
+            $result = \App\Helpers\BulkProductImporter::parseAndValidate($storedTmp, null, true, $supplierId);
+            @unlink($storedTmp);
+            $this->json($result);
+        } catch (\Throwable $e) {
+            @unlink($storedTmp);
+            $this->json(['success' => false, 'message' => 'Validation error: ' . $e->getMessage()], 500);
+        }
     }
 
     public function bulkCommit(): void

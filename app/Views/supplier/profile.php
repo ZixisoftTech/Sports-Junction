@@ -130,6 +130,7 @@ $baseUrl = Response::baseUrl();
                         <?php foreach ($countries as $c): ?>
                             <option value="<?= $c['id'] ?>" 
                                     data-flag="<?= htmlspecialchars($c['flag'] ?? '🌐') ?>" 
+                                    data-country-name="<?= htmlspecialchars($c['name']) ?>"
                                     data-phone="<?= htmlspecialchars($c['phone_code'] ?? '') ?>"
                                     <?= ((int)$supplier['country_id'] === (int)$c['id']) ? 'selected' : '' ?>>
                                 <?= $c['flag'] ?> <?= htmlspecialchars($c['name']) ?> (<?= htmlspecialchars($c['phone_code'] ?? '') ?>)

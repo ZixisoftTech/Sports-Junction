@@ -9,25 +9,18 @@ use PDO;
 class CmsPage extends Model
 {
     public const CATEGORIES = [
-        'ABOUT' => 'About Sports Junction',
         'TOP_SECTORS' => 'Top Sectors',
         'SOURCING' => 'Sourcing Solutions',
-        'PLATFORM_ADMIN' => 'Platform & Admin',
-        'ORDER_PROTECTION' => 'Help & Order Protection',
-        'SOURCE' => 'Sourcing Solutions (Legacy)',
-        'HELP_CENTER' => 'Help Center (Legacy)',
-        'SELL' => 'Sell & Admin (Legacy)'
+        'PLATFORM_ADMIN' => 'Platform & Admin'
     ];
 
     /**
-     * Standard 5 footer columns in order
+     * Standard 3 footer columns in order matching official design
      */
     public const FOOTER_COLUMNS = [
-        'ABOUT' => 'About Sports Junction',
         'TOP_SECTORS' => 'Top Sectors',
         'SOURCING' => 'Sourcing Solutions',
-        'PLATFORM_ADMIN' => 'Platform & Admin',
-        'ORDER_PROTECTION' => 'Help & Order Protection'
+        'PLATFORM_ADMIN' => 'Platform & Admin'
     ];
 
     /**
@@ -87,24 +80,16 @@ class CmsPage extends Model
         $rows = self::fetchAll($sql);
 
         $grouped = [
-            'ABOUT' => [],
             'TOP_SECTORS' => [],
             'SOURCING' => [],
-            'PLATFORM_ADMIN' => [],
-            'ORDER_PROTECTION' => []
+            'PLATFORM_ADMIN' => []
         ];
 
         foreach ($rows as $row) {
-            $cat = $row['column_category'] ?? 'ABOUT';
-            // Map legacy aliases to 5 standard columns
-            if ($cat === 'SOURCE') $cat = 'SOURCING';
-            if ($cat === 'HELP_CENTER') $cat = 'ORDER_PROTECTION';
-            if ($cat === 'SELL') $cat = 'PLATFORM_ADMIN';
-
-            if (!isset($grouped[$cat])) {
-                $grouped[$cat] = [];
+            $cat = $row['column_category'] ?? '';
+            if (isset($grouped[$cat])) {
+                $grouped[$cat][] = $row;
             }
-            $grouped[$cat][] = $row;
         }
 
         return $grouped;
@@ -115,6 +100,11 @@ class CmsPage extends Model
      */
     public static function create(array $data): int
     {
+        $cat = $data['column_category'] ?? $data['footer_column'] ?? $data['category'] ?? 'TOP_SECTORS';
+        if (!array_key_exists($cat, self::CATEGORIES)) {
+            $cat = 'TOP_SECTORS';
+        }
+
         $sql = "
             INSERT INTO `cms_pages` (`title`, `slug`, `column_category`, `content`, `external_url`, `meta_title`, `meta_description`, `sort_order`, `is_active`, `created_at`)
             VALUES (:title, :slug, :cat, :content, :url, :meta_title, :meta_description, :order, :active, NOW())
@@ -123,7 +113,7 @@ class CmsPage extends Model
         self::execute($sql, [
             ':title' => $data['title'],
             ':slug' => $data['slug'],
-            ':cat' => $data['column_category'] ?? 'ABOUT',
+            ':cat' => $cat,
             ':content' => $data['content'] ?? null,
             ':url' => !empty($data['external_url']) ? $data['external_url'] : null,
             ':meta_title' => !empty($data['meta_title']) ? trim((string)$data['meta_title']) : null,
@@ -146,6 +136,10 @@ class CmsPage extends Model
         }
 
         $merged = array_merge($existing, $data);
+        $cat = $merged['column_category'] ?? $merged['footer_column'] ?? $merged['category'] ?? 'TOP_SECTORS';
+        if (!array_key_exists($cat, self::CATEGORIES)) {
+            $cat = 'TOP_SECTORS';
+        }
 
         $sql = "
             UPDATE `cms_pages`
@@ -167,7 +161,7 @@ class CmsPage extends Model
             ':id' => $id,
             ':title' => $merged['title'],
             ':slug' => $merged['slug'],
-            ':cat' => $merged['column_category'] ?? 'ABOUT',
+            ':cat' => $cat,
             ':content' => $merged['content'] ?? null,
             ':url' => !empty($merged['external_url']) ? $merged['external_url'] : null,
             ':meta_title' => !empty($merged['meta_title']) ? trim((string)$merged['meta_title']) : null,
@@ -187,5 +181,24 @@ class CmsPage extends Model
         $sql = "DELETE FROM `cms_pages` WHERE `id` = :id";
         self::execute($sql, [':id' => $id]);
         return true;
+    }
+
+    /**
+     * Sanitize HTML content against stored XSS while preserving safe formatting
+     */
+    public static function sanitizeContent(string $html): string
+    {
+        // 1. Remove dangerous blocks: script, iframe, object, embed, applet, style
+        $clean = preg_replace('#<(script|iframe|object|embed|applet|style)[^>]*>.*?</\1>#is', '', $html);
+
+        // 2. Remove inline event handlers (onload, onclick, onerror, onmouseover, etc.)
+        $clean = preg_replace('/\s+on[a-zA-Z]+\s*=\s*(["\'][^"\']*["\']|[^\s>]+)/i', '', $clean);
+
+        // 3. Remove javascript: or vbscript: or data: in href/src
+        $clean = preg_replace('/(href|src)\s*=\s*(["\'])\s*(javascript|vbscript|data):.*?\2/i', '$1="#"', $clean);
+
+        // 4. Strip tags except safe semantic formatting elements
+        $allowedTags = '<p><br><hr><b><strong><i><em><u><s><del><h2><h3><h4><h5><h6><ul><ol><li><a><table><thead><tbody><tfoot><tr><th><td><blockquote><code><pre><span><div>';
+        return strip_tags($clean, $allowedTags);
     }
 }

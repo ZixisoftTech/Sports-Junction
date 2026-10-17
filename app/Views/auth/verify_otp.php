@@ -15,7 +15,7 @@ $success = Session::flash('success');
 <div class="w-full max-w-xl mx-auto">
     <!-- Top Utility Bar -->
     <div class="flex items-center justify-between mb-4 px-2">
-        <a href="<?= htmlspecialchars($baseUrl) ?>/register" class="inline-flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-blue-900 transition-colors">
+        <a href="<?= htmlspecialchars($baseUrl) ?>/change-email" class="inline-flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-blue-900 transition-colors">
             <span class="material-symbols-outlined text-[16px]">arrow_back</span>
             <span>Back to Registration</span>
         </a>
@@ -43,17 +43,17 @@ $success = Session::flash('success');
         <div class="inline-flex items-center gap-2 mt-4 px-4 py-1.5 rounded-full bg-blue-50/80 border border-blue-100 text-xs font-semibold text-blue-950">
             <span class="material-symbols-outlined text-[16px] text-blue-700">mail</span>
             <span><?= htmlspecialchars($email ?: 'your business email') ?></span>
-            <a href="<?= htmlspecialchars($baseUrl) ?>/register" class="text-blue-700 hover:underline font-bold ml-1">Change</a>
+            <a href="<?= htmlspecialchars($baseUrl) ?>/change-email" class="text-blue-700 hover:underline font-bold ml-1">Change</a>
         </div>
 
-        <?php if (empty(\App\Helpers\Env::get('MAIL_PASSWORD')) && \App\Helpers\Env::get('APP_DEBUG')): ?>
+        <?php if (\App\Models\Otp::isTestOtpAllowed()): ?>
             <div class="mt-4 p-3 rounded-2xl bg-amber-50 border border-amber-200/80 text-amber-950 text-xs flex items-center justify-between gap-3 text-left">
                 <div class="flex items-center gap-2">
                     <span class="material-symbols-outlined text-amber-600 text-[20px] shrink-0">terminal</span>
                     <div>
-                        <span class="font-bold text-amber-900">Static Testing OTP:</span> 
+                        <span class="font-bold text-amber-900">Development Testing OTP:</span> 
                         Passcode is <strong class="font-mono text-sm text-blue-900 bg-amber-100/90 px-2 py-0.5 rounded">123456</strong> 
-                        <span class="text-slate-500 block text-[11px] mt-0.5">Static OTP active for all accounts and verifications</span>
+                        <span class="text-slate-500 block text-[11px] mt-0.5">Development test passcode enabled for this environment</span>
                     </div>
                 </div>
                 <button type="button" onclick="fillOtp('123456')" class="shrink-0 text-xs bg-blue-900 hover:bg-blue-950 text-white font-bold px-3 py-1.5 rounded-lg transition-colors shadow-xs">Auto-Fill</button>

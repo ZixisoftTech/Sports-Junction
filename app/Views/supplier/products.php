@@ -78,8 +78,10 @@ $baseUrl = Response::baseUrl();
                                     </div>
                                 </td>
                                 <td class="py-4 px-4 text-slate-600">
-                                    <div class="font-semibold text-slate-800"><?= htmlspecialchars($p['category_name'] ?? '—') ?></div>
-                                    <div class="text-[11px] text-slate-400"><?= htmlspecialchars($p['subcategory_name'] ?? '—') ?></div>
+                                    <div class="font-semibold text-slate-800"><?= htmlspecialchars($p['all_category_names'] ?? $p['category_name'] ?? '—') ?></div>
+                                    <?php if (!empty($p['all_subcategory_names']) || !empty($p['subcategory_name'])): ?>
+                                        <div class="text-[11px] text-slate-400 mt-0.5"><?= htmlspecialchars($p['all_subcategory_names'] ?? $p['subcategory_name'] ?? '') ?></div>
+                                    <?php endif; ?>
                                 </td>
                                 <td class="py-4 px-4 text-blue-900 font-bold">
                                     $<?= number_format((float)$p['min_price'], 2) ?>
@@ -156,13 +158,17 @@ $baseUrl = Response::baseUrl();
                         Fill in product titles, category names, MOQ, USD price brackets, and specs. Multiple categories can be separated with commas.
                     </p>
                 </div>
-                <div class="flex items-center gap-2 shrink-0">
-                    <a href="<?= htmlspecialchars($baseUrl) ?>/supplier/products/bulk-template?format=xlsx" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs shadow-xs transition-colors">
+                <div class="flex flex-wrap items-center gap-2 shrink-0">
+                    <a href="<?= htmlspecialchars($baseUrl) ?>/supplier/products/bulk-template?format=xlsx" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs shadow-xs transition-colors">
                         <span class="material-symbols-outlined text-[16px]">table_chart</span>
-                        <span>Download .xlsx</span>
+                        <span>Template (.xlsx)</span>
                     </a>
-                    <a href="<?= htmlspecialchars($baseUrl) ?>/supplier/products/bulk-template?format=csv" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-bold text-xs shadow-xs transition-colors">
-                        <span>Download .csv</span>
+                    <a href="<?= htmlspecialchars($baseUrl) ?>/supplier/products/bulk-template?format=csv" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-bold text-xs shadow-xs transition-colors">
+                        <span>CSV</span>
+                    </a>
+                    <a href="<?= htmlspecialchars($baseUrl) ?>/supplier/products/import-reference?format=xlsx" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-blue-800 hover:bg-blue-900 text-white font-bold text-xs shadow-xs transition-colors" title="Download Reference IDs for Categories, Subcategories, Units, and Countries">
+                        <span class="material-symbols-outlined text-[16px]">database</span>
+                        <span>Reference Data (.xlsx)</span>
                     </a>
                 </div>
             </div>
@@ -325,12 +331,27 @@ document.addEventListener('DOMContentLoaded', function () {
             formData.append('file', currentFile);
             formData.append('_csrf', csrfToken);
 
+            const headers = {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            };
+            if (csrfToken) {
+                headers['X-CSRF-Token'] = csrfToken;
+            }
+
             try {
                 const res = await fetch(`${baseUrl}/supplier/products/bulk-preview`, {
                     method: 'POST',
+                    headers: headers,
                     body: formData
                 });
-                const data = await res.json();
+                
+                let data;
+                try {
+                    data = await res.json();
+                } catch (jsonErr) {
+                    throw new Error('Server returned an invalid response (Status ' + res.status + '). Please try again.');
+                }
 
                 if (!data.success) {
                     Swal.fire({
@@ -390,7 +411,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 Swal.fire({
                     icon: 'error',
                     title: 'Network Error',
-                    text: 'Failed to communicate with validation server.',
+                    text: err.message || 'Failed to communicate with validation server.',
                     confirmButtonColor: '#00288e'
                 });
             } finally {
@@ -410,13 +431,24 @@ document.addEventListener('DOMContentLoaded', function () {
             try {
                 const res = await fetch(`${baseUrl}/supplier/products/bulk-commit`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json',
+                        'X-CSRF-Token': csrfToken
+                    },
                     body: new URLSearchParams({
                         file_token: currentFileToken,
                         _csrf: csrfToken
                     })
                 });
-                const data = await res.json();
+                
+                let data;
+                try {
+                    data = await res.json();
+                } catch (jsonErr) {
+                    throw new Error('Server returned an invalid response (Status ' + res.status + '). Please try again.');
+                }
 
                 if (data.success) {
                     Swal.fire({
@@ -441,7 +473,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 Swal.fire({
                     icon: 'error',
                     title: 'Network Error',
-                    text: 'Error occurred during product submission.',
+                    text: err.message || 'Error occurred during product submission.',
                     confirmButtonColor: '#00288e'
                 });
                 btnCommit.disabled = false;

@@ -19,6 +19,11 @@ class Category extends Model
         return self::fetch("SELECT * FROM categories WHERE slug = :slug LIMIT 1", [':slug' => $slug]);
     }
 
+    public static function all(): array
+    {
+        return self::allActive();
+    }
+
     public static function allActive(): array
     {
         $categories = self::fetchAll("

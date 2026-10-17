@@ -5,7 +5,11 @@ namespace App\Helpers;
 
 use App\Core\Database;
 use App\Core\Request;
+use App\Helpers\Session;
 use PDO;
+
+require_once __DIR__ . '/Session.php';
+require_once dirname(__DIR__) . '/Core/Request.php';
 
 class AuditLogger
 {
@@ -15,9 +19,10 @@ class AuditLogger
         ?int $entityId = null,
         ?string $recordIdentifier = null,
         ?array $affectedCounts = null,
-        ?string $details = null
+        array|string|null $details = null
     ): void {
         try {
+            $detailsStr = is_array($details) ? json_encode($details, JSON_UNESCAPED_UNICODE) : $details;
             $db = Database::getConnection();
             $user = Session::get('auth_user');
             $userId = $user['id'] ?? null;
@@ -41,7 +46,7 @@ class AuditLogger
                 ':entity_id'         => $entityId,
                 ':record_identifier' => $recordIdentifier,
                 ':affected_counts'   => $affectedCounts !== null ? json_encode($affectedCounts) : null,
-                ':details'           => $details,
+                ':details'           => $detailsStr,
                 ':ip_address'        => $ip,
                 ':user_agent'        => $userAgent,
             ]);

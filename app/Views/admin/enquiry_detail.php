@@ -76,6 +76,16 @@ $status = $enquiry['status'] ?? 'SUBMITTED';
                         <div class="text-slate-500 small">Phone / Mobile Number</div>
                         <div class="fw-semibold text-slate-800"><?= htmlspecialchars($enquiry['buyer_phone'] ?: 'Not provided') ?></div>
                     </div>
+                    <div class="col-md-6">
+                        <div class="text-slate-500 small">Country / Territory</div>
+                        <div class="fw-bold text-slate-900">
+                            <span class="badge bg-light text-dark border px-2 py-1"><i class="bi bi-geo-alt text-primary me-1"></i><?= htmlspecialchars($enquiry['country_name'] ?? 'Not specified') ?></span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="text-slate-500 small">City / Location</div>
+                        <div class="fw-semibold text-slate-800"><?= htmlspecialchars($enquiry['delivery_location'] ?? 'Not specified') ?></div>
+                    </div>
                 </div>
             </div>
         </div>

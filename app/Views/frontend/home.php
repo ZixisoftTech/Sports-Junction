@@ -158,12 +158,25 @@ $baseUrl = Response::baseUrl();
                                 <img src="<?= htmlspecialchars($img) ?>" alt="<?= htmlspecialchars($prod['name']) ?>" onerror="this.onerror=null;this.src='<?= htmlspecialchars($baseUrl) ?>/assets/images/logo.jpg';" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
                             </a>
                             
-                            <div class="absolute top-3 left-3 flex flex-col gap-1">
-                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/90 backdrop-blur-md text-[10px] font-bold text-teal-800 shadow-sm border border-teal-100">
-                                    <span class="material-symbols-outlined text-[12px] text-teal-600">verified</span>
-                                    <span>Verified Factory</span>
-                                </span>
-                            </div>
+                            <?php if (!empty($prod['certificates'])): ?>
+                                <div class="absolute top-3 left-3 flex flex-col gap-1 items-start max-w-[80%] pointer-events-none">
+                                    <?php foreach ($prod['certificates'] as $c): ?>
+                                        <?php 
+                                            $cIcon = trim($c['icon'] ?? 'verified');
+                                            $isImg = (str_starts_with($cIcon, '/') || str_starts_with($cIcon, 'http') || str_contains($cIcon, '.'));
+                                            $iconUrl = $isImg ? \App\Core\Response::formatImageUrl($cIcon) : '';
+                                        ?>
+                                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-white/95 backdrop-blur-md text-[10px] font-bold text-slate-800 shadow-sm border border-slate-200/80 max-w-full">
+                                            <?php if ($isImg): ?>
+                                                <img src="<?= htmlspecialchars($iconUrl) ?>" alt="" class="w-3.5 h-3.5 object-contain rounded-xs shrink-0" onerror="this.style.display='none';">
+                                            <?php else: ?>
+                                                <span class="material-symbols-outlined text-[13px] text-amber-500 shrink-0"><?= htmlspecialchars($cIcon ?: 'verified') ?></span>
+                                            <?php endif; ?>
+                                            <span class="truncate"><?= htmlspecialchars($c['name']) ?></span>
+                                        </span>
+                                    <?php endforeach; ?>
+                                </div>
+                            <?php endif; ?>
 
                             <div class="absolute top-3 right-3">
                                 <span class="px-2 py-0.5 rounded-md bg-blue-700 text-white font-mono text-[10px] font-bold shadow-sm">
@@ -176,7 +189,7 @@ $baseUrl = Response::baseUrl();
                         <div class="p-5 flex flex-col flex-1 justify-between">
                             <div>
                                 <div class="text-[11px] text-outline font-semibold uppercase tracking-wider mb-1">
-                                    <?= htmlspecialchars($prod['category_name'] ?? 'Sports Gear') ?>
+                                    <?= htmlspecialchars($prod['all_category_names'] ?? $prod['category_name'] ?? 'Sports Gear') ?>
                                 </div>
                                 <h3 class="font-headline font-bold text-sm text-on-surface line-clamp-2 mb-2 group-hover:text-blue-700 transition-colors">
                                     <a href="<?= $prodUrl ?>"><?= htmlspecialchars($prod['name']) ?></a>
@@ -189,7 +202,6 @@ $baseUrl = Response::baseUrl();
                                         <?php if ((float)$prod['max_price'] > (float)$prod['min_price']): ?>
                                             - $<?= number_format((float)$prod['max_price'], 2) ?>
                                         <?php endif; ?>
-                                        <span class="text-xs font-normal text-outline">/ unit</span>
                                     </div>
                                     <div class="flex items-center gap-3 text-xs text-outline mt-1 font-medium">
                                         <span>MOQ: <strong class="text-on-surface"><?= (int)$prod['moq_quantity'] ?> <?= htmlspecialchars($prod['moq_unit_name'] ?? 'units') ?></strong></span>
@@ -199,28 +211,41 @@ $baseUrl = Response::baseUrl();
                                 </div>
                             </div>
 
-                            <!-- CTA Buttons: 50% Specs & Samples + Heart + Chat button -->
+                            <!-- Card Footer CTAs -->
                             <div class="pt-3 border-t border-surface-container flex items-center gap-2">
-                                <a href="<?= $prodUrl ?>" class="flex-1 py-2 text-center rounded-xl bg-surface-container-low hover:bg-surface-container-high text-blue-900 text-xs font-bold transition-colors">
-                                    Specs & Samples
-                                </a>
-                                <button type="button" onclick="toggleFavouriteProduct(<?= (int)$prod['id'] ?>, this)" class="p-2 rounded-xl border border-surface-container hover:bg-rose-50 text-slate-500 hover:text-rose-600 transition-colors shrink-0" title="Save to Favourites" aria-label="Save to Favourites">
-                                    <span class="material-symbols-outlined text-[18px]">favorite</span>
-                                </button>
-                                <button type="button" onclick="openProductChat(<?= htmlspecialchars(json_encode([
-                                    'id' => (int)$prod['id'],
-                                    'product_id' => (int)$prod['id'],
-                                    'supplier_id' => (int)($prod['supplier_id'] ?? 1),
-                                    'title' => $prod['name'] ?? $prod['title'] ?? '',
-                                    'name' => $prod['name'] ?? $prod['title'] ?? '',
-                                    'primary_image' => $prod['primary_image'] ?? '',
-                                    'min_price' => (float)($prod['min_price'] ?? 0),
-                                    'max_price' => (float)($prod['max_price'] ?? 0),
-                                    'moq_quantity' => (int)($prod['moq_quantity'] ?? 1),
-                                    'supplier_name' => $prod['supplier_name'] ?? 'Verified Factory'
-                                ])) ?>)" class="p-2 rounded-xl bg-blue-700 hover:bg-blue-800 text-white transition-colors shrink-0 flex items-center justify-center cursor-pointer" title="Chat with Factory about this Product" aria-label="Chat with Factory">
-                                    <span class="material-symbols-outlined text-[18px]">send</span>
-                                </button>
+                                <?php 
+                                $isOwnProd = \App\Models\Supplier::isOwnedByCurrentSupplier($prod);
+                                ?>
+                                <?php if ($isOwnProd): ?>
+                                    <a href="<?= htmlspecialchars($baseUrl) ?>/supplier/products/edit/<?= (int)$prod['id'] ?>" class="flex-1 py-2 text-center rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-900 text-xs font-bold transition-colors inline-flex items-center justify-center gap-1.5" title="Manage / Edit Product in Supplier Portal">
+                                        <span class="material-symbols-outlined text-[15px]">edit</span>
+                                        <span>Manage / Edit</span>
+                                    </a>
+                                    <a href="<?= $prodUrl ?>" class="p-2 rounded-xl border border-surface-container hover:bg-slate-50 text-slate-600 transition-colors shrink-0 flex items-center justify-center" title="View Public Page" aria-label="View Public Page">
+                                        <span class="material-symbols-outlined text-[18px]">visibility</span>
+                                    </a>
+                                <?php else: ?>
+                                    <a href="<?= $prodUrl ?>" class="flex-1 py-2 text-center rounded-xl bg-surface-container-low hover:bg-surface-container-high text-blue-900 text-xs font-bold transition-colors">
+                                        Specs & Samples
+                                    </a>
+                                    <button type="button" onclick="toggleFavouriteProduct(<?= (int)$prod['id'] ?>, this)" class="p-2 rounded-xl border border-surface-container hover:bg-rose-50 text-slate-500 hover:text-rose-600 transition-colors shrink-0" title="Save to Favourites" aria-label="Save to Favourites">
+                                        <span class="material-symbols-outlined text-[18px]">favorite</span>
+                                    </button>
+                                    <button type="button" onclick="openProductChat(<?= htmlspecialchars(json_encode([
+                                        'id' => (int)$prod['id'],
+                                        'product_id' => (int)$prod['id'],
+                                        'supplier_id' => (int)($prod['supplier_id'] ?? 1),
+                                        'title' => $prod['name'] ?? $prod['title'] ?? '',
+                                        'name' => $prod['name'] ?? $prod['title'] ?? '',
+                                        'primary_image' => $prod['primary_image'] ?? '',
+                                        'min_price' => (float)($prod['min_price'] ?? 0),
+                                        'max_price' => (float)($prod['max_price'] ?? 0),
+                                        'moq_quantity' => (int)($prod['moq_quantity'] ?? 1),
+                                        'supplier_name' => $prod['supplier_name'] ?? 'Verified Factory'
+                                    ])) ?>)" class="p-2 rounded-xl bg-blue-700 hover:bg-blue-800 text-white transition-colors shrink-0 flex items-center justify-center cursor-pointer" title="Chat with Factory about this Product" aria-label="Chat with Factory">
+                                        <span class="material-symbols-outlined text-[18px]">send</span>
+                                    </button>
+                                <?php endif; ?>
                             </div>
                         </div>
                     </div>

@@ -18,6 +18,9 @@ class CmsPageController extends Controller
     {
         $slug = trim((string) ($params['slug'] ?? ''));
         $page = CmsPage::findBySlug($slug);
+        if (!$page && $slug === 'policies-and-rules') {
+            $page = CmsPage::findBySlug('terms-manufacturing-sla');
+        }
 
         if (!$page || empty($page['is_active'])) {
             http_response_code(404);

@@ -9,3 +9,7 @@ Archive.zip
 public/uploads/chat/*
 public/uploads/settings/*
 !public/uploads/settings/.gitkeep
+storage/tmp/*
+!storage/tmp/.gitkeep
+storage/tmp_uploads/*
+!storage/tmp_uploads/.gitkeep

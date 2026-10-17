@@ -80,12 +80,18 @@ $old = Session::flash('old_input') ?? [];
                     <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Mobile Number <span class="text-red-500">*</span></label>
                     <div class="flex gap-2">
                         <select name="country_code" id="buyerCountryCode" class="w-32 shrink-0 py-2.5 px-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:bg-white focus:border-blue-700 outline-none">
-                            <option value="+91" <?= ($old['country_code'] ?? '+91') === '+91' ? 'selected' : '' ?>>+91</option>
-                            <?php foreach ($countries as $c): if (!empty($c['phone_code'])): ?>
-                                <option value="<?= htmlspecialchars($c['phone_code']) ?>" <?= (($old['country_code'] ?? '+91') === $c['phone_code']) ? 'selected' : '' ?>>
+                            <?php 
+                                $selectedDialCode = $old['country_code'] ?? '+91';
+                                $alreadyMatched = false;
+                                foreach ($countries as $c): 
+                                    if (empty($c['phone_code'])) continue;
+                                    $isMatch = (!$alreadyMatched && ($selectedDialCode === $c['phone_code']) && (($c['iso_alpha2'] ?? '') === 'IN' || $selectedDialCode !== '+91'));
+                                    if ($isMatch) $alreadyMatched = true;
+                            ?>
+                                <option value="<?= htmlspecialchars($c['phone_code']) ?>" <?= $isMatch ? 'selected' : '' ?>>
                                     <?= $c['flag'] ?> <?= htmlspecialchars($c['phone_code']) ?>
                                 </option>
-                            <?php endif; endforeach; ?>
+                            <?php endforeach; ?>
                         </select>
                         <div class="relative flex-1">
                             <input type="tel" name="phone" required value="<?= htmlspecialchars($old['phone'] ?? '') ?>" placeholder="98765 43210" class="w-full pl-3.5 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:bg-white focus:border-blue-700 focus:ring-2 focus:ring-blue-100 outline-none transition-all">
@@ -104,6 +110,7 @@ $old = Session::flash('old_input') ?? [];
                         <?php foreach ($countries as $c): ?>
                             <option value="<?= (int)$c['id'] ?>" 
                                     data-flag="<?= htmlspecialchars($c['flag'] ?? '🌐') ?>" 
+                                    data-country-name="<?= htmlspecialchars($c['name']) ?>"
                                     data-phone="<?= htmlspecialchars($c['phone_code'] ?? '') ?>"
                                     <?= ((int)($old['country_id'] ?? 1) === (int)$c['id']) ? 'selected' : '' ?>>
                                 <?= $c['flag'] ?> <?= htmlspecialchars($c['name']) ?> (<?= htmlspecialchars($c['phone_code'] ?? '') ?>)

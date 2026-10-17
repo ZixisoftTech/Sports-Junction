@@ -352,8 +352,11 @@ $(document).ready(function() {
             {
                 data: 'delivery_location',
                 render: (loc, type, row) => {
+                    const country = row.country_name ? `<span class="badge bg-light text-dark border px-2 py-0.5 small"><i class="bi bi-geo-alt text-primary me-1"></i>${escapeHtml(row.country_name)}</span>` : '';
                     const v = loc || row.lead_time_req;
-                    return v ? `<span class="small">${escapeHtml(v)}</span>` : '<span class="text-muted">-</span>';
+                    const locText = v ? `<div class="small text-slate-600 mt-1">${escapeHtml(v)}</div>` : '';
+                    if (!country && !locText) return '<span class="text-muted">-</span>';
+                    return `<div>${country}${locText}</div>`;
                 }
             },
             {

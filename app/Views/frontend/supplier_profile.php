@@ -14,6 +14,7 @@ $contactPerson = htmlspecialchars($supplier['contact_person'] ?? 'Factory Repres
 $supplierId = (int) ($supplier['id'] ?? 0);
 $productCount = count($products);
 $supplierTags = !empty($supplierId) ? \App\Models\SupplierCertificationTag::getForSupplier($supplierId) : [];
+$isOwnSupplier = (\App\Models\Supplier::currentSupplierId() === $supplierId);
 ?>
 
 <div class="bg-surface-container-lowest min-h-screen py-8">
@@ -76,10 +77,17 @@ $supplierTags = !empty($supplierId) ? \App\Models\SupplierCertificationTag::getF
 
                     <!-- Direct Chat / RFQ Action Buttons -->
                     <div class="flex items-center gap-2.5">
-                        <button type="button" onclick="openProductChat({supplier_id: <?= $supplierId ?>, supplier_name: '<?= htmlspecialchars(addslashes($supplier['company_name'] ?? 'Supplier')) ?>'})" class="px-5 py-2.5 rounded-xl bg-blue-900 hover:bg-blue-950 text-white font-headline font-bold text-xs shadow-md transition-all flex items-center gap-2 transform hover:scale-[1.02]">
-                            <span class="material-symbols-outlined text-[18px]">chat</span>
-                            <span>Chat with Factory</span>
-                        </button>
+                        <?php if ($isOwnSupplier): ?>
+                            <a href="<?= $baseUrl ?>/supplier/profile" class="px-5 py-2.5 rounded-xl bg-blue-900 hover:bg-blue-950 text-white font-headline font-bold text-xs shadow-md transition-all flex items-center gap-2 transform hover:scale-[1.02]">
+                                <span class="material-symbols-outlined text-[18px]">edit</span>
+                                <span>Edit My Factory Profile</span>
+                            </a>
+                        <?php else: ?>
+                            <button type="button" onclick="openProductChat({supplier_id: <?= $supplierId ?>, supplier_name: '<?= htmlspecialchars(addslashes($supplier['company_name'] ?? 'Supplier')) ?>'})" class="px-5 py-2.5 rounded-xl bg-blue-900 hover:bg-blue-950 text-white font-headline font-bold text-xs shadow-md transition-all flex items-center gap-2 transform hover:scale-[1.02]">
+                                <span class="material-symbols-outlined text-[18px]">chat</span>
+                                <span>Chat with Factory</span>
+                            </button>
+                        <?php endif; ?>
                         <a href="#factoryProducts" class="px-4 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-xs transition-colors shadow-2xs flex items-center gap-1.5">
                             <span class="material-symbols-outlined text-[18px]">inventory_2</span>
                             <span>View Products (<?= $productCount ?>)</span>
@@ -167,10 +175,17 @@ $supplierTags = !empty($supplierId) ? \App\Models\SupplierCertificationTag::getF
                     <h4 class="font-headline font-bold text-base text-slate-700">No Published Products Currently Listed</h4>
                     <p class="text-xs text-slate-500 max-w-sm mx-auto">This manufacturer is currently updating their production catalog or setting up private OEM supply contracts.</p>
                     <div class="pt-2">
-                        <button type="button" onclick="openProductChat({supplier_id: <?= $supplierId ?>, supplier_name: '<?= htmlspecialchars(addslashes($supplier['company_name'] ?? 'Supplier')) ?>'})" class="px-4 py-2 rounded-xl bg-blue-900 hover:bg-blue-950 text-white font-bold text-xs inline-flex items-center gap-1.5 shadow-xs transition-colors">
-                            <span class="material-symbols-outlined text-[16px]">chat</span>
-                            <span>Send Custom RFQ to Factory</span>
-                        </button>
+                        <?php if ($isOwnSupplier): ?>
+                            <a href="<?= $baseUrl ?>/supplier/products/add" class="px-4 py-2 rounded-xl bg-blue-900 hover:bg-blue-950 text-white font-bold text-xs inline-flex items-center gap-1.5 shadow-xs transition-colors">
+                                <span class="material-symbols-outlined text-[16px]">add_circle</span>
+                                <span>Add Products to Your Catalog</span>
+                            </a>
+                        <?php else: ?>
+                            <button type="button" onclick="openProductChat({supplier_id: <?= $supplierId ?>, supplier_name: '<?= htmlspecialchars(addslashes($supplier['company_name'] ?? 'Supplier')) ?>'})" class="px-4 py-2 rounded-xl bg-blue-900 hover:bg-blue-950 text-white font-bold text-xs inline-flex items-center gap-1.5 shadow-xs transition-colors">
+                                <span class="material-symbols-outlined text-[16px]">chat</span>
+                                <span>Send Custom RFQ to Factory</span>
+                            </button>
+                        <?php endif; ?>
                     </div>
                 </div>
             <?php else: ?>
@@ -180,6 +195,7 @@ $supplierTags = !empty($supplierId) ? \App\Models\SupplierCertificationTag::getF
                             $imgSrc = !empty($p['primary_image']) ? ($baseUrl . $p['primary_image']) : ($baseUrl . '/assets/images/placeholder-product.jpg');
                             $priceStr = '$' . number_format((float)($p['min_price'] ?? $p['price'] ?? 0), 2);
                             $moqStr = (int)($p['moq_quantity'] ?? 1) . ' ' . htmlspecialchars($p['moq_unit_symbol'] ?? $p['moq_unit_name'] ?? 'Units');
+                            $isItemOwned = ($isOwnSupplier || \App\Models\Supplier::isOwnedByCurrentSupplier($p));
                         ?>
                         <div class="bg-white rounded-2xl border border-surface-container overflow-hidden shadow-xs hover:shadow-md transition-all flex flex-col group">
                             <!-- Product Image -->
@@ -211,9 +227,15 @@ $supplierTags = !empty($supplierId) ? \App\Models\SupplierCertificationTag::getF
                                     <a href="<?= $baseUrl ?>/product/<?= htmlspecialchars($p['slug']) ?>" class="flex-1 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 text-center text-xs font-bold transition-colors">
                                         View Specs
                                     </a>
-                                    <button type="button" onclick="openProductChat({id: <?= (int)$p['id'] ?>, product_id: <?= (int)$p['id'] ?>, supplier_id: <?= $supplierId ?>, title: '<?= htmlspecialchars(addslashes($p['name'] ?? $p['title'])) ?>', price: '<?= (float)($p['min_price'] ?? $p['price'] ?? 0) ?>', moq: <?= (int)($p['moq_quantity'] ?? 1) ?>, image: '<?= htmlspecialchars(addslashes($imgSrc)) ?>'})" class="p-1.5 rounded-lg bg-teal-50 hover:bg-teal-100 text-teal-800 border border-teal-200 transition-colors" title="Negotiate & Chat for this product">
-                                        <span class="material-symbols-outlined text-[18px]">chat</span>
-                                    </button>
+                                    <?php if ($isItemOwned): ?>
+                                        <a href="<?= $baseUrl ?>/supplier/products/edit/<?= (int)$p['id'] ?>" class="p-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-900 border border-blue-200 transition-colors" title="Manage / Edit Product">
+                                            <span class="material-symbols-outlined text-[18px]">edit</span>
+                                        </a>
+                                    <?php else: ?>
+                                        <button type="button" onclick="openProductChat({id: <?= (int)$p['id'] ?>, product_id: <?= (int)$p['id'] ?>, supplier_id: <?= $supplierId ?>, title: '<?= htmlspecialchars(addslashes($p['name'] ?? $p['title'])) ?>', price: '<?= (float)($p['min_price'] ?? $p['price'] ?? 0) ?>', moq: <?= (int)($p['moq_quantity'] ?? 1) ?>, image: '<?= htmlspecialchars(addslashes($imgSrc)) ?>'})" class="p-1.5 rounded-lg bg-teal-50 hover:bg-teal-100 text-teal-800 border border-teal-200 transition-colors" title="Negotiate & Chat for this product">
+                                            <span class="material-symbols-outlined text-[18px]">chat</span>
+                                        </button>
+                                    <?php endif; ?>
                                 </div>
                             </div>
                         </div>

@@ -45,7 +45,27 @@ class Product extends Model
         $product['subcategory_ids'] = self::getSubcategoryIds($id);
         $product['categories'] = self::getCategories($id);
         $product['subcategories'] = self::getSubcategories($id);
+        if (empty($product['category_name']) && !empty($product['categories'][0]['name'])) {
+            $product['category_name'] = $product['categories'][0]['name'];
+            $product['category_slug'] = $product['categories'][0]['slug'];
+        }
+        if (empty($product['subcategory_name']) && !empty($product['subcategories'][0]['name'])) {
+            $product['subcategory_name'] = $product['subcategories'][0]['name'];
+            $product['subcategory_slug'] = $product['subcategories'][0]['slug'];
+        }
+        $product['all_category_names'] = !empty($product['categories']) 
+            ? implode(', ', array_column($product['categories'], 'name')) 
+            : ($product['category_name'] ?? '');
+        $product['all_subcategory_names'] = !empty($product['subcategories']) 
+            ? implode(', ', array_column($product['subcategories'], 'name')) 
+            : ($product['subcategory_name'] ?? '');
+        $product['certificates'] = ProductCertificate::getForProduct($id);
         return $product;
+    }
+
+    public static function isOwnedByCurrentSupplier(mixed $product): bool
+    {
+        return Supplier::isOwnedByCurrentSupplier($product);
     }
 
     public static function findBySlug(string $slug): ?array
@@ -75,8 +95,8 @@ class Product extends Model
               AND p.status IN ('PUBLISHED', 'ACTIVE')
               AND p.approval_status = 'APPROVED'
               AND (sp.approval_status = 'APPROVED' AND sp.status = 'ACTIVE')
-              AND c.status = 'ACTIVE'
-              AND (p.subcategory_id IS NULL OR s.status = 'ACTIVE')
+              AND (c.status = 'ACTIVE' OR EXISTS (SELECT 1 FROM product_category_assignments pca JOIN categories c2 ON pca.category_id = c2.id WHERE pca.product_id = p.id AND c2.status = 'ACTIVE'))
+              AND (p.subcategory_id IS NULL OR s.status = 'ACTIVE' OR EXISTS (SELECT 1 FROM product_subcategory_assignments psa JOIN subcategories s2 ON psa.subcategory_id = s2.id WHERE psa.product_id = p.id AND s2.status = 'ACTIVE'))
             LIMIT 1
         ", [':slug' => $slug]);
 
@@ -90,6 +110,21 @@ class Product extends Model
         $product['subcategory_ids'] = self::getSubcategoryIds($prodId);
         $product['categories'] = self::getCategories($prodId);
         $product['subcategories'] = self::getSubcategories($prodId);
+        if (empty($product['category_name']) && !empty($product['categories'][0]['name'])) {
+            $product['category_name'] = $product['categories'][0]['name'];
+            $product['category_slug'] = $product['categories'][0]['slug'];
+        }
+        if (empty($product['subcategory_name']) && !empty($product['subcategories'][0]['name'])) {
+            $product['subcategory_name'] = $product['subcategories'][0]['name'];
+            $product['subcategory_slug'] = $product['subcategories'][0]['slug'];
+        }
+        $product['all_category_names'] = !empty($product['categories']) 
+            ? implode(', ', array_column($product['categories'], 'name')) 
+            : ($product['category_name'] ?? '');
+        $product['all_subcategory_names'] = !empty($product['subcategories']) 
+            ? implode(', ', array_column($product['subcategories'], 'name')) 
+            : ($product['subcategory_name'] ?? '');
+        $product['certificates'] = ProductCertificate::getForProduct($prodId);
         return $product;
     }
 
@@ -210,8 +245,11 @@ class Product extends Model
         $products = self::fetchAll("
             SELECT p.*,
                    p.title as name,
-                   c.name as category_name, c.slug as category_slug,
+                   COALESCE(c.name, (SELECT c_sub.name FROM product_category_assignments pca_sub JOIN categories c_sub ON pca_sub.category_id = c_sub.id WHERE pca_sub.product_id = p.id ORDER BY pca_sub.is_primary DESC, pca_sub.category_id ASC LIMIT 1)) as category_name,
+                   COALESCE(c.slug, (SELECT c_sub.slug FROM product_category_assignments pca_sub JOIN categories c_sub ON pca_sub.category_id = c_sub.id WHERE pca_sub.product_id = p.id ORDER BY pca_sub.is_primary DESC, pca_sub.category_id ASC LIMIT 1)) as category_slug,
+                   (SELECT GROUP_CONCAT(c_all.name ORDER BY pca_all.is_primary DESC, c_all.name ASC SEPARATOR ', ') FROM product_category_assignments pca_all JOIN categories c_all ON pca_all.category_id = c_all.id WHERE pca_all.product_id = p.id) as all_category_names,
                    s.name as subcategory_name, s.slug as subcategory_slug,
+                   (SELECT GROUP_CONCAT(s_all.name ORDER BY psa_all.is_primary DESC, s_all.name ASC SEPARATOR ', ') FROM product_subcategory_assignments psa_all JOIN subcategories s_all ON psa_all.subcategory_id = s_all.id WHERE psa_all.product_id = p.id) as all_subcategory_names,
                    pu.symbol as price_unit_symbol,
                    mu.name as moq_unit_name,
                    sp.company_name as supplier_name,
@@ -227,40 +265,78 @@ class Product extends Model
               AND p.approval_status = 'APPROVED'
               AND p.is_featured = 1
               AND (sp.approval_status = 'APPROVED' AND sp.status = 'ACTIVE')
-              AND c.status = 'ACTIVE'
-              AND (p.subcategory_id IS NULL OR s.status = 'ACTIVE')
+              AND (c.status = 'ACTIVE' OR EXISTS (SELECT 1 FROM product_category_assignments pca JOIN categories c2 ON pca.category_id = c2.id WHERE pca.product_id = p.id AND c2.status = 'ACTIVE'))
+              AND (p.subcategory_id IS NULL OR s.status = 'ACTIVE' OR EXISTS (SELECT 1 FROM product_subcategory_assignments psa JOIN subcategories s2 ON psa.subcategory_id = s2.id WHERE psa.product_id = p.id AND s2.status = 'ACTIVE'))
             ORDER BY p.featured_order ASC, p.id DESC
             LIMIT :lim
         ", [':lim' => $limit]);
 
+        self::attachCertificates($products);
         return $products;
     }
 
     public static function getRelatedProducts(int $productId, int $categoryId, int $limit = 4): array
     {
-        return self::fetchAll("
+        $products = self::fetchAll("
             SELECT p.*,
                    p.title as name,
-                   c.name as category_name, c.slug as category_slug,
+                   COALESCE(c.name, (SELECT c_sub.name FROM product_category_assignments pca_sub JOIN categories c_sub ON pca_sub.category_id = c_sub.id WHERE pca_sub.product_id = p.id ORDER BY pca_sub.is_primary DESC, pca_sub.category_id ASC LIMIT 1)) as category_name,
+                   COALESCE(c.slug, (SELECT c_sub.slug FROM product_category_assignments pca_sub JOIN categories c_sub ON pca_sub.category_id = c_sub.id WHERE pca_sub.product_id = p.id ORDER BY pca_sub.is_primary DESC, pca_sub.category_id ASC LIMIT 1)) as category_slug,
+                   (SELECT GROUP_CONCAT(c_all.name ORDER BY pca_all.is_primary DESC, c_all.name ASC SEPARATOR ', ') FROM product_category_assignments pca_all JOIN categories c_all ON pca_all.category_id = c_all.id WHERE pca_all.product_id = p.id) as all_category_names,
+                   s.name as subcategory_name, s.slug as subcategory_slug,
+                   (SELECT GROUP_CONCAT(s_all.name ORDER BY psa_all.is_primary DESC, s_all.name ASC SEPARATOR ', ') FROM product_subcategory_assignments psa_all JOIN subcategories s_all ON psa_all.subcategory_id = s_all.id WHERE psa_all.product_id = p.id) as all_subcategory_names,
                    pu.symbol as price_unit_symbol,
                    mu.name as moq_unit_name,
-                   sp.company_name as supplier_name
+                   sp.company_name as supplier_name,
+                   co.name as country_name
             FROM products p
             LEFT JOIN categories c ON p.category_id = c.id
             LEFT JOIN subcategories s ON p.subcategory_id = s.id
             LEFT JOIN price_units pu ON p.price_unit_id = pu.id
             LEFT JOIN moq_units mu ON p.moq_unit_id = mu.id
             LEFT JOIN suppliers sp ON p.supplier_id = sp.id
+            LEFT JOIN countries co ON p.country_id = co.id
             WHERE p.id != :id 
-              AND p.category_id = :cat_id 
+              AND (p.category_id = :cat_id OR EXISTS (SELECT 1 FROM product_category_assignments pca WHERE pca.product_id = p.id AND pca.category_id = :cat_id_pca))
               AND p.status IN ('PUBLISHED', 'ACTIVE')
               AND p.approval_status = 'APPROVED'
               AND (sp.approval_status = 'APPROVED' AND sp.status = 'ACTIVE')
-              AND c.status = 'ACTIVE'
-              AND (p.subcategory_id IS NULL OR s.status = 'ACTIVE')
+              AND (c.status = 'ACTIVE' OR EXISTS (SELECT 1 FROM product_category_assignments pca2 JOIN categories c2 ON pca2.category_id = c2.id WHERE pca2.product_id = p.id AND c2.status = 'ACTIVE'))
+              AND (p.subcategory_id IS NULL OR s.status = 'ACTIVE' OR EXISTS (SELECT 1 FROM product_subcategory_assignments psa JOIN subcategories s2 ON psa.subcategory_id = s2.id WHERE psa.product_id = p.id AND s2.status = 'ACTIVE'))
             ORDER BY p.is_featured DESC, p.id DESC
             LIMIT :lim
-        ", [':id' => $productId, ':cat_id' => $categoryId, ':lim' => $limit]);
+        ", [':id' => $productId, ':cat_id' => $categoryId, ':cat_id_pca' => $categoryId, ':lim' => $limit]);
+
+        self::attachCertificates($products);
+        return $products;
+    }
+
+    public static function attachCertificates(array &$products): void
+    {
+        if (empty($products)) {
+            return;
+        }
+        $pids = array_values(array_filter(array_map(fn($p) => (int)($p['id'] ?? 0), $products)));
+        if (empty($pids)) {
+            return;
+        }
+        $placeholders = implode(',', array_fill(0, count($pids), '?'));
+        $certRows = self::fetchAll("
+            SELECT pca.product_id, pc.id as certificate_id, pc.name, pc.code, pc.icon
+            FROM product_certificate_assignments pca
+            JOIN product_certificates pc ON pca.certificate_id = pc.id
+            WHERE pca.product_id IN ({$placeholders}) AND pc.status = 'ACTIVE'
+            ORDER BY pc.name ASC
+        ", $pids);
+
+        $certsByPid = [];
+        foreach ($certRows as $cr) {
+            $certsByPid[(int)$cr['product_id']][] = $cr;
+        }
+        foreach ($products as &$p) {
+            $p['certificates'] = $certsByPid[(int)($p['id'] ?? 0)] ?? [];
+        }
+        unset($p);
     }
 
     public static function getFilteredProducts(array $filters): array
@@ -273,19 +349,21 @@ class Product extends Model
             "p.status IN ('PUBLISHED', 'ACTIVE')",
             "p.approval_status = 'APPROVED'",
             "(sp.approval_status = 'APPROVED' AND sp.status = 'ACTIVE')",
-            "c.status = 'ACTIVE'",
-            "(p.subcategory_id IS NULL OR s.status = 'ACTIVE')"
+            "(c.status = 'ACTIVE' OR EXISTS (SELECT 1 FROM product_category_assignments pca_act JOIN categories c_act ON pca_act.category_id = c_act.id WHERE pca_act.product_id = p.id AND c_act.status = 'ACTIVE'))",
+            "(p.subcategory_id IS NULL OR s.status = 'ACTIVE' OR EXISTS (SELECT 1 FROM product_subcategory_assignments psa_act JOIN subcategories s_act ON psa_act.subcategory_id = s_act.id WHERE psa_act.product_id = p.id AND s_act.status = 'ACTIVE'))"
         ];
         $bindings = [];
 
         // Search query
         if (!empty($filters['q'])) {
             $q = trim((string) $filters['q']);
-            $where[] = "(p.title LIKE :s1 OR p.description LIKE :s2 OR p.brand_name LIKE :s3 OR p.material LIKE :s4)";
+            $where[] = "(p.title LIKE :s1 OR p.description LIKE :s2 OR p.brand_name LIKE :s3 OR p.material LIKE :s4 OR c.name LIKE :s5 OR EXISTS (SELECT 1 FROM product_category_assignments pca_s JOIN categories c_s ON pca_s.category_id = c_s.id WHERE pca_s.product_id = p.id AND c_s.name LIKE :s6))";
             $bindings[':s1'] = "%{$q}%";
             $bindings[':s2'] = "%{$q}%";
             $bindings[':s3'] = "%{$q}%";
             $bindings[':s4'] = "%{$q}%";
+            $bindings[':s5'] = "%{$q}%";
+            $bindings[':s6'] = "%{$q}%";
         }
 
         // Category slug or ID (matches primary category OR any assigned category)
@@ -376,8 +454,11 @@ class Product extends Model
         $dataSql = "
             SELECT p.*,
                    p.title as name,
-                   c.name as category_name, c.slug as category_slug,
+                   COALESCE(c.name, (SELECT c_sub.name FROM product_category_assignments pca_sub JOIN categories c_sub ON pca_sub.category_id = c_sub.id WHERE pca_sub.product_id = p.id ORDER BY pca_sub.is_primary DESC, pca_sub.category_id ASC LIMIT 1)) as category_name,
+                   COALESCE(c.slug, (SELECT c_sub.slug FROM product_category_assignments pca_sub JOIN categories c_sub ON pca_sub.category_id = c_sub.id WHERE pca_sub.product_id = p.id ORDER BY pca_sub.is_primary DESC, pca_sub.category_id ASC LIMIT 1)) as category_slug,
+                   (SELECT GROUP_CONCAT(c_all.name ORDER BY pca_all.is_primary DESC, c_all.name ASC SEPARATOR ', ') FROM product_category_assignments pca_all JOIN categories c_all ON pca_all.category_id = c_all.id WHERE pca_all.product_id = p.id) as all_category_names,
                    s.name as subcategory_name, s.slug as subcategory_slug,
+                   (SELECT GROUP_CONCAT(s_all.name ORDER BY psa_all.is_primary DESC, s_all.name ASC SEPARATOR ', ') FROM product_subcategory_assignments psa_all JOIN subcategories s_all ON psa_all.subcategory_id = s_all.id WHERE psa_all.product_id = p.id) as all_subcategory_names,
                    pu.symbol as price_unit_symbol,
                    mu.name as moq_unit_name,
                    sp.company_name as supplier_name,
@@ -394,6 +475,7 @@ class Product extends Model
             {$limitClause}
         ";
         $products = self::fetchAll($dataSql, $bindings);
+        self::attachCertificates($products);
 
         $lastPage = max(1, (int) ceil($total / $perPage));
 
@@ -453,7 +535,7 @@ class Product extends Model
                     available_quantity, sample_available, sample_price,
                     material, colors, size, weight, customization_details,
                     custom_logo, custom_color, custom_packaging, oem_available, odm_available, private_label,
-                    country_id, state_id, city_id, lead_time, shipping_info,
+                    country_id, state_id, city_id, lead_time, shipping_info, export_packaging,
                     status, approval_status, is_featured, featured_order, created_at, updated_at
                 ) VALUES (
                     :supplier_id, :category_id, :subcategory_id, :title, :slug, :sku, :brand_name,
@@ -462,7 +544,7 @@ class Product extends Model
                     :available_quantity, :sample_available, :sample_price,
                     :material, :colors, :size, :weight, :customization_details,
                     :custom_logo, :custom_color, :custom_packaging, :oem_available, :odm_available, :private_label,
-                    :country_id, :state_id, :city_id, :lead_time, :shipping_info,
+                    :country_id, :state_id, :city_id, :lead_time, :shipping_info, :export_packaging,
                     :status, :approval_status, :is_featured, :featured_order, NOW(), NOW()
                 )
             ", [
@@ -502,6 +584,7 @@ class Product extends Model
                 ':city_id'              => !empty($data['city_id']) ? (int) $data['city_id'] : 1,
                 ':lead_time'            => !empty($data['lead_time']) ? trim($data['lead_time']) : '10 - 20 Business Days',
                 ':shipping_info'        => !empty($data['shipping_info']) ? trim($data['shipping_info']) : null,
+                ':export_packaging'     => !empty($data['export_packaging']) ? trim($data['export_packaging']) : null,
                 ':status'               => in_array($data['status'] ?? '', ['PUBLISHED', 'DRAFT', 'INACTIVE', 'ACTIVE'], true) ? $data['status'] : 'PUBLISHED',
                 ':approval_status'      => in_array($data['approval_status'] ?? '', ['DRAFT', 'PENDING_APPROVAL', 'APPROVED', 'REJECTED'], true) ? $data['approval_status'] : 'APPROVED',
                 ':is_featured'          => !empty($data['is_featured']) ? 1 : 0,
@@ -584,7 +667,9 @@ class Product extends Model
             $subcategoryIds = is_array($data['subcategory_ids']) ? $data['subcategory_ids'] : explode(',', (string)$data['subcategory_ids']);
             $subcategoryIds = array_values(array_unique(array_filter(array_map('intval', $subcategoryIds))));
         }
-        $primarySubId = !empty($data['subcategory_id']) ? (int)$data['subcategory_id'] : ($subcategoryIds[0] ?? $existing['subcategory_id']);
+        $primarySubId = !empty($data['subcategory_id']) 
+            ? (int)$data['subcategory_id'] 
+            : (!empty($subcategoryIds) ? $subcategoryIds[0] : (isset($data['subcategory_ids']) ? null : $existing['subcategory_id']));
 
         self::beginTransaction();
         try {
@@ -625,6 +710,7 @@ class Product extends Model
                     country_id = :country_id,
                     lead_time = :lead_time,
                     shipping_info = :shipping_info,
+                    export_packaging = :export_packaging,
                     status = :status,
                     approval_status = :approval_status,
                     is_featured = :is_featured,
@@ -667,6 +753,7 @@ class Product extends Model
                 ':country_id'           => !empty($data['country_id']) ? (int) $data['country_id'] : $existing['country_id'],
                 ':lead_time'            => !empty($data['lead_time']) ? trim($data['lead_time']) : $existing['lead_time'],
                 ':shipping_info'        => !empty($data['shipping_info']) ? trim($data['shipping_info']) : $existing['shipping_info'],
+                ':export_packaging'     => isset($data['export_packaging']) ? (!empty($data['export_packaging']) ? trim($data['export_packaging']) : null) : ($existing['export_packaging'] ?? null),
                 ':status'               => in_array($data['status'] ?? '', ['PUBLISHED', 'DRAFT', 'INACTIVE', 'ACTIVE'], true) ? $data['status'] : $existing['status'],
                 ':approval_status'      => $approvalStatus,
                 ':is_featured'          => isset($data['is_featured']) ? (!empty($data['is_featured']) ? 1 : 0) : $existing['is_featured'],
@@ -804,11 +891,12 @@ class Product extends Model
         $bindings = [];
 
         if ($search !== '') {
-            $where[] = "(p.title LIKE :s1 OR p.sku LIKE :s2 OR p.brand_name LIKE :s3 OR c.name LIKE :s4)";
+            $where[] = "(p.title LIKE :s1 OR p.sku LIKE :s2 OR p.brand_name LIKE :s3 OR c.name LIKE :s4 OR EXISTS (SELECT 1 FROM product_category_assignments pca_s JOIN categories c_s ON pca_s.category_id = c_s.id WHERE pca_s.product_id = p.id AND c_s.name LIKE :s5))";
             $bindings[':s1'] = "%{$search}%";
             $bindings[':s2'] = "%{$search}%";
             $bindings[':s3'] = "%{$search}%";
             $bindings[':s4'] = "%{$search}%";
+            $bindings[':s5'] = "%{$search}%";
         }
 
         if ($statusFilter !== '') {
@@ -817,8 +905,14 @@ class Product extends Model
         }
 
         if ($categoryFilter > 0) {
-            $where[] = "p.category_id = :cat_filter";
+            $where[] = "(p.category_id = :cat_filter OR EXISTS (SELECT 1 FROM product_category_assignments pca WHERE pca.product_id = p.id AND pca.category_id = :cat_filter_pca))";
             $bindings[':cat_filter'] = $categoryFilter;
+            $bindings[':cat_filter_pca'] = $categoryFilter;
+        }
+
+        if (isset($params['is_featured']) && $params['is_featured'] !== '') {
+            $where[] = "p.is_featured = :is_featured";
+            $bindings[':is_featured'] = (int)$params['is_featured'];
         }
 
         $whereClause = !empty($where) ? 'WHERE ' . implode(' AND ', $where) : '';
@@ -834,7 +928,10 @@ class Product extends Model
         $limitClause = $length > 0 ? "LIMIT {$start}, {$length}" : "";
         $sql = "SELECT p.id, p.title as name, p.title, p.slug, p.primary_image, p.min_price, p.max_price, 
                        p.moq_quantity, p.status, p.approval_status, p.rejection_reason, p.is_featured, p.featured_order, p.created_at,
-                       c.name as category_name, s.name as subcategory_name,
+                       COALESCE(c.name, (SELECT c_sub.name FROM product_category_assignments pca_sub JOIN categories c_sub ON pca_sub.category_id = c_sub.id WHERE pca_sub.product_id = p.id ORDER BY pca_sub.is_primary DESC, pca_sub.category_id ASC LIMIT 1)) as category_name,
+                       (SELECT GROUP_CONCAT(c_all.name ORDER BY pca_all.is_primary DESC, c_all.name ASC SEPARATOR ', ') FROM product_category_assignments pca_all JOIN categories c_all ON pca_all.category_id = c_all.id WHERE pca_all.product_id = p.id) as all_category_names,
+                       s.name as subcategory_name,
+                       (SELECT GROUP_CONCAT(s_all.name ORDER BY psa_all.is_primary DESC, s_all.name ASC SEPARATOR ', ') FROM product_subcategory_assignments psa_all JOIN subcategories s_all ON psa_all.subcategory_id = s_all.id WHERE psa_all.product_id = p.id) as all_subcategory_names,
                        pu.symbol as price_unit_symbol, mu.symbol as moq_unit_symbol,
                        sp.company_name as supplier_name, p.pending_changes
                 FROM products p 
@@ -861,7 +958,10 @@ class Product extends Model
     {
         return self::fetchAll("
             SELECT p.*, p.title as name,
-                   c.name as category_name, s.name as subcategory_name,
+                   COALESCE(c.name, (SELECT c_sub.name FROM product_category_assignments pca_sub JOIN categories c_sub ON pca_sub.category_id = c_sub.id WHERE pca_sub.product_id = p.id ORDER BY pca_sub.is_primary DESC, pca_sub.category_id ASC LIMIT 1)) as category_name,
+                   (SELECT GROUP_CONCAT(c_all.name ORDER BY pca_all.is_primary DESC, c_all.name ASC SEPARATOR ', ') FROM product_category_assignments pca_all JOIN categories c_all ON pca_all.category_id = c_all.id WHERE pca_all.product_id = p.id) as all_category_names,
+                   s.name as subcategory_name,
+                   (SELECT GROUP_CONCAT(s_all.name ORDER BY psa_all.is_primary DESC, s_all.name ASC SEPARATOR ', ') FROM product_subcategory_assignments psa_all JOIN subcategories s_all ON psa_all.subcategory_id = s_all.id WHERE psa_all.product_id = p.id) as all_subcategory_names,
                    pu.symbol as price_unit_symbol, mu.name as moq_unit_name
             FROM products p
             LEFT JOIN categories c ON p.category_id = c.id
@@ -930,6 +1030,7 @@ class Product extends Model
                 'country_id'            => (int)($data['country_id'] ?? $product['country_id'] ?? 1),
                 'lead_time'             => trim($data['lead_time'] ?? $product['lead_time'] ?? ''),
                 'shipping_info'         => trim($data['shipping_info'] ?? $product['shipping_info'] ?? ''),
+                'export_packaging'      => trim($data['export_packaging'] ?? $product['export_packaging'] ?? ''),
                 'status'                => in_array($data['status'] ?? '', ['PUBLISHED', 'DRAFT', 'INACTIVE'], true) ? $data['status'] : ($product['status'] ?? 'PUBLISHED'),
                 'video_url'             => trim($data['video_url'] ?? $product['video_url'] ?? ''),
                 'primary_image'         => $finalPrimary,
@@ -1021,6 +1122,7 @@ class Product extends Model
                         'country_id'            => $pending['country_id'] ?? $product['country_id'],
                         'lead_time'             => $pending['lead_time'] ?? $product['lead_time'],
                         'shipping_info'         => $pending['shipping_info'] ?? $product['shipping_info'],
+                        'export_packaging'      => $pending['export_packaging'] ?? $product['export_packaging'],
                         'video_url'             => $pending['video_url'] ?? $product['video_url'],
                         'primary_image'         => $pending['primary_image'] ?? $product['primary_image'],
                         'is_featured'           => $product['is_featured'],
@@ -1067,10 +1169,32 @@ class Product extends Model
             return false;
         }
 
+        // If product was already APPROVED and a pending revision was under review:
+        // Retain the existing approved product live, clear the pending revision, and record rejection feedback
+        if ($product['approval_status'] === 'APPROVED') {
+            self::execute("
+                UPDATE products 
+                SET pending_changes = NULL,
+                    rejection_reason = :reason,
+                    reviewed_by = :admin_id,
+                    reviewed_at = NOW(),
+                    updated_at = NOW()
+                WHERE id = :id
+            ", [
+                ':reason'   => trim($reason),
+                ':admin_id' => $adminId,
+                ':id'       => $id
+            ]);
+
+            return true;
+        }
+
+        // Initial submission or non-approved product: mark approval_status as REJECTED
         self::execute("
             UPDATE products 
             SET approval_status = 'REJECTED',
                 rejection_reason = :reason,
+                pending_changes = NULL,
                 reviewed_by = :admin_id,
                 reviewed_at = NOW(),
                 updated_at = NOW()
@@ -1099,7 +1223,10 @@ class Product extends Model
 
         return self::fetchAll("
             SELECT p.*, p.title as name,
-                   c.name as category_name, s.name as subcategory_name,
+                   COALESCE(c.name, (SELECT c_sub.name FROM product_category_assignments pca_sub JOIN categories c_sub ON pca_sub.category_id = c_sub.id WHERE pca_sub.product_id = p.id ORDER BY pca_sub.is_primary DESC, pca_sub.category_id ASC LIMIT 1)) as category_name,
+                   (SELECT GROUP_CONCAT(c_all.name ORDER BY pca_all.is_primary DESC, c_all.name ASC SEPARATOR ', ') FROM product_category_assignments pca_all JOIN categories c_all ON pca_all.category_id = c_all.id WHERE pca_all.product_id = p.id) as all_category_names,
+                   s.name as subcategory_name,
+                   (SELECT GROUP_CONCAT(s_all.name ORDER BY psa_all.is_primary DESC, s_all.name ASC SEPARATOR ', ') FROM product_subcategory_assignments psa_all JOIN subcategories s_all ON psa_all.subcategory_id = s_all.id WHERE psa_all.product_id = p.id) as all_subcategory_names,
                    pu.symbol as price_unit_symbol, mu.name as moq_unit_name,
                    sp.company_name as supplier_name, sp.email as supplier_email,
                    sp.phone as supplier_phone
@@ -1121,6 +1248,7 @@ class Product extends Model
             'pending'   => (int) self::fetchColumn("SELECT COUNT(*) FROM products WHERE approval_status = 'PENDING_APPROVAL' OR pending_changes IS NOT NULL"),
             'approved'  => (int) self::fetchColumn("SELECT COUNT(*) FROM products WHERE approval_status = 'APPROVED' AND pending_changes IS NULL"),
             'rejected'  => (int) self::fetchColumn("SELECT COUNT(*) FROM products WHERE approval_status = 'REJECTED'"),
+            'featured'  => (int) self::fetchColumn("SELECT COUNT(*) FROM products WHERE is_featured = 1"),
         ];
     }
 

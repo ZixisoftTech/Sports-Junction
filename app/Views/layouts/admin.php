@@ -14,7 +14,9 @@ $activeMenu = $activeMenu ?? 'dashboard';
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= htmlspecialchars($pageTitle ?? 'Sports Junction — Super Admin Portal') ?></title>
     <!-- Favicon -->
-    <link rel="icon" type="image/jpeg" href="<?= htmlspecialchars($baseUrl) ?>/assets/images/logo.jpg">
+    <link rel="icon" type="image/png" href="<?= htmlspecialchars($baseUrl) ?>/assets/images/favicon.png">
+    <link rel="shortcut icon" href="<?= htmlspecialchars($baseUrl) ?>/favicon.ico">
+    <link rel="apple-touch-icon" href="<?= htmlspecialchars($baseUrl) ?>/assets/images/favicon.png">
     <!-- Google Material Symbols Outlined -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -28,6 +30,12 @@ $activeMenu = $activeMenu ?? 'dashboard';
     <link href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.bootstrap5.min.css" rel="stylesheet">
     <!-- Custom Admin CSS -->
     <link href="<?= htmlspecialchars($baseUrl) ?>/assets/css/admin.css" rel="stylesheet">
+    <script>
+        window.SportsJunction = window.SportsJunction || {};
+        window.SportsJunction.baseUrl = '<?= htmlspecialchars($baseUrl) ?>';
+        window.SportsJunction.csrfToken = '<?= \App\Helpers\CSRF::getToken() ?>';
+        window.baseUrl = '<?= htmlspecialchars($baseUrl) ?>';
+    </script>
 </head>
 <body>
 
@@ -35,7 +43,7 @@ $activeMenu = $activeMenu ?? 'dashboard';
 <aside class="sj-sidebar">
     <div class="sj-sidebar-brand">
         <a href="<?= htmlspecialchars($baseUrl) ?>/admin/dashboard" class="d-block text-center">
-            <img src="<?= htmlspecialchars($baseUrl) ?>/assets/images/logo.jpg" alt="Sports Junction" class="img-fluid">
+            <img src="<?= htmlspecialchars($baseUrl) ?>/assets/images/logo.png" alt="Sports Junction" class="img-fluid" style="max-height: 48px; width: auto; object-fit: contain;">
         </a>
     </div>
 
@@ -126,6 +134,10 @@ $activeMenu = $activeMenu ?? 'dashboard';
         <a href="<?= htmlspecialchars($baseUrl) ?>/admin/pages" class="sj-nav-item <?= ($activeMenu === 'cms_pages') ? 'active' : '' ?>">
             <i class="bi bi-file-earmark-richtext"></i>
             <span>Footer &amp; CMS Pages</span>
+        </a>
+        <a href="<?= htmlspecialchars($baseUrl) ?>/admin/seller-agreement" class="sj-nav-item <?= ($activeMenu === 'seller_agreement') ? 'active' : '' ?>">
+            <i class="bi bi-file-earmark-text-fill"></i>
+            <span>Seller Agreement</span>
         </a>
 
         <div class="sj-nav-section-title">Security & Audit</div>
@@ -349,7 +361,7 @@ $activeMenu = $activeMenu ?? 'dashboard';
 
 <!-- Global Application Settings & Helper JS -->
 <script>
-    window.SportsJunction = {
+    window.SportsJunction = Object.assign(window.SportsJunction || {}, {
         baseUrl: '<?= htmlspecialchars($baseUrl) ?>',
         csrfToken: '<?= CSRF::getToken() ?>',
         defaultLogo: '<?= htmlspecialchars($baseUrl) ?>/assets/images/logo.jpg',
@@ -365,8 +377,18 @@ $activeMenu = $activeMenu ?? 'dashboard';
                 return clean;
             }
             return b + clean;
+        },
+        escapeHtml: function (str) {
+            if (str === null || str === undefined) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
         }
     };
+    window.escapeHtml = window.SportsJunction.escapeHtml;
 
     // Mobile Sidebar Toggle Handling
     document.addEventListener('DOMContentLoaded', () => {

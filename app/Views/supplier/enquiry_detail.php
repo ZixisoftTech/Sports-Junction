@@ -111,16 +111,23 @@ $baseUrl = Response::baseUrl();
 <script>
 function submitReply(e) {
     e.preventDefault();
-    const msg = $('#replyMessage').val().trim();
+    const replyInput = document.getElementById('replyMessage');
+    const sendBtn = document.getElementById('btnSendReply');
+    if (!replyInput || !sendBtn) return;
+
+    const msg = replyInput.value.trim();
     if (!msg) return;
 
-    $('#btnSendReply').prop('disabled', true);
+    sendBtn.disabled = true;
+    const origHtml = sendBtn.innerHTML;
+    sendBtn.innerHTML = '<span class="material-symbols-outlined text-[16px] animate-spin">refresh</span><span>Sending...</span>';
 
     fetch('<?= htmlspecialchars($baseUrl) ?>/supplier/enquiries/<?= (int)$inquiry['id'] ?>/reply', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-CSRF-Token': '<?= htmlspecialchars(CSRF::token()) ?>'
+            'X-CSRF-Token': '<?= htmlspecialchars(CSRF::token()) ?>',
+            'X-Requested-With': 'XMLHttpRequest'
         },
         body: JSON.stringify({
             message: msg,
@@ -129,7 +136,8 @@ function submitReply(e) {
     })
     .then(r => r.json())
     .then(res => {
-        $('#btnSendReply').prop('disabled', false);
+        sendBtn.disabled = false;
+        sendBtn.innerHTML = origHtml;
         if (res.success) {
             window.location.reload();
         } else {
@@ -137,7 +145,8 @@ function submitReply(e) {
         }
     })
     .catch(() => {
-        $('#btnSendReply').prop('disabled', false);
+        sendBtn.disabled = false;
+        sendBtn.innerHTML = origHtml;
         alert('Server communication error.');
     });
 }

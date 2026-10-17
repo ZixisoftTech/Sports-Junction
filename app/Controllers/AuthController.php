@@ -338,26 +338,51 @@ class AuthController extends Controller
         }
 
         $email = strtolower(trim((string)$input['email']));
+        $pendingUserId = (int)Session::get('pending_edit_user_id');
+        $pendingUser = $pendingUserId ? User::findById($pendingUserId) : null;
+
         if (User::emailExists($email)) {
-            Session::flash('error', 'An account with this email address already exists. Please log in.');
-            Session::flash('old_input', $input);
-            $this->redirect('/register');
-            return;
+            if (!$pendingUser || strtolower($pendingUser['email']) !== $email) {
+                Session::flash('error', 'An account with this email address already exists. Please log in.');
+                Session::flash('old_input', $input);
+                $this->redirect('/register');
+                return;
+            }
         }
 
         try {
-            // Create pending buyer user
-            $userId = User::createBuyer([
-                'name'         => $input['name'],
-                'company_name' => $input['company_name'],
-                'email'        => $email,
-                'password'     => $input['password'],
-                'phone'        => $input['phone'],
-                'country_code' => $input['country_code'] ?? '+91',
-                'country_id'   => (int)$input['country_id'],
-                'state'        => !empty($input['state']) ? trim($input['state']) : null,
-                'city'         => !empty($input['city']) ? trim($input['city']) : null,
-            ]);
+            if ($pendingUser && $pendingUser['status'] === 'PENDING_VERIFICATION') {
+                $userId = $pendingUserId;
+                User::updateProfile($userId, [
+                    'name'         => $input['name'],
+                    'company_name' => $input['company_name'],
+                    'email'        => $email,
+                    'phone'        => $input['phone'],
+                    'country_code' => $input['country_code'] ?? '+91',
+                    'country_id'   => (int)$input['country_id'],
+                    'state'        => !empty($input['state']) ? trim($input['state']) : null,
+                    'city'         => !empty($input['city']) ? trim($input['city']) : null,
+                ]);
+                if (!empty($input['password'])) {
+                    User::updatePassword($userId, $input['password']);
+                }
+                // Invalidate previous OTP
+                Otp::invalidate($pendingUser['email'], 'REGISTRATION');
+                Session::remove('pending_edit_user_id');
+            } else {
+                // Create pending buyer user
+                $userId = User::createBuyer([
+                    'name'         => $input['name'],
+                    'company_name' => $input['company_name'],
+                    'email'        => $email,
+                    'password'     => $input['password'],
+                    'phone'        => $input['phone'],
+                    'country_code' => $input['country_code'] ?? '+91',
+                    'country_id'   => (int)$input['country_id'],
+                    'state'        => !empty($input['state']) ? trim($input['state']) : null,
+                    'city'         => !empty($input['city']) ? trim($input['city']) : null,
+                ]);
+            }
 
             // Generate 6-digit OTP
             $otp = Otp::generate($email, 'REGISTRATION', $this->request->getIp());
@@ -398,6 +423,68 @@ class AuthController extends Controller
             'email'     => $email,
             'purpose'   => $purpose,
         ], 'auth');
+    }
+
+    public function changeRegistrationEmail(): void
+    {
+        $userId = (int)Session::get('otp_user_id');
+        $email = (string)Session::get('otp_email');
+        $purpose = (string)(Session::get('otp_purpose') ?? 'REGISTRATION');
+
+        if (!$userId && !empty($email)) {
+            $user = User::findByEmail($email);
+            if ($user) {
+                $userId = (int)$user['id'];
+            }
+        }
+
+        if (!$userId) {
+            $this->redirect('/register');
+            return;
+        }
+
+        $user = User::findById($userId);
+        if (!$user) {
+            $this->redirect('/register');
+            return;
+        }
+
+        Session::set('pending_edit_user_id', $userId);
+
+        if ($purpose === 'SUPPLIER_REGISTRATION' || ($user['role'] ?? '') === 'SUPPLIER') {
+            $supplier = Supplier::findByUserId($userId);
+            $oldInput = [
+                'company_name'     => $supplier['company_name'] ?? $user['company_name'] ?? '',
+                'contact_person'   => $supplier['contact_person'] ?? $user['name'] ?? '',
+                'email'            => $user['email'] ?? '',
+                'phone'            => $supplier['phone'] ?? $user['phone'] ?? '',
+                'country_code'     => $supplier['country_code'] ?? $user['country_code'] ?? '+91',
+                'country_id'       => $supplier['country_id'] ?? $user['country_id'] ?? '',
+                'business_type_id' => $supplier['business_type_id'] ?? '',
+                'address'          => $supplier['address'] ?? '',
+                'state'            => $supplier['state'] ?? $user['state'] ?? '',
+                'city'             => $supplier['city'] ?? $user['city'] ?? '',
+                'postal_code'      => $supplier['postal_code'] ?? '',
+            ];
+            Session::flash('old_input', $oldInput);
+            Session::flash('info', 'You can update your email address below.');
+            $this->redirect('/supplier/register');
+            return;
+        }
+
+        $oldInput = [
+            'name'         => $user['name'] ?? '',
+            'company_name' => $user['company_name'] ?? '',
+            'email'        => $user['email'] ?? '',
+            'phone'        => $user['phone'] ?? '',
+            'country_code' => $user['country_code'] ?? '+91',
+            'country_id'   => $user['country_id'] ?? '',
+            'state'        => $user['state'] ?? '',
+            'city'         => $user['city'] ?? '',
+        ];
+        Session::flash('old_input', $oldInput);
+        Session::flash('info', 'You can update your email address below.');
+        $this->redirect('/register');
     }
 
     public function verifyOtp(): void
@@ -561,16 +648,24 @@ class AuthController extends Controller
 
         $user = User::findByEmail($email);
 
-        // Always show generic response to prevent account enumeration
-        if ($user && ($user['status'] ?? '') === 'ACTIVE') {
-            $otp = Otp::generate($email, 'PASSWORD_RESET', $this->request->getIp());
-            Mailer::sendPasswordResetOtp($email, $user['name'], $otp);
-            Session::set('reset_email', $email);
-        } else {
-            Session::set('reset_email', $email);
+        if (!$user) {
+            Session::remove('reset_email');
+            Session::flash('error', 'No account found with this email address. Please check your email or register.');
+            $this->redirect('/forgot-password');
+            return;
         }
 
-        Session::flash('success', "If an active account exists for {$email}, a 6-digit recovery passcode has been dispatched.");
+        if (($user['status'] ?? '') !== 'ACTIVE') {
+            Session::remove('reset_email');
+            Session::flash('error', 'Your account is currently inactive or pending approval. Please contact support.');
+            $this->redirect('/forgot-password');
+            return;
+        }
+
+        $otp = Otp::generate($email, 'PASSWORD_RESET', $this->request->getIp());
+        Mailer::sendPasswordResetOtp($email, $user['name'] ?? 'User', $otp);
+        Session::set('reset_email', $email);
+        Session::flash('success', "A 6-digit recovery passcode has been dispatched to {$email}.");
         $this->redirect('/reset-password');
     }
 
@@ -578,6 +673,7 @@ class AuthController extends Controller
     {
         $email = Session::get('reset_email') ?? '';
         if (empty($email)) {
+            Session::flash('error', 'Please submit your registered email to request a password reset.');
             $this->redirect('/forgot-password');
             return;
         }
@@ -597,7 +693,19 @@ class AuthController extends Controller
             return;
         }
 
+        $sessionEmail = Session::get('reset_email');
+        if (empty($sessionEmail)) {
+            Session::flash('error', 'Password reset session expired or unauthorized. Please start over.');
+            $this->redirect('/forgot-password');
+            return;
+        }
+
         $email = strtolower(trim((string)$this->request->post('email', '')));
+        if (empty($email) || $email !== strtolower($sessionEmail)) {
+            Session::flash('error', 'Password reset session does not match this email address.');
+            $this->redirect('/reset-password');
+            return;
+        }
         $otp = trim((string)$this->request->post('otp', ''));
         $password = (string)$this->request->post('password', '');
         $conf = (string)$this->request->post('password_confirmation', '');
@@ -692,46 +800,111 @@ class AuthController extends Controller
         }
 
         $email = strtolower(trim((string)$input['email']));
+        $pendingUserId = (int)Session::get('pending_edit_user_id');
+        $pendingUser = $pendingUserId ? User::findById($pendingUserId) : null;
+
         if (User::emailExists($email)) {
-            Session::flash('error', 'An account with this email address already exists. Please log in.');
-            Session::flash('old_input', $input);
-            $this->redirect('/supplier/register');
-            return;
+            if (!$pendingUser || strtolower($pendingUser['email']) !== $email) {
+                Session::flash('error', 'An account with this email address already exists. Please log in.');
+                Session::flash('old_input', $input);
+                $this->redirect('/supplier/register');
+                return;
+            }
         }
 
         try {
-            // 1. Create User with role SUPPLIER and PENDING_VERIFICATION
-            $userId = User::createSupplierUser([
-                'name'         => $input['contact_person'],
-                'company_name' => $input['company_name'],
-                'email'        => $email,
-                'password'     => $input['password'],
-                'phone'        => $input['phone'],
-                'country_code' => $input['country_code'] ?? '+91',
-                'country_id'   => (int)$input['country_id'],
-                'state'        => trim($input['state']),
-                'city'         => trim($input['city']),
-            ]);
+            if ($pendingUser && $pendingUser['status'] === 'PENDING_VERIFICATION') {
+                $userId = $pendingUserId;
+                User::updateProfile($userId, [
+                    'name'         => $input['contact_person'],
+                    'company_name' => $input['company_name'],
+                    'email'        => $email,
+                    'phone'        => $input['phone'],
+                    'country_code' => $input['country_code'] ?? '+91',
+                    'country_id'   => (int)$input['country_id'],
+                    'state'        => trim($input['state']),
+                    'city'         => trim($input['city']),
+                ]);
+                if (!empty($input['password'])) {
+                    User::updatePassword($userId, $input['password']);
+                }
 
-            // 2. Create Supplier Profile
-            $supplierId = Supplier::create([
-                'user_id'          => $userId,
-                'business_type_id' => (int)$input['business_type_id'],
-                'country_id'       => (int)$input['country_id'],
-                'state_id'         => !empty($input['state_id']) ? (int)$input['state_id'] : null,
-                'city_id'          => !empty($input['city_id']) ? (int)$input['city_id'] : null,
-                'state'            => trim($input['state']),
-                'city'             => trim($input['city']),
-                'company_name'     => $input['company_name'],
-                'contact_person'   => $input['contact_person'],
-                'email'            => $email,
-                'phone'            => $input['phone'],
-                'country_code'     => $input['country_code'] ?? '+91',
-                'address'          => $input['address'],
-                'postal_code'      => $input['postal_code'],
-                'status'           => 'ACTIVE',
-                'approval_status'  => 'PENDING_VERIFICATION',
-            ]);
+                $supplier = Supplier::findByUserId($userId);
+                if ($supplier) {
+                    Supplier::updateProfile((int)$supplier['id'], [
+                        'business_type_id' => (int)$input['business_type_id'],
+                        'country_id'       => (int)$input['country_id'],
+                        'state_id'         => !empty($input['state_id']) ? (int)$input['state_id'] : null,
+                        'city_id'          => !empty($input['city_id']) ? (int)$input['city_id'] : null,
+                        'state'            => trim($input['state']),
+                        'city'             => trim($input['city']),
+                        'company_name'     => $input['company_name'],
+                        'contact_person'   => $input['contact_person'],
+                        'email'            => $email,
+                        'phone'            => $input['phone'],
+                        'country_code'     => $input['country_code'] ?? '+91',
+                        'address'          => $input['address'],
+                        'postal_code'      => $input['postal_code'],
+                    ]);
+                    $supplierId = (int)$supplier['id'];
+                } else {
+                    $supplierId = Supplier::create([
+                        'user_id'          => $userId,
+                        'business_type_id' => (int)$input['business_type_id'],
+                        'country_id'       => (int)$input['country_id'],
+                        'state_id'         => !empty($input['state_id']) ? (int)$input['state_id'] : null,
+                        'city_id'          => !empty($input['city_id']) ? (int)$input['city_id'] : null,
+                        'state'            => trim($input['state']),
+                        'city'             => trim($input['city']),
+                        'company_name'     => $input['company_name'],
+                        'contact_person'   => $input['contact_person'],
+                        'email'            => $email,
+                        'phone'            => $input['phone'],
+                        'country_code'     => $input['country_code'] ?? '+91',
+                        'address'          => $input['address'],
+                        'postal_code'      => $input['postal_code'],
+                        'status'           => 'ACTIVE',
+                        'approval_status'  => 'PENDING_VERIFICATION',
+                    ]);
+                }
+
+                // Invalidate old OTP
+                Otp::invalidate($pendingUser['email'], 'SUPPLIER_REGISTRATION');
+                Session::remove('pending_edit_user_id');
+            } else {
+                // 1. Create User with role SUPPLIER and PENDING_VERIFICATION
+                $userId = User::createSupplierUser([
+                    'name'         => $input['contact_person'],
+                    'company_name' => $input['company_name'],
+                    'email'        => $email,
+                    'password'     => $input['password'],
+                    'phone'        => $input['phone'],
+                    'country_code' => $input['country_code'] ?? '+91',
+                    'country_id'   => (int)$input['country_id'],
+                    'state'        => trim($input['state']),
+                    'city'         => trim($input['city']),
+                ]);
+
+                // 2. Create Supplier Profile
+                $supplierId = Supplier::create([
+                    'user_id'          => $userId,
+                    'business_type_id' => (int)$input['business_type_id'],
+                    'country_id'       => (int)$input['country_id'],
+                    'state_id'         => !empty($input['state_id']) ? (int)$input['state_id'] : null,
+                    'city_id'          => !empty($input['city_id']) ? (int)$input['city_id'] : null,
+                    'state'            => trim($input['state']),
+                    'city'             => trim($input['city']),
+                    'company_name'     => $input['company_name'],
+                    'contact_person'   => $input['contact_person'],
+                    'email'            => $email,
+                    'phone'            => $input['phone'],
+                    'country_code'     => $input['country_code'] ?? '+91',
+                    'address'          => $input['address'],
+                    'postal_code'      => $input['postal_code'],
+                    'status'           => 'ACTIVE',
+                    'approval_status'  => 'PENDING_VERIFICATION',
+                ]);
+            }
 
             // 3. Generate & Dispatch OTP
             $otp = Otp::generate($email, 'SUPPLIER_REGISTRATION', $this->request->getIp());
@@ -817,5 +990,138 @@ class AuthController extends Controller
 
         $cities = City::getByState($stateId, true);
         $this->json(['success' => true, 'data' => $cities]);
+    }
+
+    /**
+     * Profile Email Change: Step 1 — Request email change with OTP
+     */
+    public function requestEmailChange(): void
+    {
+        $user = $this->authUser();
+        if (!$user) {
+            $this->json(['success' => false, 'message' => 'Unauthorized. Please sign in.'], 401);
+            return;
+        }
+
+        $input = $this->request->all();
+        $newEmail = strtolower(trim((string)($input['new_email'] ?? '')));
+
+        if (empty($newEmail) || !filter_var($newEmail, FILTER_VALIDATE_EMAIL)) {
+            $this->json(['success' => false, 'message' => 'Please enter a valid new email address.'], 422);
+            return;
+        }
+
+        $currentEmail = strtolower(trim((string)$user['email']));
+        if ($newEmail === $currentEmail) {
+            $this->json(['success' => false, 'message' => 'New email must be different from your current email address.'], 422);
+            return;
+        }
+
+        if (User::emailExists($newEmail)) {
+            $this->json(['success' => false, 'message' => 'This email address is already in use by another account.'], 422);
+            return;
+        }
+
+        // Store pending_email without modifying existing verified email
+        User::execute("UPDATE users SET pending_email = :newEmail WHERE id = :id", [
+            ':newEmail' => $newEmail,
+            ':id'       => (int)$user['id']
+        ]);
+
+        // Generate and send OTP to new email
+        $otp = Otp::generate($newEmail, 'PROFILE_EMAIL_CHANGE', $this->request->getIp());
+        $sent = Mailer::sendProfileEmailChangeOtp($newEmail, $user['name'] ?? 'User', $otp);
+
+        // Security notification to old email
+        Mailer::sendSecurityNoticeEmail(
+            $currentEmail,
+            $user['name'] ?? 'User',
+            'Email Change Requested',
+            "A request was submitted to change your Sports Junction account email to {$newEmail}. A single-use verification code was sent to the new address. If you did not authorize this, please contact support immediately."
+        );
+
+        $this->json([
+            'success' => true,
+            'message' => "A 6-digit verification code has been dispatched to {$newEmail}. Please confirm to complete the update.",
+            'email'   => $newEmail,
+            'sent'    => $sent
+        ]);
+    }
+
+    /**
+     * Profile Email Change: Step 2 — Verify OTP and update email
+     */
+    public function verifyEmailChange(): void
+    {
+        $user = $this->authUser();
+        if (!$user) {
+            $this->json(['success' => false, 'message' => 'Unauthorized. Please sign in.'], 401);
+            return;
+        }
+
+        $dbUser = User::findById((int)$user['id']);
+        $pendingEmail = strtolower(trim((string)($dbUser['pending_email'] ?? '')));
+
+        if (empty($pendingEmail)) {
+            $this->json(['success' => false, 'message' => 'No pending email change request found. Please request a new code.'], 400);
+            return;
+        }
+
+        $input = $this->request->all();
+        $otp = trim((string)($input['otp'] ?? ''));
+
+        if (empty($otp)) {
+            $this->json(['success' => false, 'message' => 'Verification code is required.'], 422);
+            return;
+        }
+
+        $verify = Otp::verify($pendingEmail, $otp, 'PROFILE_EMAIL_CHANGE');
+        if (!$verify['success']) {
+            $this->json(['success' => false, 'message' => $verify['message']], 400);
+            return;
+        }
+
+        $oldEmail = $dbUser['email'];
+
+        // Update email, set email_verified_at = NOW(), and clear pending_email
+        User::execute("
+            UPDATE users 
+            SET email = :email, email_verified_at = NOW(), pending_email = NULL, updated_at = NOW() 
+            WHERE id = :id
+        ", [
+            ':email' => $pendingEmail,
+            ':id'    => (int)$user['id']
+        ]);
+
+        // If supplier, keep supplier profile in sync
+        Supplier::execute("
+            UPDATE suppliers 
+            SET email = :email, updated_at = NOW() 
+            WHERE user_id = :userId
+        ", [
+            ':email'  => $pendingEmail,
+            ':userId' => (int)$user['id']
+        ]);
+
+        // Update session
+        $authUser = Session::get('auth_user');
+        if ($authUser && (int)$authUser['id'] === (int)$user['id']) {
+            $authUser['email'] = $pendingEmail;
+            Session::set('auth_user', $authUser);
+        }
+
+        // Notify old email that change is complete
+        Mailer::sendSecurityNoticeEmail(
+            $oldEmail,
+            $user['name'] ?? 'User',
+            'Email Address Updated',
+            "Your Sports Junction account email has been successfully updated to {$pendingEmail}. If you did not make this change, please contact administration immediately."
+        );
+
+        $this->json([
+            'success' => true,
+            'message' => 'Your email address has been successfully updated and verified.',
+            'email'   => $pendingEmail
+        ]);
     }
 }

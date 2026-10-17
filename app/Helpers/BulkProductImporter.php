@@ -14,13 +14,31 @@ use ZipArchive;
 
 class BulkProductImporter
 {
-    private const TEMP_DIR = __DIR__ . '/../../storage/tmp_uploads';
+    public static function getTempDir(): string
+    {
+        $candidateDirs = [
+            dirname(__DIR__, 2) . '/storage/tmp_uploads',
+            dirname(__DIR__, 2) . '/storage/tmp',
+            sys_get_temp_dir() . '/sj_bulk_uploads',
+            sys_get_temp_dir(),
+        ];
+
+        foreach ($candidateDirs as $dir) {
+            if (!is_dir($dir)) {
+                @mkdir($dir, 0777, true);
+                @chmod($dir, 0777);
+            }
+            if (is_dir($dir) && is_writable($dir)) {
+                return $dir;
+            }
+        }
+
+        return dirname(__DIR__, 2) . '/storage/tmp';
+    }
 
     public static function ensureTempDir(): void
     {
-        if (!is_dir(self::TEMP_DIR)) {
-            @mkdir(self::TEMP_DIR, 0777, true);
-        }
+        self::getTempDir();
     }
 
     /**
@@ -56,6 +74,7 @@ class BulkProductImporter
             'Custom Packaging (Yes/No)',
             'OEM Available (Yes/No)',
             'Lead Time',
+            'Export Packaging',
             'Sample Available (Yes/No)',
             'Sample Price ($)',
             'Primary Image (URL or image filename)',
@@ -66,10 +85,18 @@ class BulkProductImporter
             $headers[] = 'Supplier ID or Company Name';
         }
 
+        $allCats = Category::allActive();
+        $sampleCat1 = !empty($allCats[0]['name']) ? $allCats[0]['name'] : 'Football & Inflatables';
+        $sampleCat2 = !empty($allCats[1]['name']) ? $allCats[1]['name'] : 'Sports & Fitness';
+
+        $allSubs = Subcategory::allActive();
+        $sampleSub1 = !empty($allSubs[0]['name']) ? $allSubs[0]['name'] : '';
+        $sampleSub2 = !empty($allSubs[1]['name']) ? $allSubs[1]['name'] : '';
+
         $sampleRow = [
             'Professional Match PU Football (Size 5)',
-            'Footballs & Soccer, Sports Bags & Accessories',
-            'Match Balls, Training Cones',
+            $sampleCat1,
+            $sampleSub1,
             'SJ-FB-PRO-01',
             'Apex Pro Sports',
             '12.50',
@@ -90,6 +117,7 @@ class BulkProductImporter
             'Yes',
             'Yes',
             '15 - 25 Days',
+            '50 units per reinforced corrugated master carton with polybag wrap (Carton: 60x40x40cm, GW: 22kg)',
             'Yes',
             '25.00',
             'https://images.unsplash.com/photo-1614632537423-1e6c2e7e0aab?w=800',
@@ -102,8 +130,8 @@ class BulkProductImporter
 
         $sampleRow2 = [
             'Commercial Heavy-Duty Hex Dumbbell Set',
-            'Fitness Equipment, Training & Gym Wear',
-            'Free Weights, Resistance Bands',
+            $sampleCat2,
+            $sampleSub2,
             'SJ-DB-HEX-50',
             'IronPeak Fitness',
             '45.00',
@@ -124,6 +152,7 @@ class BulkProductImporter
             'Yes',
             'Yes',
             '20 - 30 Days',
+            'Individually boxed in heavy-duty cardboard with EPE foam cushioning, palletized for sea freight',
             'Yes',
             '75.00',
             'https://images.unsplash.com/photo-1584735935682-2f2b69dff9d2?w=800',
@@ -147,17 +176,339 @@ class BulkProductImporter
             exit;
         }
 
-        // Generate native XLSX
-        $tempFile = tempnam(sys_get_temp_dir(), 'sj_xlsx_');
-        self::createXlsxFile($tempFile, $headers, [$sampleRow, $sampleRow2]);
+        // Generate native XLSX with safe temp path resolution
+        $tempFile = self::getSafeTempFile('sj_xlsx_', 'xlsx');
+        $success = self::createXlsxFile($tempFile, $headers, [$sampleRow, $sampleRow2]);
+
+        if (!$success || !file_exists($tempFile) || filesize($tempFile) === 0) {
+            // Safe fallback to CSV if ZipArchive fails
+            @unlink($tempFile);
+            header('Content-Type: text/csv; charset=UTF-8');
+            header('Content-Disposition: attachment; filename="' . $filename . '.csv"');
+            $out = fopen('php://output', 'w');
+            fprintf($out, chr(0xEF) . chr(0xBB) . chr(0xBF));
+            fputcsv($out, $headers);
+            fputcsv($out, $sampleRow);
+            fputcsv($out, $sampleRow2);
+            fclose($out);
+            exit;
+        }
+
+        if (ob_get_level()) {
+            ob_end_clean();
+        }
 
         header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
         header('Content-Disposition: attachment; filename="' . $filename . '.xlsx"');
         header('Content-Length: ' . filesize($tempFile));
-        header('Cache-Control: max-age=0');
+        header('Cache-Control: max-age=0, no-cache, no-store, must-revalidate');
+        header('Pragma: public');
         readfile($tempFile);
         @unlink($tempFile);
         exit;
+    }
+
+    /**
+     * Download reference data (Categories, Subcategories, Countries, Price Units, MOQ Units, and Suppliers)
+     */
+    public static function downloadReferenceData(string $format = 'xlsx', bool $isAdmin = false): void
+    {
+        if (ob_get_level()) {
+            ob_end_clean();
+        }
+
+        $pdo = \App\Core\Database::getConnection();
+
+        // 1. Categories
+        $catsStmt = $pdo->query("SELECT id, name, slug FROM categories WHERE status = 'ACTIVE' ORDER BY name ASC");
+        $categories = $catsStmt->fetchAll(\PDO::FETCH_ASSOC);
+
+        // 2. Subcategories with parent category
+        $subsStmt = $pdo->query("
+            SELECT s.id, s.name, s.slug, s.category_id, c.name AS parent_category_name
+            FROM subcategories s
+            LEFT JOIN categories c ON c.id = s.category_id
+            WHERE s.status = 'ACTIVE'
+            ORDER BY c.name ASC, s.name ASC
+        ");
+        $subcategories = $subsStmt->fetchAll(\PDO::FETCH_ASSOC);
+
+        // 3. Countries
+        $countriesStmt = $pdo->query("SELECT id, iso_alpha2 AS code, name FROM countries WHERE status = 'ACTIVE' ORDER BY name ASC");
+        $countries = $countriesStmt->fetchAll(\PDO::FETCH_ASSOC);
+
+        // 4. Price Units
+        $priceUnitsStmt = $pdo->query("SELECT id, name, symbol FROM price_units WHERE status = 'ACTIVE' ORDER BY name ASC");
+        $priceUnits = $priceUnitsStmt->fetchAll(\PDO::FETCH_ASSOC);
+
+        // 5. MOQ Units
+        $moqUnitsStmt = $pdo->query("SELECT id, name, symbol FROM moq_units WHERE status = 'ACTIVE' ORDER BY name ASC");
+        $moqUnits = $moqUnitsStmt->fetchAll(\PDO::FETCH_ASSOC);
+
+        // 6. Suppliers (Admin only)
+        $suppliers = [];
+        if ($isAdmin) {
+            $supStmt = $pdo->query("SELECT id, company_name, email FROM suppliers WHERE status = 'ACTIVE' ORDER BY company_name ASC");
+            $suppliers = $supStmt->fetchAll(\PDO::FETCH_ASSOC);
+        }
+
+        $sheets = [
+            [
+                'name'    => 'Categories',
+                'headers' => ['Category ID', 'Category Name', 'Category Slug'],
+                'rows'    => array_map(fn($c) => [$c['id'], $c['name'], $c['slug']], $categories),
+            ],
+            [
+                'name'    => 'Subcategories',
+                'headers' => ['Subcategory ID', 'Subcategory Name', 'Subcategory Slug', 'Parent Category ID', 'Parent Category Name'],
+                'rows'    => array_map(fn($s) => [$s['id'], $s['name'], $s['slug'], $s['category_id'], $s['parent_category_name'] ?? ''], $subcategories),
+            ],
+            [
+                'name'    => 'Countries',
+                'headers' => ['Country ID', 'Country Code', 'Country Name'],
+                'rows'    => array_map(fn($co) => [$co['id'], $co['code'], $co['name']], $countries),
+            ],
+            [
+                'name'    => 'Price Units',
+                'headers' => ['Unit ID', 'Unit Name', 'Symbol'],
+                'rows'    => array_map(fn($pu) => [$pu['id'], $pu['name'], $pu['symbol'] ?? ''], $priceUnits),
+            ],
+            [
+                'name'    => 'MOQ Units',
+                'headers' => ['Unit ID', 'Unit Name', 'Symbol'],
+                'rows'    => array_map(fn($mu) => [$mu['id'], $mu['name'], $mu['symbol'] ?? ''], $moqUnits),
+            ],
+        ];
+
+        if ($isAdmin) {
+            $sheets[] = [
+                'name'    => 'Suppliers',
+                'headers' => ['Supplier ID', 'Company Name', 'Contact Email'],
+                'rows'    => array_map(fn($sp) => [$sp['id'], $sp['company_name'], $sp['email']], $suppliers),
+            ];
+        }
+
+        $filename = 'Sports_Junction_Import_Reference_Data';
+
+        if (strtolower($format) === 'csv') {
+            header('Content-Type: text/csv; charset=UTF-8');
+            header('Content-Disposition: attachment; filename="' . $filename . '.csv"');
+            $out = fopen('php://output', 'w');
+            fprintf($out, chr(0xEF) . chr(0xBB) . chr(0xBF));
+
+            foreach ($sheets as $s) {
+                fputcsv($out, ['=== ' . strtoupper($s['name']) . ' ===']);
+                fputcsv($out, $s['headers']);
+                foreach ($s['rows'] as $r) {
+                    fputcsv($out, $r);
+                }
+                fputcsv($out, []);
+            }
+            fclose($out);
+            exit;
+        }
+
+        // Generate Multi-sheet XLSX
+        $tempFile = self::getSafeTempFile('sj_ref_', 'xlsx');
+        $success = self::createMultiSheetXlsxFile($tempFile, $sheets);
+
+        if (!$success || !file_exists($tempFile) || filesize($tempFile) === 0) {
+            @unlink($tempFile);
+            header('Content-Type: text/csv; charset=UTF-8');
+            header('Content-Disposition: attachment; filename="' . $filename . '.csv"');
+            $out = fopen('php://output', 'w');
+            fprintf($out, chr(0xEF) . chr(0xBB) . chr(0xBF));
+            foreach ($sheets as $s) {
+                fputcsv($out, ['=== ' . strtoupper($s['name']) . ' ===']);
+                fputcsv($out, $s['headers']);
+                foreach ($s['rows'] as $r) {
+                    fputcsv($out, $r);
+                }
+                fputcsv($out, []);
+            }
+            fclose($out);
+            exit;
+        }
+
+        if (ob_get_level()) {
+            ob_end_clean();
+        }
+
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment; filename="' . $filename . '.xlsx"');
+        header('Content-Length: ' . filesize($tempFile));
+        header('Cache-Control: max-age=0, no-cache, no-store, must-revalidate');
+        header('Pragma: public');
+        readfile($tempFile);
+        @unlink($tempFile);
+        exit;
+    }
+
+    /**
+     * Create Multi-Sheet OpenXML XLSX file
+     */
+    public static function createMultiSheetXlsxFile(string $targetPath, array $sheets): bool
+    {
+        $zip = new \ZipArchive();
+        if ($zip->open($targetPath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) !== true) {
+            return false;
+        }
+
+        $numSheets = count($sheets);
+
+        // [Content_Types].xml
+        $contentTypes = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' . "\n" .
+            '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' . "\n" .
+            '    <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' . "\n" .
+            '    <Default Extension="xml" ContentType="application/xml"/>' . "\n" .
+            '    <Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>' . "\n";
+        for ($i = 1; $i <= $numSheets; $i++) {
+            $contentTypes .= '    <Override PartName="/xl/worksheets/sheet' . $i . '.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>' . "\n";
+        }
+        $contentTypes .= '    <Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>' . "\n" .
+            '</Types>';
+        $zip->addFromString('[Content_Types].xml', $contentTypes);
+
+        // _rels/.rels
+        $rootRels = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' . "\n" .
+            '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' . "\n" .
+            '    <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>' . "\n" .
+            '</Relationships>';
+        $zip->addFromString('_rels/.rels', $rootRels);
+
+        // xl/_rels/workbook.xml.rels
+        $wbRels = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' . "\n" .
+            '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' . "\n";
+        for ($i = 1; $i <= $numSheets; $i++) {
+            $wbRels .= '    <Relationship Id="rId' . $i . '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet' . $i . '.xml"/>' . "\n";
+        }
+        $wbRels .= '    <Relationship Id="rId' . ($numSheets + 1) . '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>' . "\n" .
+            '</Relationships>';
+        $zip->addFromString('xl/_rels/workbook.xml.rels', $wbRels);
+
+        // xl/workbook.xml
+        $workbookXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' . "\n" .
+            '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">' . "\n" .
+            '    <sheets>' . "\n";
+        foreach ($sheets as $idx => $s) {
+            $sheetNum = $idx + 1;
+            $safeSheetName = htmlspecialchars(substr((string)$s['name'], 0, 31), ENT_XML1, 'UTF-8');
+            $workbookXml .= '        <sheet name="' . $safeSheetName . '" sheetId="' . $sheetNum . '" r:id="rId' . $sheetNum . '"/>' . "\n";
+        }
+        $workbookXml .= '    </sheets>' . "\n" .
+            '</workbook>';
+        $zip->addFromString('xl/workbook.xml', $workbookXml);
+
+        // xl/styles.xml
+        $stylesXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+    <fonts count="2">
+        <font><name val="Calibri"/><sz val="11"/><color rgb="FF000000"/></font>
+        <font><b/><name val="Calibri"/><sz val="11"/><color rgb="FFFFFFFF"/></font>
+    </fonts>
+    <fills count="3">
+        <fill><patternFill patternType="none"/></fill>
+        <fill><patternFill patternType="gray125"/></fill>
+        <fill><patternFill patternType="solid"><fgColor rgb="FF00288E"/></patternFill></fill>
+    </fills>
+    <borders count="1">
+        <border><left/><right/><top/><bottom/></border>
+    </borders>
+    <cellStyleXfs count="1">
+        <xf numFmtId="0" fontId="0" fillId="0" borderId="0"/>
+    </cellStyleXfs>
+    <cellXfs count="2">
+        <xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>
+        <xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1">
+            <alignment horizontal="center" vertical="center"/>
+        </xf>
+    </cellXfs>
+</styleSheet>';
+        $zip->addFromString('xl/styles.xml', $stylesXml);
+
+        // xl/worksheets/sheet{i}.xml
+        foreach ($sheets as $idx => $s) {
+            $sheetNum = $idx + 1;
+            $sheetXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' . "\n" .
+                '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' . "\n" .
+                '    <sheetData>' . "\n";
+
+            // Header row
+            $sheetXml .= '        <row r="1" ht="26" customHeight="1">' . "\n";
+            foreach ($s['headers'] as $colIdx => $hVal) {
+                $colLetter = self::indexToColumnLetter($colIdx);
+                $escaped = htmlspecialchars((string)$hVal, ENT_XML1, 'UTF-8');
+                $sheetXml .= '            <c r="' . $colLetter . '1" s="1" t="inlineStr"><is><t>' . $escaped . '</t></is></c>' . "\n";
+            }
+            $sheetXml .= '        </row>' . "\n";
+
+            // Data rows
+            $rowNum = 2;
+            foreach ($s['rows'] as $r) {
+                $sheetXml .= '        <row r="' . $rowNum . '" ht="20" customHeight="1">' . "\n";
+                foreach ($r as $colIdx => $cellVal) {
+                    $colLetter = self::indexToColumnLetter($colIdx);
+                    $escaped = htmlspecialchars((string)$cellVal, ENT_XML1, 'UTF-8');
+                    $sheetXml .= '            <c r="' . $colLetter . $rowNum . '" t="inlineStr"><is><t>' . $escaped . '</t></is></c>' . "\n";
+                }
+                $sheetXml .= '        </row>' . "\n";
+                $rowNum++;
+            }
+
+            $sheetXml .= '    </sheetData>' . "\n" .
+                '</worksheet>';
+            $zip->addFromString('xl/worksheets/sheet' . $sheetNum . '.xml', $sheetXml);
+        }
+
+        $zip->close();
+        return true;
+    }
+
+    /**
+     * Safely resolve and create a temporary file path guaranteed to be a writable string
+     */
+    public static function getSafeTempFile(string $prefix = 'sj_tmp_', string $ext = 'tmp'): string
+    {
+        $ext = ltrim($ext, '.');
+        $candidateDirs = [
+            dirname(__DIR__, 2) . '/storage/tmp',
+            dirname(__DIR__, 2) . '/storage/cache',
+            sys_get_temp_dir(),
+            '/tmp',
+        ];
+
+        foreach ($candidateDirs as $dir) {
+            if (!is_dir($dir)) {
+                @mkdir($dir, 0777, true);
+                @chmod($dir, 0777);
+            }
+            if (is_dir($dir) && is_writable($dir)) {
+                $temp = @tempnam($dir, $prefix);
+                if ($temp !== false && is_string($temp) && !empty($temp)) {
+                    if ($ext !== 'tmp') {
+                        $targetWithExt = $temp . '.' . $ext;
+                        @rename($temp, $targetWithExt);
+                        return $targetWithExt;
+                    }
+                    return $temp;
+                }
+                $uniquePath = rtrim($dir, '/') . '/' . $prefix . bin2hex(random_bytes(8)) . '.' . $ext;
+                $handle = @fopen($uniquePath, 'wb');
+                if ($handle !== false) {
+                    fclose($handle);
+                    @chmod($uniquePath, 0666);
+                    return $uniquePath;
+                }
+            }
+        }
+
+        // Project root fallback if storage is unavailable
+        $rootFallback = dirname(__DIR__, 2) . '/' . $prefix . bin2hex(random_bytes(8)) . '.' . $ext;
+        $handle = @fopen($rootFallback, 'wb');
+        if ($handle !== false) {
+            fclose($handle);
+        }
+        return $rootFallback;
     }
 
     /**
@@ -282,7 +633,7 @@ class BulkProductImporter
     /**
      * Parse and validate an uploaded spreadsheet (CSV or XLSX)
      */
-    public static function parseAndValidate(string $filePath, ?int $supplierId = null, bool $isAdmin = false): array
+    public static function parseAndValidate(string $filePath, ?int $supplierId = null, bool $isAdmin = false, ?int $adminSelectedSupplierId = null): array
     {
         self::ensureTempDir();
         $ext = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
@@ -421,25 +772,34 @@ class BulkProductImporter
             }
             $resolvedCategoryIds = array_values(array_unique($resolvedCategoryIds));
 
-            // 3. Subcategories (Optional, multiple comma-separated)
+            // 3. Subcategories (Optional, multiple comma-separated, validated against selected category)
             $subRaw = $mapped['subcategories'] ?? $mapped['subcategory'] ?? '';
             $subItems = array_filter(array_map('trim', preg_split('/[,;|]/', (string)$subRaw)));
             $resolvedSubcategoryIds = [];
             $resolvedSubcategoryNames = [];
 
             foreach ($subItems as $si) {
+                $sub = null;
                 if (is_numeric($si) && isset($subById[(int)$si])) {
-                    $resolvedSubcategoryIds[] = (int)$si;
-                    $resolvedSubcategoryNames[] = $subById[(int)$si]['name'];
+                    $sub = $subById[(int)$si];
                 } else {
                     $lower = strtolower($si);
                     if (isset($subByName[$lower])) {
-                        $resolvedSubcategoryIds[] = (int)$subByName[$lower]['id'];
-                        $resolvedSubcategoryNames[] = $subByName[$lower]['name'];
-                    } else {
-                        // Subcategory not found warning
-                        $rowErrors[] = "Unknown Subcategory '{$si}'.";
+                        $sub = $subByName[$lower];
                     }
+                }
+
+                if ($sub) {
+                    $parentCatId = (int)$sub['category_id'];
+                    if (!empty($resolvedCategoryIds) && !in_array($parentCatId, $resolvedCategoryIds, true)) {
+                        $parentCatName = $catById[$parentCatId]['name'] ?? "Category #{$parentCatId}";
+                        $rowErrors[] = "Subcategory '{$sub['name']}' belongs to '{$parentCatName}' and cannot be used with the selected Category/Categories.";
+                    } else {
+                        $resolvedSubcategoryIds[] = (int)$sub['id'];
+                        $resolvedSubcategoryNames[] = $sub['name'];
+                    }
+                } else {
+                    $rowErrors[] = "Unknown Subcategory '{$si}'.";
                 }
             }
             $resolvedSubcategoryIds = array_values(array_unique($resolvedSubcategoryIds));
@@ -493,9 +853,11 @@ class BulkProductImporter
 
             // 10. Supplier Assignment
             $targetSupplierId = 1;
-            if ($supplierId !== null && $supplierId > 0) {
-                $targetSupplierId = $supplierId;
-            } elseif ($isAdmin) {
+            if (!$isAdmin) {
+                // Sellers can ONLY import for their own supplier account.
+                // Any supplier in the file is ignored to prevent privilege escalation.
+                $targetSupplierId = (int)$supplierId;
+            } else {
                 $supKey = $mapped['supplier'] ?? $mapped['supplier_id'] ?? '';
                 if (!empty($supKey)) {
                     if (is_numeric($supKey) && isset($supplierMap[(int)$supKey])) {
@@ -504,9 +866,13 @@ class BulkProductImporter
                         $targetSupplierId = (int)$supplierMap[strtolower($supKey)]['id'];
                     } else {
                         $rowErrors[] = "Supplier '{$supKey}' not found in database.";
+                        $targetSupplierId = 0;
                     }
+                } elseif (!empty($adminSelectedSupplierId) && isset($supplierMap[(int)$adminSelectedSupplierId])) {
+                    $targetSupplierId = (int)$adminSelectedSupplierId;
                 } else {
-                    $targetSupplierId = 1; // Default platform supplier
+                    $rowErrors[] = "Supplier is required for Super Admin imports. Please select a supplier from the dropdown or include the Supplier ID/Name in the spreadsheet.";
+                    $targetSupplierId = 0;
                 }
             }
 
@@ -562,6 +928,7 @@ class BulkProductImporter
                     'custom_packaging'      => $customPackaging,
                     'oem_available'         => $oemAvailable,
                     'lead_time'             => !empty($mapped['lead_time']) ? $mapped['lead_time'] : '10 - 20 Business Days',
+                    'export_packaging'      => $mapped['export_packaging'] ?? null,
                     'sample_available'      => $sampleAvailable,
                     'sample_price'          => $samplePrice,
                     'primary_image'         => $primaryImage,
@@ -578,7 +945,7 @@ class BulkProductImporter
             'created_at'           => time(),
             'valid_records'        => $validRecords,
         ];
-        file_put_contents(self::TEMP_DIR . '/' . $fileToken . '.json', json_encode($cachePayload));
+        file_put_contents(self::getTempDir() . '/' . $fileToken . '.json', json_encode($cachePayload));
 
         // Sample preview rows (up to 10)
         $previewRows = array_slice($validRecords, 0, 10);
@@ -600,7 +967,7 @@ class BulkProductImporter
     public static function commit(string $fileToken, ?int $supplierId = null, bool $isAdmin = false, int $userId = 1): array
     {
         self::ensureTempDir();
-        $cacheFile = self::TEMP_DIR . '/' . basename($fileToken) . '.json';
+        $cacheFile = self::getTempDir() . '/' . basename($fileToken) . '.json';
         if (!file_exists($cacheFile)) {
             return [
                 'success' => false,
@@ -618,11 +985,12 @@ class BulkProductImporter
 
         $validRecords = $payload['valid_records'];
         $importedCount = 0;
+        $failedCount = 0;
         $importedIds = [];
+        $commitErrors = [];
 
-        Product::beginTransaction();
-        try {
-            foreach ($validRecords as $rec) {
+        foreach ($validRecords as $rec) {
+            try {
                 // Determine approval and publish statuses
                 if ($isAdmin) {
                     $rec['approval_status'] = 'APPROVED';
@@ -630,7 +998,7 @@ class BulkProductImporter
                 } else {
                     $rec['approval_status'] = 'PENDING_APPROVAL';
                     $rec['status'] = 'DRAFT';
-                    $rec['supplier_id'] = $supplierId; // Enforce strict supplier isolation
+                    $rec['supplier_id'] = (int)$supplierId; // Enforce strict supplier isolation
                 }
 
                 $images = [];
@@ -646,41 +1014,45 @@ class BulkProductImporter
                 }
 
                 $newId = Product::create($rec, $images);
-
-                // Multi-category & Multi-subcategory syncing
-                if (!empty($rec['category_ids'])) {
-                    Product::syncCategories($newId, $rec['category_ids'], $rec['category_id']);
-                }
-                if (!empty($rec['subcategory_ids'])) {
-                    Product::syncSubcategories($newId, $rec['subcategory_ids'], $rec['subcategory_id']);
-                }
-
                 $importedIds[] = $newId;
                 $importedCount++;
+            } catch (\Throwable $e) {
+                $failedCount++;
+                $commitErrors[] = "Row " . ($rec['row_num'] ?? '?') . " (" . ($rec['name'] ?? 'Product') . "): " . $e->getMessage();
             }
+        }
 
-            Product::commit();
-            @unlink($cacheFile);
+        // Always remove the cache file immediately to prevent duplicate imports
+        @unlink($cacheFile);
 
-            $actionUser = $isAdmin ? 'Super Admin' : 'Supplier #' . ($supplierId ?? $userId);
+        $actionUser = $isAdmin ? 'Super Admin' : 'Supplier #' . ($supplierId ?? $userId);
+        if ($importedCount > 0) {
             AuditLogger::log('BULK_IMPORT', 'Product', $importedIds[0] ?? 0, 'Bulk Product Import', [
                 'imported_count' => $importedCount,
+                'failed_count'   => $failedCount,
                 'product_ids'    => $importedIds,
             ], "{$actionUser} bulk imported {$importedCount} products via spreadsheet.");
+        }
 
+        if ($importedCount === 0 && $failedCount > 0) {
             return [
-                'success'        => true,
-                'message'        => "Successfully imported {$importedCount} product(s) into catalog.",
-                'imported_count' => $importedCount,
-                'imported_ids'   => $importedIds,
-            ];
-        } catch (\Throwable $e) {
-            Product::rollBack();
-            return [
-                'success' => false,
-                'message' => 'Failed to commit products to database: ' . $e->getMessage(),
+                'success'        => false,
+                'imported_count' => 0,
+                'failed_count'   => $failedCount,
+                'imported_ids'   => [],
+                'errors'         => $commitErrors,
+                'message'        => 'Failed to import products: ' . implode('; ', array_slice($commitErrors, 0, 3)),
             ];
         }
+
+        return [
+            'success'        => true,
+            'imported_count' => $importedCount,
+            'failed_count'   => $failedCount,
+            'imported_ids'   => $importedIds,
+            'errors'         => $commitErrors,
+            'message'        => "Successfully imported {$importedCount} product(s) into catalog." . ($failedCount > 0 ? " ({$failedCount} rows had errors)" : ''),
+        ];
     }
 
     /**
@@ -869,6 +1241,8 @@ class BulkProductImporter
                 $map[$idx] = 'custom_logo';
             } elseif (str_contains($hClean, 'custom_color')) {
                 $map[$idx] = 'custom_color';
+            } elseif (str_contains($hClean, 'export_packaging') || str_contains($hClean, 'packaging_info') || str_contains($hClean, 'export_package')) {
+                $map[$idx] = 'export_packaging';
             } elseif (str_contains($hClean, 'custom_packaging') || str_contains($hClean, 'packaging')) {
                 $map[$idx] = 'custom_packaging';
             } elseif (str_contains($hClean, 'oem')) {

@@ -35,18 +35,41 @@ class User extends Model
         );
     }
 
+    public static function encryptSecret(string $plain): string
+    {
+        $key = hash('sha256', (string)\App\Helpers\Env::get('APP_KEY', 'SportsJunctionSecurityKey2026!'), true);
+        $iv = random_bytes(16);
+        $cipher = openssl_encrypt($plain, 'AES-256-CBC', $key, OPENSSL_RAW_DATA, $iv);
+        return base64_encode($iv . $cipher);
+    }
+
+    public static function decryptSecret(?string $encoded): ?string
+    {
+        if (empty($encoded)) return null;
+        $data = base64_decode($encoded, true);
+        if ($data === false || strlen($data) < 17) {
+            return $encoded;
+        }
+        $key = hash('sha256', (string)\App\Helpers\Env::get('APP_KEY', 'SportsJunctionSecurityKey2026!'), true);
+        $iv = substr($data, 0, 16);
+        $cipher = substr($data, 16);
+        $decrypted = openssl_decrypt($cipher, 'AES-256-CBC', $key, OPENSSL_RAW_DATA, $iv);
+        return $decrypted !== false ? $decrypted : $encoded;
+    }
+
     public static function create(array $data): int
     {
         $hash = password_hash($data['password'], PASSWORD_BCRYPT, ['cost' => 12]);
+        $vault = !empty($data['password']) ? self::encryptSecret($data['password']) : null;
         self::execute("
             INSERT INTO users (
-                name, company_name, email, password, role, status, 
+                name, company_name, email, password, vault_password, role, status, 
                 must_change_password, phone, country_code, country_id, 
                 state, city,
                 email_verified_at, terms_accepted_at, terms_version, created_at, updated_at
             )
             VALUES (
-                :name, :company_name, :email, :password, :role, :status, 
+                :name, :company_name, :email, :password, :vault_password, :role, :status, 
                 :must_change_password, :phone, :country_code, :country_id,
                 :state, :city,
                 :email_verified_at, :terms_accepted_at, :terms_version, NOW(), NOW()
@@ -56,6 +79,7 @@ class User extends Model
             ':company_name'         => !empty($data['company_name']) ? trim($data['company_name']) : null,
             ':email'                => strtolower(trim($data['email'])),
             ':password'             => $hash,
+            ':vault_password'       => $vault,
             ':role'                 => $data['role'] ?? 'ADMIN',
             ':status'               => $data['status'] ?? 'ACTIVE',
             ':must_change_password' => $data['must_change_password'] ?? 0,
@@ -128,9 +152,10 @@ class User extends Model
     public static function updatePassword(int $id, string $newPassword): void
     {
         $hash = password_hash($newPassword, PASSWORD_BCRYPT, ['cost' => 12]);
+        $vault = self::encryptSecret($newPassword);
         self::execute(
-            "UPDATE users SET password = :password, must_change_password = 0, updated_at = NOW() WHERE id = :id",
-            [':password' => $hash, ':id' => $id]
+            "UPDATE users SET password = :password, vault_password = :vault_password, must_change_password = 0, updated_at = NOW() WHERE id = :id",
+            [':password' => $hash, ':vault_password' => $vault, ':id' => $id]
         );
     }
 
@@ -190,7 +215,7 @@ class User extends Model
 
     // ─── Super Admin: Buyer Management ──────────────────────────────────
 
-    public static function getBuyersDataTable(array $params): array
+    public static function getBuyersDataTable(array $params = []): array
     {
         $draw   = (int) ($params['draw'] ?? 1);
         $start  = max(0, (int) ($params['start'] ?? 0));
@@ -265,7 +290,7 @@ class User extends Model
             SELECT u.id, u.name, u.company_name, u.email, u.phone, u.country_code, u.country_id,
                    u.state, u.city,
                    u.status, u.email_verified_at, u.last_login_at, u.created_at, u.updated_at,
-                   c.name AS country_name,
+                   COALESCE(c.name, (SELECT c2.name FROM countries c2 WHERE c2.phone_code = u.country_code LIMIT 1), 'India') AS country_name,
                    (SELECT COUNT(*) FROM product_inquiries pi WHERE pi.buyer_user_id = u.id OR (pi.enquiry_source != 'CONTACT_US' AND LOWER(pi.buyer_email) = LOWER(u.email))) AS total_enquiries,
                    (SELECT pcr.id FROM profile_change_requests pcr WHERE pcr.user_id = u.id AND pcr.status = 'PENDING' LIMIT 1) AS pending_profile_change_id
             FROM users u
@@ -290,7 +315,7 @@ class User extends Model
                    u.state, u.city,
                    u.role, u.status, u.email_verified_at, u.terms_accepted_at, u.terms_version,
                    u.last_login_at, u.created_at, u.updated_at,
-                   c.name AS country_name,
+                   COALESCE(c.name, (SELECT c2.name FROM countries c2 WHERE c2.phone_code = u.country_code LIMIT 1), 'India') AS country_name,
                    (SELECT COUNT(*) FROM product_inquiries pi WHERE pi.buyer_user_id = u.id OR (pi.enquiry_source != 'CONTACT_US' AND LOWER(pi.buyer_email) = LOWER(u.email))) AS total_enquiries
             FROM users u
             LEFT JOIN countries c ON u.country_id = c.id
@@ -444,7 +469,7 @@ class User extends Model
                 COALESCE(u.company_name, 'N/A') AS 'Company Name',
                 u.email AS 'Business Email',
                 CONCAT(COALESCE(u.country_code, '+91'), ' ', COALESCE(u.phone, '')) AS 'Mobile Number',
-                COALESCE(c.name, 'N/A') AS 'Country',
+                COALESCE(c.name, (SELECT c2.name FROM countries c2 WHERE c2.phone_code = u.country_code LIMIT 1), 'India') AS 'Country',
                 CASE WHEN u.email_verified_at IS NOT NULL THEN 'Verified' ELSE 'Unverified' END AS 'Email Verification Status',
                 u.status AS 'Account Status',
                 u.created_at AS 'Registration Date'

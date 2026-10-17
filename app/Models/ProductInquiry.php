@@ -55,14 +55,31 @@ class ProductInquiry extends Model
             $reqDate = null;
         }
 
+        $countryId = !empty($data['country_id']) ? (int) $data['country_id'] : null;
+        $countryName = !empty($data['country_name']) ? trim($data['country_name']) : null;
+        if ($countryId && empty($countryName)) {
+            $c = Country::findById($countryId);
+            if ($c) {
+                $countryName = $c['name'];
+            }
+        } elseif (!$countryId && !empty($countryName)) {
+            $c = self::fetch("SELECT id, name FROM countries WHERE LOWER(name) = LOWER(:name) LIMIT 1", [':name' => $countryName]);
+            if ($c) {
+                $countryId = (int) $c['id'];
+                $countryName = $c['name'];
+            }
+        }
+
         self::execute("
             INSERT INTO product_inquiries (
                 enquiry_source, product_id, supplier_id, buyer_user_id, buyer_name, buyer_email, buyer_phone,
+                country_id, country_name,
                 company_name, subject, target_quantity, target_price, lead_time_req, delivery_location,
                 required_delivery_date, specifications, attachment_path, attachment_name, attachment_size,
                 attachment_mime, status, ip_address, created_at
             ) VALUES (
                 :enquiry_source, :product_id, :supplier_id, :buyer_user_id, :buyer_name, :buyer_email, :buyer_phone,
+                :country_id, :country_name,
                 :company_name, :subject, :target_quantity, :target_price, :lead_time_req, :delivery_location,
                 :required_delivery_date, :specifications, :attachment_path, :attachment_name, :attachment_size,
                 :attachment_mime, :status, :ip_address, NOW()
@@ -75,6 +92,8 @@ class ProductInquiry extends Model
             ':buyer_name'             => trim($data['buyer_name'] ?? 'Guest Buyer'),
             ':buyer_email'            => trim($data['buyer_email'] ?? ''),
             ':buyer_phone'            => !empty($data['buyer_phone']) ? trim($data['buyer_phone']) : null,
+            ':country_id'             => $countryId,
+            ':country_name'           => $countryName,
             ':company_name'           => !empty($data['company_name']) ? trim($data['company_name']) : null,
             ':subject'                => !empty($data['subject']) ? trim($data['subject']) : null,
             ':target_quantity'        => max(1, (int) ($data['target_quantity'] ?? 1)),
@@ -327,9 +346,10 @@ class ProductInquiry extends Model
                 OR i.lead_time_req LIKE :gs15
                 OR i.enquiry_source LIKE :gs16
                 OR i.status LIKE :gs17
+                OR i.country_name LIKE :gs18
             )";
             $like = '%' . $search . '%';
-            for ($k = 1; $k <= 17; $k++) {
+            for ($k = 1; $k <= 18; $k++) {
                 $bindings[":gs{$k}"] = $like;
             }
             $bindings[':gs_exact_id'] = $cleanIdSearch;
@@ -427,6 +447,7 @@ class ProductInquiry extends Model
                 COALESCE(p.title, i.subject, 'General Requirement') AS 'Product Name / Requirement',
                 COALESCE(s.company_name, ps.company_name, 'Unassigned') AS 'Supplier Name',
                 i.target_quantity AS 'Quantity Required',
+                COALESCE(i.country_name, 'N/A') AS 'Country',
                 COALESCE(i.delivery_location, i.lead_time_req, 'N/A') AS 'Delivery Location',
                 COALESCE(i.subject, p.title, 'B2B Enquiry') AS 'Enquiry Subject',
                 i.specifications AS 'Message / Specifications',

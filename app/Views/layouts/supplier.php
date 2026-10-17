@@ -27,6 +27,11 @@ $isMessagesPage = strpos($_SERVER['REQUEST_URI'] ?? '', '/supplier/messages') !=
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= htmlspecialchars($pageTitle ?? 'Supplier Portal — Sports Junction') ?></title>
     
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="<?= htmlspecialchars($baseUrl) ?>/assets/images/favicon.png">
+    <link rel="shortcut icon" href="<?= htmlspecialchars($baseUrl) ?>/favicon.ico">
+    <link rel="apple-touch-icon" href="<?= htmlspecialchars($baseUrl) ?>/assets/images/favicon.png">
+
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -63,12 +68,26 @@ $isMessagesPage = strpos($_SERVER['REQUEST_URI'] ?? '', '/supplier/messages') !=
     </style>
 </head>
 <body class="min-h-full flex flex-col font-sans bg-slate-50 text-slate-900 antialiased">
+    <?php $impersonatorAdmin = Session::get('impersonator_admin'); ?>
+    <?php if (!empty($impersonatorAdmin)): ?>
+        <div class="bg-amber-500 text-slate-950 px-4 py-2 text-xs font-bold flex items-center justify-between shadow-md z-50 sticky top-0 border-b border-amber-600">
+            <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-[18px]">admin_panel_settings</span>
+                <span>IMPERSONATION MODE: Currently viewing as <strong><?= htmlspecialchars($user['name'] ?? 'Seller') ?></strong> (<?= htmlspecialchars($user['role'] ?? 'SUPPLIER') ?> &bull; <?= htmlspecialchars($user['email'] ?? '') ?>)</span>
+            </div>
+            <a href="<?= htmlspecialchars($baseUrl) ?>/admin/exit-impersonation" class="px-3 py-1 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-bold transition flex items-center gap-1 shadow-sm">
+                <span class="material-symbols-outlined text-[14px]">logout</span>
+                <span>Return to Super Admin</span>
+            </a>
+        </div>
+    <?php endif; ?>
+
     <!-- Supplier Top Header -->
     <header class="w-full bg-white border-b border-slate-200 sticky top-0 z-40">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
             <div class="flex items-center gap-6">
                 <a href="<?= htmlspecialchars($baseUrl) ?>/supplier/dashboard" class="flex items-center gap-2" title="Sports Junction Supplier Partner Portal">
-                    <img src="<?= htmlspecialchars($baseUrl) ?>/assets/images/logo.jpg" alt="Sports Junction" class="h-9 sm:h-10 w-auto object-contain max-w-[170px]">
+                    <img src="<?= htmlspecialchars($baseUrl) ?>/assets/images/logo.png" alt="Sports Junction" class="h-9 sm:h-10 w-auto object-contain max-w-[170px]">
                     <span class="text-[10px] font-bold uppercase tracking-wider text-teal-700 bg-teal-50 border border-teal-200/80 px-2 py-0.5 rounded-full ml-1">Supplier Portal</span>
                 </a>
 

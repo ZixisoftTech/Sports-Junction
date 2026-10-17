@@ -88,12 +88,18 @@ $old = Session::flash('old_input') ?? [];
                         <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Mobile / Phone Number <span class="text-red-500">*</span></label>
                         <div class="flex gap-2">
                             <select name="country_code" id="supCountryCode" class="w-32 shrink-0 py-2.5 px-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:bg-white focus:border-blue-700 outline-none">
-                                <option value="+91" selected>+91</option>
-                                <?php foreach ($countries as $c): if (!empty($c['phone_code'])): ?>
-                                    <option value="<?= htmlspecialchars($c['phone_code']) ?>" <?= (($old['country_code'] ?? '+91') === $c['phone_code']) ? 'selected' : '' ?>>
+                                <?php 
+                                    $selectedDialCode = $old['country_code'] ?? '+91';
+                                    $alreadyMatched = false;
+                                    foreach ($countries as $c): 
+                                        if (empty($c['phone_code'])) continue;
+                                        $isMatch = (!$alreadyMatched && ($selectedDialCode === $c['phone_code']) && (($c['iso_alpha2'] ?? '') === 'IN' || $selectedDialCode !== '+91'));
+                                        if ($isMatch) $alreadyMatched = true;
+                                ?>
+                                    <option value="<?= htmlspecialchars($c['phone_code']) ?>" <?= $isMatch ? 'selected' : '' ?>>
                                         <?= $c['flag'] ?> <?= htmlspecialchars($c['phone_code']) ?>
                                     </option>
-                                <?php endif; endforeach; ?>
+                                <?php endforeach; ?>
                             </select>
                             <input type="tel" name="phone" required value="<?= htmlspecialchars($old['phone'] ?? '') ?>" placeholder="98970 12345" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:bg-white focus:border-blue-700 focus:ring-2 focus:ring-blue-100 outline-none transition-all">
                         </div>
@@ -122,6 +128,7 @@ $old = Session::flash('old_input') ?? [];
                                 <?php foreach ($countries as $c): ?>
                                     <option value="<?= (int)$c['id'] ?>" 
                                             data-flag="<?= htmlspecialchars($c['flag'] ?? '🌐') ?>" 
+                                            data-country-name="<?= htmlspecialchars($c['name']) ?>"
                                             data-phone="<?= htmlspecialchars($c['phone_code'] ?? '') ?>"
                                             <?= ((int)($old['country_id'] ?? 1) === (int)$c['id']) ? 'selected' : '' ?>>
                                         <?= $c['flag'] ?> <?= htmlspecialchars($c['name']) ?> (<?= htmlspecialchars($c['phone_code'] ?? '') ?>)
@@ -183,7 +190,7 @@ $old = Session::flash('old_input') ?? [];
                 <label class="flex items-start gap-2.5 cursor-pointer select-none">
                     <input type="checkbox" name="terms" value="1" required class="mt-1 h-4 w-4 rounded border-slate-300 text-blue-900 focus:ring-blue-800">
                     <span class="text-xs text-slate-600 leading-relaxed">
-                        I confirm that all facility registration documents and manufacturing credentials submitted are authentic, and agree to the <a href="#" class="font-semibold text-blue-900 hover:underline">Seller Agreement</a>.
+                        I confirm that all facility registration documents and manufacturing credentials submitted are authentic, and agree to the <a href="<?= htmlspecialchars($baseUrl) ?>/page/seller-agreement" target="_blank" class="font-semibold text-blue-900 hover:underline">Seller Agreement</a>.
                     </span>
                 </label>
             </div>

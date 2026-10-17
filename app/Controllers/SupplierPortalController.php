@@ -27,6 +27,18 @@ class SupplierPortalController extends Controller
             $this->redirect('/login');
             exit;
         }
+
+        // Strict backend enforcement: only approved, active suppliers can access supplier portal features
+        if (($supplier['approval_status'] ?? '') !== 'APPROVED' || ($supplier['status'] ?? '') !== 'ACTIVE') {
+            $isAjax = strtolower((string)$this->request->header('X-Requested-With')) === 'xmlhttprequest';
+            if ($isAjax) {
+                $this->json(['success' => false, 'message' => 'Supplier access restricted. Status: ' . ($supplier['approval_status'] ?? 'PENDING')], 403);
+                exit;
+            }
+            $this->redirect('/supplier/pending-approval');
+            exit;
+        }
+
         return $supplier;
     }
 
@@ -399,11 +411,9 @@ class SupplierPortalController extends Controller
             Product::beginTransaction();
             Product::saveSupplierEdit($id, (int)$supplier['id'], $input, $primaryImage, $galleryImages, $deletedImageIds);
 
-            // Sync product certificates if provided
-            if (isset($input['certificate_ids'])) {
-                $certIds = is_array($input['certificate_ids']) ? $input['certificate_ids'] : array_filter(explode(',', (string)$input['certificate_ids']));
-                \App\Models\ProductCertificate::syncForProduct($id, $certIds);
-            }
+            // Sync product certificates if provided (or clear if none selected)
+            $certIds = !empty($input['certificate_ids']) ? (is_array($input['certificate_ids']) ? $input['certificate_ids'] : array_filter(explode(',', (string)$input['certificate_ids']))) : [];
+            \App\Models\ProductCertificate::syncForProduct($id, $certIds);
 
             Product::commit();
 
@@ -587,6 +597,7 @@ class SupplierPortalController extends Controller
             'logo'             => $logoPath,
         ];
 
+        // Create pending profile change request (retains current live factory profile until Super Admin approves)
         \App\Models\ProfileChangeRequest::createRequest(
             (int)$supplier['user_id'],
             (int)$supplier['id'],
@@ -595,7 +606,7 @@ class SupplierPortalController extends Controller
             $requestedChanges
         );
 
-        Session::flash('info', 'Your factory profile update request has been submitted for Super Admin review. Your active profile will remain live until approved.');
+        Session::flash('success', 'Your factory profile update request has been submitted for Super Admin review. Your active profile remains live until approved.');
         $this->redirect('/supplier/profile');
     }
 
@@ -641,6 +652,12 @@ class SupplierPortalController extends Controller
         \App\Helpers\BulkProductImporter::downloadTemplate($format, false);
     }
 
+    public function downloadImportReference(): void
+    {
+        $format = (string)$this->request->get('format', 'xlsx');
+        \App\Helpers\BulkProductImporter::downloadReferenceData($format, false);
+    }
+
     public function bulkPreview(): void
     {
         $supplier = $this->getSupplier();
@@ -656,16 +673,20 @@ class SupplierPortalController extends Controller
             return;
         }
 
-        $storedTmp = tempnam(sys_get_temp_dir(), 'sj_sup_bulk_') . '.' . $ext;
-        if (!move_uploaded_file($tmpFile, $storedTmp)) {
+        $storedTmp = \App\Helpers\BulkProductImporter::getSafeTempFile('sj_sup_bulk_', $ext);
+        if (!move_uploaded_file($tmpFile, $storedTmp) && !copy($tmpFile, $storedTmp)) {
             $this->json(['success' => false, 'message' => 'Failed to process uploaded file.'], 500);
             return;
         }
 
-        $result = \App\Helpers\BulkProductImporter::parseAndValidate($storedTmp, (int)$supplier['id'], false);
-        @unlink($storedTmp);
-
-        $this->json($result);
+        try {
+            $result = \App\Helpers\BulkProductImporter::parseAndValidate($storedTmp, (int)$supplier['id'], false);
+            @unlink($storedTmp);
+            $this->json($result);
+        } catch (\Throwable $e) {
+            @unlink($storedTmp);
+            $this->json(['success' => false, 'message' => 'Validation error: ' . $e->getMessage()], 500);
+        }
     }
 
     public function bulkCommit(): void

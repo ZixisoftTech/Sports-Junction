@@ -30,47 +30,55 @@ $csrfToken = \App\Helpers\CSRF::generate();
 
 <!-- Metrics Row -->
 <div class="row g-3 mb-4">
-    <div class="col-6 col-md-3">
+    <div class="col-12 col-sm-6 col-lg-3">
         <div class="stat-card h-100">
-            <div class="d-flex justify-content-between align-items-start">
+            <div class="d-flex justify-content-between align-items-center">
                 <div>
-                    <div class="text-slate-500 small fw-semibold mb-1">Total Buyers</div>
-                    <h3 class="fw-bold text-slate-900 mb-0" id="metricTotalBuyers"><?= (int)($metrics['total'] ?? 0) ?></h3>
+                    <div class="stat-title">Total Buyers</div>
+                    <div class="stat-number text-slate-900" id="metricTotalBuyers"><?= (int)($metrics['total'] ?? 0) ?></div>
                 </div>
-                <div class="stat-icon" style="background:#eff6ff;color:#2563eb;"><i class="bi bi-people-fill"></i></div>
+                <div class="stat-icon" style="background:#eff6ff;color:#2563eb;">
+                    <i class="bi bi-people-fill"></i>
+                </div>
             </div>
         </div>
     </div>
-    <div class="col-6 col-md-3">
+    <div class="col-12 col-sm-6 col-lg-3">
         <div class="stat-card h-100">
-            <div class="d-flex justify-content-between align-items-start">
+            <div class="d-flex justify-content-between align-items-center">
                 <div>
-                    <div class="text-slate-500 small fw-semibold mb-1">Active Accounts</div>
-                    <h3 class="fw-bold text-success mb-0" id="metricActiveBuyers"><?= (int)($metrics['active'] ?? 0) ?></h3>
+                    <div class="stat-title">Active Accounts</div>
+                    <div class="stat-number text-success" id="metricActiveBuyers"><?= (int)($metrics['active'] ?? 0) ?></div>
                 </div>
-                <div class="stat-icon" style="background:#dcfce7;color:#16a34a;"><i class="bi bi-person-check-fill"></i></div>
+                <div class="stat-icon" style="background:#dcfce7;color:#16a34a;">
+                    <i class="bi bi-person-check-fill"></i>
+                </div>
             </div>
         </div>
     </div>
-    <div class="col-6 col-md-3">
+    <div class="col-12 col-sm-6 col-lg-3">
         <div class="stat-card h-100">
-            <div class="d-flex justify-content-between align-items-start">
+            <div class="d-flex justify-content-between align-items-center">
                 <div>
-                    <div class="text-slate-500 small fw-semibold mb-1">Email Verified</div>
-                    <h3 class="fw-bold text-primary mb-0" id="metricVerifiedBuyers"><?= (int)($metrics['verified'] ?? 0) ?></h3>
+                    <div class="stat-title">Email Verified</div>
+                    <div class="stat-number text-primary" id="metricVerifiedBuyers"><?= (int)($metrics['verified'] ?? 0) ?></div>
                 </div>
-                <div class="stat-icon" style="background:#e0e7ff;color:#4f46e5;"><i class="bi bi-patch-check-fill"></i></div>
+                <div class="stat-icon" style="background:#e0e7ff;color:#4f46e5;">
+                    <i class="bi bi-patch-check-fill"></i>
+                </div>
             </div>
         </div>
     </div>
-    <div class="col-6 col-md-3">
+    <div class="col-12 col-sm-6 col-lg-3">
         <div class="stat-card h-100">
-            <div class="d-flex justify-content-between align-items-start">
+            <div class="d-flex justify-content-between align-items-center">
                 <div>
-                    <div class="text-slate-500 small fw-semibold mb-1">Inactive / Suspended</div>
-                    <h3 class="fw-bold text-danger mb-0" id="metricInactiveBuyers"><?= (int)($metrics['inactive'] ?? 0) ?></h3>
+                    <div class="stat-title">Inactive / Suspended</div>
+                    <div class="stat-number text-danger" id="metricInactiveBuyers"><?= (int)($metrics['inactive'] ?? 0) ?></div>
                 </div>
-                <div class="stat-icon" style="background:#fee2e2;color:#dc2626;"><i class="bi bi-person-slash"></i></div>
+                <div class="stat-icon" style="background:#fee2e2;color:#dc2626;">
+                    <i class="bi bi-person-slash"></i>
+                </div>
             </div>
         </div>
     </div>
@@ -331,6 +339,114 @@ $csrfToken = \App\Helpers\CSRF::generate();
     </div>
 </div>
 
+<!-- User Credentials & Password Inspection Modal -->
+<div class="modal fade" id="userCredentialsModal" tabindex="-1" aria-labelledby="userCredentialsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow-lg border-0 rounded-4">
+            <div class="modal-header bg-dark text-white py-3 px-4">
+                <h5 class="modal-title fs-6 fw-bold" id="userCredentialsModalLabel">
+                    <i class="bi bi-key-fill text-warning me-2"></i>Account Access &amp; Credentials
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div id="credLoadingState" class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading credentials...</span>
+                    </div>
+                    <p class="text-muted small mt-2 mb-0">Decrypting account credentials securely...</p>
+                </div>
+
+                <div id="credErrorState" class="alert alert-danger py-2 d-none"></div>
+
+                <div id="credContentState" class="d-none">
+                    <!-- User Header Info -->
+                    <div class="d-flex align-items-center justify-content-between mb-3 pb-3 border-bottom">
+                        <div>
+                            <h6 class="fw-bold mb-0 text-slate-900" id="credUserName">-</h6>
+                            <span class="text-muted small" id="credUserCompany">-</span>
+                        </div>
+                        <span class="badge bg-primary-subtle text-primary border px-2.5 py-1.5" id="credUserRole">BUYER</span>
+                    </div>
+
+                    <!-- Email Field -->
+                    <div class="mb-3">
+                        <label class="form-label text-muted small fw-semibold mb-1">Email / Username</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light"><i class="bi bi-envelope"></i></span>
+                            <input type="text" class="form-control font-monospace" id="credEmail" readonly>
+                            <button class="btn btn-outline-secondary" type="button" onclick="copyCredValue('credEmail', 'Email copied!')" title="Copy Email">
+                                <i class="bi bi-clipboard"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Password Field -->
+                    <div class="mb-3" id="vaultPasswordSection">
+                        <label class="form-label text-muted small fw-semibold mb-1">Account Password</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light"><i class="bi bi-lock"></i></span>
+                            <input type="password" class="form-control font-monospace" id="credPassword" readonly>
+                            <button class="btn btn-outline-secondary" type="button" id="btnToggleCredPass" onclick="toggleCredPasswordVisibility()" title="Show/Hide Password">
+                                <i class="bi bi-eye" id="toggleCredPassIcon"></i>
+                            </button>
+                            <button class="btn btn-outline-secondary" type="button" onclick="copyCredValue('credPassword', 'Password copied!')" title="Copy Password">
+                                <i class="bi bi-clipboard"></i>
+                            </button>
+                        </div>
+                        <div class="form-text text-muted small mt-1">
+                            <i class="bi bi-info-circle me-1"></i>Copy this password to log in via the regular buyer login page.
+                        </div>
+                    </div>
+
+                    <!-- No Vault Password Notice -->
+                    <div class="alert alert-warning py-2 mb-3 d-none" id="noVaultPasswordAlert">
+                        <div class="d-flex align-items-start gap-2">
+                            <i class="bi bi-exclamation-triangle-fill text-warning mt-0.5"></i>
+                            <div class="small">
+                                <strong>Original password unavailable:</strong> This account was created prior to the password vault. You can set a new password below to log in immediately.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Direct Login Portal Link -->
+                    <div class="mb-4 p-3 bg-light rounded-3 border text-center">
+                        <span class="text-muted small d-block mb-2">Use the standard login page to sign in:</span>
+                        <a href="#" target="_blank" id="credLoginLink" class="btn btn-outline-dark btn-sm px-3 fw-bold">
+                            <i class="bi bi-box-arrow-up-right me-1"></i>Open Buyer Login Page
+                        </a>
+                    </div>
+
+                    <!-- Reset / Set Password Section -->
+                    <div class="border-top pt-3">
+                        <a class="text-decoration-none small fw-bold text-primary d-flex align-items-center justify-content-between cursor-pointer" data-bs-toggle="collapse" href="#collapseSetPassword">
+                            <span><i class="bi bi-gear-fill me-1"></i>Change / Set Account Password</span>
+                            <i class="bi bi-chevron-down"></i>
+                        </a>
+                        <div class="collapse mt-2" id="collapseSetPassword">
+                            <form id="adminSetPasswordForm" onsubmit="handleAdminSetPassword(event)">
+                                <input type="hidden" id="credTargetUserId" value="">
+                                <div class="mb-2">
+                                    <label class="form-label text-muted small mb-1">New Password (min 6 characters)</label>
+                                    <div class="input-group input-group-sm">
+                                        <input type="text" class="form-control" id="newAdminPasswordInput" placeholder="Enter new password" required minlength="6">
+                                        <button class="btn btn-outline-secondary" type="button" onclick="generateRandomCredPassword()">Generate</button>
+                                        <button class="btn btn-primary" type="submit" id="btnSubmitAdminPassword">Update</button>
+                                    </div>
+                                </div>
+                                <div id="setPasswordFeedback" class="small mt-1"></div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer py-2 bg-light border-top">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <?php ob_start(); ?>
 <script>
 const BASE_URL = <?= json_encode($baseUrl) ?>;
@@ -372,13 +488,9 @@ $(document).ready(function() {
             {
                 data: 'name',
                 render: (name, type, row) => {
-                    let revBadge = row.pending_profile_change_id
-                        ? `<div class="mt-1"><button type="button" class="btn btn-xs btn-warning text-dark fw-bold py-0.5 px-2 rounded-pill shadow-xs" onclick="openProfileReviewModal(${row.pending_profile_change_id})" title="Review submitted profile edits"><i class="bi bi-clock-history me-1"></i>Review Changes</button></div>`
-                        : '';
                     return `
                         <div class="fw-bold text-slate-900">${escapeHtml(name)}</div>
                         <small class="text-slate-500">${Number(row.total_enquiries || 0)} Enquir${Number(row.total_enquiries || 0) === 1 ? 'y' : 'ies'}</small>
-                        ${revBadge}
                     `;
                 }
             },
@@ -396,7 +508,10 @@ $(document).ready(function() {
             },
             {
                 data: 'country_name',
-                render: val => val ? `<span class="badge bg-light text-slate-700 border">${escapeHtml(val)}</span>` : '<span class="text-muted">-</span>'
+                render: val => {
+                    const country = val || 'India';
+                    return `<span class="badge-country"><i class="bi bi-geo-alt-fill"></i><span>${escapeHtml(country)}</span></span>`;
+                }
             },
             {
                 data: 'email_verified_at',
@@ -422,26 +537,37 @@ $(document).ready(function() {
             {
                 data: null,
                 orderable: false,
-                className: 'text-end',
+                className: 'text-end text-nowrap',
                 render: row => {
                     const isActive = row.status === 'ACTIVE';
                     const toggleTitle = isActive ? 'Deactivate Buyer' : 'Activate Buyer';
                     const toggleBtnClass = isActive ? 'btn-outline-danger' : 'btn-outline-success';
                     const toggleIcon = isActive ? 'bi-person-slash' : 'bi-person-check';
+
+                    let revBtn = row.pending_profile_change_id
+                        ? `<button type="button" class="btn btn-warning text-dark fw-bold me-1.5 position-relative shadow-xs" title="Review submitted profile edits" onclick="openProfileReviewModal(${row.pending_profile_change_id})" style="border-radius:6px; font-size:12px;"><i class="bi bi-clock-history me-1"></i>Review Changes<span class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-white rounded-circle"></span></button>`
+                        : '';
+
                     return `
-                        <div class="btn-group btn-group-sm">
-                            <button type="button" class="btn btn-outline-primary" title="View Buyer Profile" onclick="viewBuyer(${row.id})">
-                                <i class="bi bi-eye"></i>
-                            </button>
-                            <button type="button" class="btn btn-outline-secondary" title="Edit Buyer Details" onclick="openEditBuyer(${row.id})">
-                                <i class="bi bi-pencil"></i>
-                            </button>
-                            <a href="${BASE_URL}/admin/enquiries?buyer_id=${row.id}" class="btn btn-outline-info" title="View Submitted Enquiries (${Number(row.total_enquiries || 0)})">
-                                <i class="bi bi-chat-left-text"></i>
-                            </a>
-                            <button type="button" class="btn ${toggleBtnClass}" title="${toggleTitle}" onclick="toggleBuyerStatus(${row.id}, '${isActive ? 'INACTIVE' : 'ACTIVE'}', '${escapeHtml(row.name)}')">
-                                <i class="bi ${toggleIcon}"></i>
-                            </button>
+                        <div class="d-inline-flex align-items-center">
+                            ${revBtn}
+                            <div class="btn-group btn-group-sm">
+                                <button type="button" class="btn btn-outline-primary" title="View Buyer Profile" onclick="viewBuyer(${row.id})">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary" title="Edit Buyer Details" onclick="openEditBuyer(${row.id})">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <a href="${BASE_URL}/admin/enquiries?buyer_id=${row.id}" class="btn btn-outline-info" title="View Submitted Enquiries (${Number(row.total_enquiries || 0)})">
+                                    <i class="bi bi-chat-left-text"></i>
+                                </a>
+                                <button type="button" class="btn btn-outline-primary" title="View Password & Login Credentials" onclick="showCredentialsModal(${row.id}, '${escapeHtml(row.name)}', 'BUYER')">
+                                    <i class="bi bi-key-fill"></i>
+                                </button>
+                                <button type="button" class="btn ${toggleBtnClass}" title="${toggleTitle}" onclick="toggleBuyerStatus(${row.id}, '${isActive ? 'INACTIVE' : 'ACTIVE'}', '${escapeHtml(row.name)}')">
+                                    <i class="bi ${toggleIcon}"></i>
+                                </button>
+                            </div>
                         </div>
                     `;
                 }
@@ -504,8 +630,9 @@ function viewBuyer(id) {
         $('#vbId').text(`#BUY-${String(b.id).padStart(4, '0')}`);
         $('#vbName').text(b.name || '-');
         $('#vbCompany').text(b.company_name || 'Individual Buyer');
-        const locParts = [b.city, b.state, b.country_name].filter(Boolean);
-        $('#vbCountry').text(locParts.length > 0 ? `Location: ${locParts.join(', ')}` : (b.country_name ? `Country: ${b.country_name}` : 'Country: Not specified'));
+        const cName = b.country_name || 'India';
+        const locParts = [b.city, b.state, cName].filter(Boolean);
+        $('#vbCountry').html(`<span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-2 py-1"><i class="bi bi-geo-alt-fill me-1"></i>${escapeHtml(cName)}</span>${locParts.length > 1 ? ` <span class="small text-slate-500 ms-1">(${escapeHtml([b.city, b.state].filter(Boolean).join(', '))})</span>` : ''}`);
         $('#vbEmail').text(b.email || '-');
         $('#vbPhone').text(b.phone ? `${b.country_code || '+91'} ${b.phone}` : 'Not provided');
         $('#vbCreated').text(b.created_at || '-');
@@ -564,7 +691,13 @@ function openEditBuyer(id) {
         $('#ebEmail').val(b.email || '');
         $('#ebCountryCode').val(b.country_code || '+91');
         $('#ebPhone').val(b.phone || '');
-        $('#ebCountryId').val(b.country_id || '');
+
+        let cId = b.country_id;
+        if (!cId && b.country_code) {
+            const opt = $(`#ebCountryId option[data-phone="${b.country_code}"]`);
+            if (opt.length) cId = opt.val();
+        }
+        $('#ebCountryId').val(cId || '1');
         $('#ebState').val(b.state || '');
         $('#ebCity').val(b.city || '');
         $('#ebStatus').val(b.status || 'ACTIVE');
@@ -733,11 +866,203 @@ function rejectProfileRequest(requestId) {
             Swal.fire('Error', xhr.responseJSON?.message || 'Server error.', 'error');
         }
     });
+}
+
 // Prevent 'Blocked aria-hidden on an element because its descendant retained focus'
 $(document).on('hide.bs.modal', '.modal', function () {
     if (document.activeElement && this.contains(document.activeElement)) {
         document.activeElement.blur();
     }
 });
+
+function showCredentialsModal(id, nameOrCompany, type) {
+    const apiBase = (typeof BASE_URL !== 'undefined') ? BASE_URL : (typeof baseUrl !== 'undefined' ? baseUrl : '');
+    const modalEl = document.getElementById('userCredentialsModal');
+    const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+
+    // Reset initial UI state
+    document.getElementById('credLoadingState').classList.remove('d-none');
+    document.getElementById('credContentState').classList.add('d-none');
+    document.getElementById('credErrorState').classList.add('d-none');
+    document.getElementById('setPasswordFeedback').innerHTML = '';
+    document.getElementById('newAdminPasswordInput').value = '';
+
+    const collapseEl = document.getElementById('collapseSetPassword');
+    const bsCollapse = bootstrap.Collapse.getInstance(collapseEl);
+    if (bsCollapse) {
+        bsCollapse.hide();
+    } else {
+        collapseEl.classList.remove('show');
+    }
+
+    // Reset password visibility
+    const passInput = document.getElementById('credPassword');
+    passInput.type = 'password';
+    const passIcon = document.getElementById('toggleCredPassIcon');
+    if (passIcon) {
+        passIcon.className = 'bi bi-eye';
+    }
+
+    modal.show();
+
+    const endpoint = (type === 'SUPPLIER') 
+        ? `${apiBase}/api/admin/suppliers/${id}/credentials` 
+        : `${apiBase}/api/admin/users/${id}/credentials`;
+
+    fetch(endpoint, {
+        headers: {
+            'Accept': 'application/json'
+        }
+    })
+    .then(r => r.json())
+    .then(data => {
+        document.getElementById('credLoadingState').classList.add('d-none');
+        if (!data.success || !data.user) {
+            document.getElementById('credErrorState').textContent = data.message || 'Unable to retrieve user credentials.';
+            document.getElementById('credErrorState').classList.remove('d-none');
+            return;
+        }
+
+        const user = data.user;
+        document.getElementById('credUserName').textContent = user.name || nameOrCompany || 'Account';
+        document.getElementById('credUserCompany').textContent = user.company_name ? `(${user.company_name})` : '';
+        document.getElementById('credUserRole').textContent = (user.role === 'BUYER') ? 'BUYER' : (user.role || 'USER');
+        document.getElementById('credEmail').value = user.email || '';
+        document.getElementById('credTargetUserId').value = user.id;
+
+        const loginUrl = user.login_url ? `${apiBase}${user.login_url}` : `${apiBase}/login`;
+        document.getElementById('credLoginLink').setAttribute('href', loginUrl);
+
+        if (user.has_vault_password && user.password) {
+            passInput.value = user.password;
+            document.getElementById('vaultPasswordSection').classList.remove('d-none');
+            document.getElementById('noVaultPasswordAlert').classList.add('d-none');
+        } else {
+            passInput.value = '';
+            document.getElementById('vaultPasswordSection').classList.add('d-none');
+            document.getElementById('noVaultPasswordAlert').classList.remove('d-none');
+            // Auto-expand password reset form
+            new bootstrap.Collapse(collapseEl, { show: true });
+        }
+
+        document.getElementById('credContentState').classList.remove('d-none');
+    })
+    .catch(err => {
+        document.getElementById('credLoadingState').classList.add('d-none');
+        document.getElementById('credErrorState').textContent = 'Network or server error loading credentials.';
+        document.getElementById('credErrorState').classList.remove('d-none');
+    });
+}
+
+function copyCredValue(elementId, successMsg) {
+    const val = document.getElementById(elementId).value;
+    if (!val) return;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(val).then(() => {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    toast: true,
+                    position: 'top-end',
+                    icon: 'success',
+                    title: successMsg || 'Copied to clipboard',
+                    showConfirmButton: false,
+                    timer: 2000
+                });
+            } else {
+                alert(successMsg || 'Copied!');
+            }
+        });
+    } else {
+        const input = document.getElementById(elementId);
+        input.select();
+        document.execCommand('copy');
+        alert(successMsg || 'Copied!');
+    }
+}
+
+function toggleCredPasswordVisibility() {
+    const input = document.getElementById('credPassword');
+    const icon = document.getElementById('toggleCredPassIcon');
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.className = 'bi bi-eye-slash';
+    } else {
+        input.type = 'password';
+        icon.className = 'bi bi-eye';
+    }
+}
+
+function generateRandomCredPassword() {
+    const chars = 'abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789!@#$%&*';
+    let pass = '';
+    for (let i = 0; i < 12; i++) {
+        pass += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    document.getElementById('newAdminPasswordInput').value = pass;
+}
+
+function handleAdminSetPassword(e) {
+    e.preventDefault();
+    const userId = document.getElementById('credTargetUserId').value;
+    const newPass = document.getElementById('newAdminPasswordInput').value.trim();
+    const feedback = document.getElementById('setPasswordFeedback');
+    const submitBtn = document.getElementById('btnSubmitAdminPassword');
+
+    if (!newPass || newPass.length < 6) {
+        feedback.innerHTML = '<span class="text-danger">Password must be at least 6 characters.</span>';
+        return;
+    }
+
+    feedback.innerHTML = '<span class="text-muted"><span class="spinner-border spinner-border-sm me-1"></span>Updating password...</span>';
+    submitBtn.disabled = true;
+
+    const apiBase = (typeof BASE_URL !== 'undefined') ? BASE_URL : (typeof baseUrl !== 'undefined' ? baseUrl : '');
+    const token = (typeof CSRF_TOKEN !== 'undefined') ? CSRF_TOKEN : (typeof csrfToken !== 'undefined' ? csrfToken : '');
+
+    fetch(`${apiBase}/api/admin/users/${userId}/set-password`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRF-TOKEN': token
+        },
+        body: new URLSearchParams({
+            password: newPass,
+            csrf_token: token
+        })
+    })
+    .then(r => r.json())
+    .then(data => {
+        submitBtn.disabled = false;
+        if (data.success) {
+            feedback.innerHTML = '<span class="text-success"><i class="bi bi-check-circle me-1"></i>Password updated successfully!</span>';
+            const passInput = document.getElementById('credPassword');
+            passInput.value = newPass;
+            document.getElementById('vaultPasswordSection').classList.remove('d-none');
+            document.getElementById('noVaultPasswordAlert').classList.add('d-none');
+            
+            // Auto copy new password
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(newPass);
+            }
+
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    toast: true,
+                    position: 'top-end',
+                    icon: 'success',
+                    title: 'Password updated & copied to clipboard!',
+                    showConfirmButton: false,
+                    timer: 2500
+                });
+            }
+        } else {
+            feedback.innerHTML = `<span class="text-danger">${escapeHtml(data.message || 'Failed to update password.')}</span>`;
+        }
+    })
+    .catch(err => {
+        submitBtn.disabled = false;
+        feedback.innerHTML = '<span class="text-danger">Network error while updating password.</span>';
+    });
+}
 </script>
 <?php $pageScripts = ob_get_clean(); ?>

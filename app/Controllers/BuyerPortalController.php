@@ -270,7 +270,44 @@ class BuyerPortalController extends Controller
             'city'         => trim((string)($input['city'] ?? '')),
         ];
 
-        \App\Models\ProfileChangeRequest::createRequest(
+        // Directly update buyer profile in users table
+        User::execute("
+            UPDATE users SET
+                name         = :name,
+                company_name = :company_name,
+                phone        = :phone,
+                country_code = :country_code,
+                country_id   = :country_id,
+                state        = :state,
+                city         = :city,
+                updated_at   = NOW()
+            WHERE id = :id AND role = 'BUYER'
+        ", [
+            ':name'         => $requestedChanges['name'],
+            ':company_name' => $requestedChanges['company_name'],
+            ':phone'        => $requestedChanges['phone'],
+            ':country_code' => $requestedChanges['country_code'],
+            ':country_id'   => $requestedChanges['country_id'],
+            ':state'        => $requestedChanges['state'],
+            ':city'         => $requestedChanges['city'],
+            ':id'           => (int)$buyer['id'],
+        ]);
+
+        // Keep auth_user session synchronized
+        $authUser = Session::get('auth_user');
+        if ($authUser && (int)$authUser['id'] === (int)$buyer['id']) {
+            $authUser['name'] = $requestedChanges['name'];
+            $authUser['company_name'] = $requestedChanges['company_name'];
+            $authUser['phone'] = $requestedChanges['phone'];
+            $authUser['country_code'] = $requestedChanges['country_code'];
+            $authUser['country_id'] = $requestedChanges['country_id'];
+            $authUser['state'] = $requestedChanges['state'];
+            $authUser['city'] = $requestedChanges['city'];
+            Session::set('auth_user', $authUser);
+        }
+
+        // Record approved entry for historical tracking
+        \App\Models\ProfileChangeRequest::createApproved(
             (int)$buyer['id'],
             null,
             'BUYER',
@@ -278,7 +315,7 @@ class BuyerPortalController extends Controller
             $requestedChanges
         );
 
-        Session::flash('info', 'Your profile change request has been submitted for Super Admin review. Your active profile will remain unchanged until approved.');
+        Session::flash('success', 'Your buyer profile has been updated successfully!');
         $this->redirect('/buyer/profile');
     }
 

@@ -18,6 +18,10 @@ abstract class Controller
 
     protected function render(string $viewPath, array $data = [], ?string $layout = 'admin'): void
     {
+        if (!isset($data['baseUrl'])) {
+            $data['baseUrl'] = Response::baseUrl();
+        }
+
         // Extract data to make variables accessible in view
         extract($data);
 

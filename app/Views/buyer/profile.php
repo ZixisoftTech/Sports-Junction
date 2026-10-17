@@ -115,6 +115,7 @@ $info = Session::flash('info');
                         <?php foreach ($countries as $c): ?>
                             <option value="<?= $c['id'] ?>" 
                                     data-flag="<?= htmlspecialchars($c['flag'] ?? '🌐') ?>" 
+                                    data-country-name="<?= htmlspecialchars($c['name']) ?>"
                                     data-phone="<?= htmlspecialchars($c['phone_code'] ?? '') ?>"
                                     <?= ((int)($buyer['country_id'] ?? 1) === (int)$c['id']) ? 'selected' : '' ?>>
                                 <?= $c['flag'] ?> <?= htmlspecialchars($c['name']) ?> (<?= htmlspecialchars($c['phone_code'] ?? '') ?>)

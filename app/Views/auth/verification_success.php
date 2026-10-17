@@ -58,7 +58,7 @@ $isSupplier = ($role ?? '') === 'SUPPLIER';
 
             <h1 class="font-headline font-extrabold text-2xl sm:text-3xl text-slate-900 tracking-tight">Email Verified Successfully</h1>
             <p class="text-xs sm:text-sm text-slate-500 mt-2 max-w-md mx-auto">
-                Your buyer account is ready. You now have verified access to factory-direct pricing, custom OEM quotes, and escrow-protected inquiries.
+                Your buyer account is ready. You now have verified access to factory-direct pricing, custom OEM quotes, and verified manufacturer inquiries.
             </p>
 
             <!-- Unlocked Privileges Box -->
@@ -89,7 +89,7 @@ $isSupplier = ($role ?? '') === 'SUPPLIER';
                         <span class="material-symbols-outlined text-[18px] text-teal-600">task_alt</span>
                         <span>Instant supplier chat &amp; RFQ tracking</span>
                     </span>
-                    <span class="text-[11px] font-semibold text-slate-500">Escrow Ready</span>
+                    <span class="text-[11px] font-semibold text-slate-500">Direct Quotes</span>
                 </div>
             </div>
 
@@ -124,7 +124,7 @@ $isSupplier = ($role ?? '') === 'SUPPLIER';
     <div class="mt-6 flex flex-wrap items-center justify-center gap-4 text-xs text-slate-500">
         <span class="inline-flex items-center gap-1"><span class="material-symbols-outlined text-[14px] text-teal-600">verified</span> ISO 9001 Audited Suppliers</span>
         <span>•</span>
-        <span class="inline-flex items-center gap-1"><span class="material-symbols-outlined text-[14px] text-blue-700">lock</span> 256-Bit Escrow Vault</span>
+        <span class="inline-flex items-center gap-1"><span class="material-symbols-outlined text-[14px] text-blue-700">lock</span> Verified Direct Sourcing</span>
         <span>•</span>
         <span class="inline-flex items-center gap-1"><span class="material-symbols-outlined text-[14px] text-indigo-700">desk</span> Procurement Desk Assigned</span>
     </div>

@@ -9,6 +9,7 @@ $authUser = Session::get('auth_user');
 $isLoggedIn = !empty($authUser);
 $userRole = strtoupper($authUser['role'] ?? '');
 $currentUserId = (int) ($authUser['id'] ?? 0);
+$currentSupplierId = \App\Models\Supplier::currentSupplierId();
 ?>
 
 <!-- Floating Sticky Chat Widget (Fixed Bottom-Right) -->
@@ -206,6 +207,7 @@ const popupBaseUrl = <?= json_encode($baseUrl) ?>;
 const isUserLoggedIn = <?= json_encode($isLoggedIn) ?>;
 const currentUserId = <?= json_encode($currentUserId) ?>;
 const currentUserRole = <?= json_encode($userRole) ?>;
+const currentSupplierId = <?= json_encode($currentSupplierId) ?>;
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
@@ -218,6 +220,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Open or initialize chat popup for a product
 function openProductChat(productData) {
+    if (currentUserRole === 'SUPPLIER' && currentSupplierId > 0 && productData) {
+        const prodSupplierId = parseInt(productData.supplier_id || productData.supplierId || 0);
+        if (prodSupplierId > 0 && prodSupplierId === currentSupplierId) {
+            alert('You cannot start a chat about your own product.');
+            return;
+        }
+    }
     currentPopupProduct = productData;
     const widget = document.getElementById('sjFloatingChatWidget');
     if (widget) widget.style.display = 'block';
@@ -612,11 +621,17 @@ function appendPopupMessage(msg) {
     }
 
     // Attachment Preview Card (PDF preview card & Image thumbnail)
-    const attachmentHtml = renderPopupAttachment(msg, isMe);
+    let meta = msg.metadata;
+    if (typeof meta === 'string') {
+        try { meta = JSON.parse(meta); } catch(e) { meta = {}; }
+    }
+    meta = meta || {};
+    const rawBody = msg.message_body || '';
+    const isAutoAttachText = typeof rawBody === 'string' && rawBody.startsWith('Sent an attachment:');
+    const hasAttach = !!msg.attachment_path || !!msg.attachment_id || !!meta.attachment_id || msg.message_type === 'ATTACHMENT' || isAutoAttachText;
+    const attachmentHtml = hasAttach ? renderPopupAttachment(msg, isMe) : '';
 
     // Suppress redundant raw text if attachment card is already displayed
-    const rawBody = msg.message_body || '';
-    const isAutoAttachText = rawBody.startsWith('Sent an attachment:');
     const textHtml = (!isAutoAttachText && rawBody.trim()) 
         ? `<div class="leading-relaxed break-words whitespace-pre-wrap">${escapePopupHtml(rawBody)}</div>`
         : '';
@@ -650,8 +665,14 @@ function renderPopupAttachment(msg, isMe) {
     let fileName = msg.attachment_name || '';
     let ext = (msg.attachment_type || '').toLowerCase();
 
-    // Parse filename & ext from message body if missing
     const rawBody = msg.message_body || '';
+    const isAutoAttachText = typeof rawBody === 'string' && rawBody.startsWith('Sent an attachment:');
+    const hasAttach = !!msg.attachment_path || !!msg.attachment_id || !!meta.attachment_id || msg.message_type === 'ATTACHMENT' || isAutoAttachText;
+    if (!hasAttach) {
+        return '';
+    }
+
+    // Parse filename & ext from message body if missing
     if (!fileName) {
         const m = rawBody.match(/Sent an attachment:\s*(.*?)\s*\((.*?)\)/i);
         if (m) {

@@ -3,66 +3,156 @@ use App\Core\Response;
 use App\Helpers\CSRF;
 $baseUrl = Response::baseUrl();
 ?>
-<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+<!-- Page Header & Action Bar -->
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
     <div>
-        <h4 class="fw-bold mb-1 text-dark"><i class="bi bi-box-seam-fill text-primary me-2"></i>Product Catalog Management</h4>
-        <p class="text-muted small mb-0">Control wholesale products, factory pricing tiers, customization specifications, and homepage featured highlights.</p>
+        <div class="d-flex align-items-center gap-2 mb-1">
+            <span class="badge bg-primary bg-opacity-10 text-primary px-2.5 py-1 rounded-2 fw-bold" style="font-size: 11px;">CATALOG MANAGEMENT</span>
+        </div>
+        <h3 class="fw-bold text-slate-900 mb-0">Product Catalog</h3>
+        <p class="text-slate-500 small mb-0">Control wholesale products, factory specifications, wholesale pricing tiers, and homepage featured highlights.</p>
     </div>
-    <div class="d-flex align-items-center gap-2">
+    <div class="d-flex align-items-center gap-2 flex-wrap">
         <!-- Export Dropdown -->
         <div class="dropdown">
-            <button class="btn btn-outline-secondary btn-sm dropdown-toggle shadow-sm px-3" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <button class="btn btn-outline-secondary btn-sm dropdown-toggle shadow-sm px-3 py-2 rounded-3 fw-semibold" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                 <i class="bi bi-download me-1.5"></i> Export
             </button>
             <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 small">
-                <li><a class="dropdown-item btn-prod-export" href="#" data-format="csv"><i class="bi bi-file-earmark-text text-primary me-2"></i>Export CSV</a></li>
-                <li><a class="dropdown-item btn-prod-export" href="#" data-format="excel"><i class="bi bi-file-earmark-spreadsheet text-success me-2"></i>Export Excel</a></li>
-                <li><a class="dropdown-item btn-prod-export" href="#" data-format="pdf"><i class="bi bi-file-earmark-pdf text-danger me-2"></i>Export PDF</a></li>
+                <li><a class="dropdown-item py-2 btn-prod-export" href="#" data-format="csv"><i class="bi bi-filetype-csv text-primary me-2"></i>Export as CSV</a></li>
+                <li><a class="dropdown-item py-2 btn-prod-export" href="#" data-format="excel"><i class="bi bi-file-earmark-spreadsheet text-success me-2"></i>Export as Excel</a></li>
+                <li><a class="dropdown-item py-2 btn-prod-export" href="#" data-format="pdf"><i class="bi bi-file-earmark-pdf text-danger me-2"></i>Export as PDF</a></li>
             </ul>
         </div>
 
         <!-- Bulk Upload Button -->
-        <button type="button" class="btn btn-outline-primary btn-sm shadow-sm px-3" data-bs-toggle="modal" data-bs-target="#bulkUploadProductModal" id="btnAdminBulkUpload">
-            <i class="bi bi-file-earmark-arrow-up me-1"></i> Bulk Upload Products
+        <button type="button" class="btn btn-outline-primary btn-sm shadow-sm px-3 py-2 rounded-3 fw-semibold" data-bs-toggle="modal" data-bs-target="#bulkUploadProductModal" id="btnAdminBulkUpload">
+            <i class="bi bi-file-earmark-arrow-up me-1.5"></i> Bulk Upload
         </button>
 
         <!-- Add New Button: Dedicated Full Page Route -->
-        <a href="<?= htmlspecialchars($baseUrl) ?>/admin/products/create" class="btn btn-sj-primary btn-sm shadow-sm px-3" id="btnAddNewProduct">
+        <a href="<?= htmlspecialchars($baseUrl) ?>/admin/products/create" class="btn btn-sj-primary btn-sm shadow-sm px-3 py-2 rounded-3 fw-semibold" id="btnAddNewProduct">
             <i class="bi bi-plus-lg me-1"></i> Add Product
         </a>
     </div>
 </div>
 
-<div class="sj-table-card mb-4">
-    <div class="sj-table-header d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
-        <div>
-            <h6 class="m-0 fw-bold text-dark d-flex align-items-center gap-2">
-                <i class="bi bi-box-seam-fill text-primary"></i> Enterprise Product Catalog
-            </h6>
-            <span class="text-muted small">Live factory equipment, supplier catalogs, wholesale pricing &amp; status</span>
-        </div>
-        <div class="d-flex align-items-center gap-2 flex-wrap">
-            <label for="prodCategoryFilter" class="small text-muted text-nowrap m-0 fw-semibold">Category:</label>
-            <select id="prodCategoryFilter" class="form-select form-select-sm" style="min-width: 170px;">
-                <option value="">All Categories</option>
-                <?php foreach ($categories as $cat): ?>
-                    <option value="<?= $cat['id'] ?>"><?= htmlspecialchars($cat['name']) ?></option>
-                <?php endforeach; ?>
-            </select>
-
-            <label for="prodStatusFilter" class="small text-muted text-nowrap m-0 fw-semibold">Status:</label>
-            <select id="prodStatusFilter" class="form-select form-select-sm" style="min-width: 130px;">
-                <option value="">All Statuses</option>
-                <option value="PUBLISHED">Published</option>
-                <option value="DRAFT">Draft</option>
-                <option value="INACTIVE">Inactive</option>
-            </select>
+<!-- Stat Metrics Cards Row -->
+<div class="row g-3 mb-4">
+    <div class="col-12 col-sm-6 col-lg-3">
+        <div class="stat-card h-100">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="stat-title">Total Products</div>
+                    <div class="stat-number text-slate-900"><?= (int)($metrics['total'] ?? 0) ?></div>
+                </div>
+                <div class="stat-icon" style="background:#eff6ff;color:#2563eb;">
+                    <i class="bi bi-boxes"></i>
+                </div>
+            </div>
         </div>
     </div>
-    <div class="p-0">
+    <div class="col-12 col-sm-6 col-lg-3">
+        <div class="stat-card h-100">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="stat-title">Published &amp; Live</div>
+                    <div class="stat-number text-success"><?= (int)($metrics['approved'] ?? 0) ?></div>
+                </div>
+                <div class="stat-icon" style="background:#dcfce7;color:#16a34a;">
+                    <i class="bi bi-check-circle-fill"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-sm-6 col-lg-3">
+        <div class="stat-card h-100">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="stat-title">Audit Pending</div>
+                    <div class="stat-number text-warning"><?= (int)($metrics['pending'] ?? 0) ?></div>
+                </div>
+                <div class="stat-icon" style="background:#fef3c7;color:#d97706;">
+                    <i class="bi bi-hourglass-split"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-sm-6 col-lg-3">
+        <div class="stat-card h-100">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="stat-title">Featured Highlights</div>
+                    <div class="stat-number text-primary"><?= (int)($metrics['featured'] ?? 0) ?></div>
+                </div>
+                <div class="stat-icon" style="background:#ede9fe;color:#7c3aed;">
+                    <i class="bi bi-star-fill"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Dedicated Filter Toolbar Card -->
+<div class="card card-premium mb-4">
+    <div class="card-body p-3">
+        <div class="row g-3 align-items-end">
+            <div class="col-12 col-md-4">
+                <label class="form-label small fw-bold text-slate-700 mb-1">
+                    <i class="bi bi-grid text-primary me-1"></i>Filter by Category
+                </label>
+                <select id="prodCategoryFilter" class="form-select form-select-sm">
+                    <option value="">All Categories</option>
+                    <?php foreach ($categories as $cat): ?>
+                        <option value="<?= $cat['id'] ?>"><?= htmlspecialchars($cat['name']) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <div class="col-12 col-md-3">
+                <label class="form-label small fw-bold text-slate-700 mb-1">
+                    <i class="bi bi-toggle-on text-primary me-1"></i>Publishing Status
+                </label>
+                <select id="prodStatusFilter" class="form-select form-select-sm">
+                    <option value="">All Statuses</option>
+                    <option value="PUBLISHED">Published &amp; Live</option>
+                    <option value="DRAFT">Draft</option>
+                    <option value="INACTIVE">Inactive</option>
+                </select>
+            </div>
+            <div class="col-12 col-md-3">
+                <label class="form-label small fw-bold text-slate-700 mb-1">
+                    <i class="bi bi-star-fill text-warning me-1"></i>Featured Highlights
+                </label>
+                <select id="prodFeaturedFilter" class="form-select form-select-sm">
+                    <option value="">All Products</option>
+                    <option value="1">Featured Only</option>
+                    <option value="0">Standard Only</option>
+                </select>
+            </div>
+            <div class="col-12 col-md-2">
+                <button type="button" class="btn btn-outline-secondary btn-sm w-100 fw-semibold" id="btnResetFilters">
+                    <i class="bi bi-arrow-counterclockwise me-1"></i>Reset
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Products DataTable Card -->
+<div class="card card-premium shadow-sm border-0 mb-4">
+    <div class="card-header bg-white border-bottom py-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-box-seam-fill text-primary"></i>
+            <span class="fw-bold small text-uppercase text-slate-800">Products Catalog Directory</span>
+        </div>
+        <div class="small text-muted">
+            <i class="bi bi-shield-check text-success me-1"></i>Real-time Server-Side Directory
+        </div>
+    </div>
+    <div class="card-body p-0">
         <div class="table-responsive">
-            <table id="productsTable" class="table sj-table table-hover align-middle w-100">
-                <thead>
+            <table id="productsTable" class="table sj-table table-hover align-middle w-100 mb-0">
+                <thead class="table-light">
                     <tr>
                         <th style="width: 55px;" class="text-center">ID</th>
                         <th style="width: 65px;" class="text-center">Photo</th>
@@ -85,9 +175,21 @@ $baseUrl = Response::baseUrl();
 <input type="hidden" id="csrfTokenHolder" name="_csrf" value="<?= CSRF::getToken() ?>">
 
 <script>
+window.SJ_BASE_URL = '<?= htmlspecialchars($baseUrl) ?>';
 document.addEventListener('DOMContentLoaded', function () {
-    const baseUrl = window.SportsJunction.baseUrl;
+    const baseUrl = window.SportsJunction?.baseUrl || window.SJ_BASE_URL;
     let productsDataTable = null;
+
+    // Helper: HTML Escaping
+    function escapeHtml(str) {
+        if (str === null || str === undefined) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
 
     // Helper: Toast
     function showToast(message, type = 'success') {
@@ -133,6 +235,7 @@ document.addEventListener('DOMContentLoaded', function () {
             data: function (d) {
                 d.category_id = $('#prodCategoryFilter').val();
                 d.status = $('#prodStatusFilter').val();
+                d.is_featured = $('#prodFeaturedFilter').val();
             }
         },
         columns: [
@@ -164,10 +267,10 @@ document.addEventListener('DOMContentLoaded', function () {
                     return `
                         <div style="max-width: 320px;">
                             <a href="${baseUrl}/admin/products/edit/${row.id}" class="text-decoration-none">
-                                <div class="table-product-title" title="${data}">${data}</div>
+                                <div class="table-product-title" title="${escapeHtml(data)}">${escapeHtml(data)}</div>
                             </a>
                             <div class="d-flex align-items-center gap-2 mt-0.5">
-                                <span class="table-product-sku">${row.sku ? 'SKU: ' + row.sku : 'SKU: N/A'}</span>
+                                <span class="table-product-sku">${row.sku ? 'SKU: ' + escapeHtml(row.sku) : 'SKU: N/A'}</span>
                             </div>
                         </div>
                     `;
@@ -176,11 +279,18 @@ document.addEventListener('DOMContentLoaded', function () {
             {
                 data: 'category_name',
                 render: function (data, type, row) {
-                    const catName = data || 'Unassigned';
-                    const subcat = row.subcategory_name ? `<div class="small text-muted mt-1 d-flex align-items-center"><i class="bi bi-arrow-return-right text-primary me-1" style="font-size: 11px;"></i>${row.subcategory_name}</div>` : '';
+                    const catString = row.all_category_names || data || 'Unassigned';
+                    const cats = catString.split(',').map(s => s.trim()).filter(Boolean);
+                    let catBadges = cats.map(c => `<span class="badge badge-soft-primary px-2 py-0.5 rounded-pill me-1 mb-1">${escapeHtml(c)}</span>`).join('');
+                    if (!catBadges) {
+                        catBadges = '<span class="badge badge-soft-secondary px-2 py-0.5 rounded-pill">Unassigned</span>';
+                    }
+                    
+                    const subcatString = row.all_subcategory_names || row.subcategory_name || '';
+                    const subcat = subcatString ? `<div class="small text-muted mt-1 d-flex align-items-center flex-wrap"><i class="bi bi-arrow-return-right text-primary me-1" style="font-size: 11px;"></i>${escapeHtml(subcatString)}</div>` : '';
                     return `
-                        <div>
-                            <span class="badge badge-soft-primary px-2.5 py-1 rounded-pill">${catName}</span>
+                        <div class="d-flex flex-column align-items-start">
+                            <div class="d-flex flex-wrap gap-1">${catBadges}</div>
                             ${subcat}
                         </div>
                     `;
@@ -191,7 +301,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 render: function (data) {
                     return `
                         <div>
-                            <div class="fw-semibold text-dark text-truncate" style="max-width: 170px;">${data || 'Sports Junction Direct'}</div>
+                            <div class="fw-semibold text-dark text-truncate" style="max-width: 170px;">${escapeHtml(data || 'Sports Junction Direct')}</div>
                             <div class="small text-muted"><i class="bi bi-patch-check-fill text-primary me-1" style="font-size: 11px;"></i>Verified Supplier</div>
                         </div>
                     `;
@@ -204,14 +314,8 @@ document.addEventListener('DOMContentLoaded', function () {
                     const minFormatted = minNum.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                     const maxNum = row.max_price ? parseFloat(row.max_price) : 0;
                     const maxFormatted = maxNum > minNum ? maxNum.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : null;
-                    const unit = row.price_unit_symbol || row.price_unit_name || 'Unit';
                     const priceStr = maxFormatted ? `$${minFormatted} – $${maxFormatted}` : `$${minFormatted}`;
-                    return `
-                        <div>
-                            <div class="fw-bold text-success">${priceStr}</div>
-                            <div class="small text-muted">/ ${unit}</div>
-                        </div>
-                    `;
+                    return `<div class="fw-bold text-success">${priceStr}</div>`;
                 }
             },
             {
@@ -293,9 +397,17 @@ document.addEventListener('DOMContentLoaded', function () {
             bindProductActions();
         }
     });
+    window.productsDataTable = productsDataTable;
 
-    $('#prodCategoryFilter, #prodStatusFilter').on('change', function () {
+    $('#prodCategoryFilter, #prodStatusFilter, #prodFeaturedFilter').on('change', function () {
         productsDataTable.ajax.reload();
+    });
+
+    $('#btnResetFilters').on('click', function () {
+        $('#prodCategoryFilter').val('');
+        $('#prodStatusFilter').val('');
+        $('#prodFeaturedFilter').val('');
+        productsDataTable.search('').draw();
     });
 
     function ynBadge(val, label) {
@@ -323,7 +435,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         return;
                     }
                     const p = res.data;
-                    const sym = p.price_unit_symbol || '$';
+                    const sym = '$';
                     const img = window.SportsJunction.formatImageUrl(p.primary_image);
                     $('#quickViewTitle').text(`Product Details: ${p.title}`);
 
@@ -362,8 +474,8 @@ document.addEventListener('DOMContentLoaded', function () {
                                     <div class="row g-2">
                                         <div class="col-md-8"><strong>Title:</strong> ${p.title || '—'}</div>
                                         <div class="col-md-4"><strong>SKU:</strong> ${p.sku || 'N/A'}</div>
-                                        <div class="col-md-6"><strong>Category:</strong> ${p.category_name || '—'}</div>
-                                        <div class="col-md-6"><strong>Subcategory:</strong> ${p.subcategory_name || '—'}</div>
+                                        <div class="col-md-6"><strong>Category:</strong> ${p.all_category_names || p.category_name || '—'}</div>
+                                        <div class="col-md-6"><strong>Subcategory:</strong> ${p.all_subcategory_names || p.subcategory_name || '—'}</div>
                                         <div class="col-md-6"><strong>Brand:</strong> ${p.brand_name || '—'}</div>
                                         <div class="col-md-6"><strong>Slug:</strong> <code>${p.slug || '—'}</code></div>
                                         <div class="col-12"><strong>Short Summary:</strong> ${p.short_description || '—'}</div>
@@ -514,13 +626,32 @@ document.addEventListener('DOMContentLoaded', function () {
                         <h6 class="fw-bold mb-1 text-dark"><i class="bi bi-download me-1.5 text-primary"></i>Official Product Upload Template</h6>
                         <p class="small text-muted mb-0">Use our formatted Excel template with pre-configured headers, multi-category support, and sample products.</p>
                     </div>
-                    <div class="d-flex align-items-center gap-2 shrink-0">
+                    <div class="d-flex flex-wrap align-items-center gap-2 shrink-0">
                         <a href="<?= htmlspecialchars($baseUrl) ?>/api/products/bulk-template?format=xlsx" class="btn btn-success btn-sm shadow-sm">
-                            <i class="bi bi-file-earmark-spreadsheet me-1"></i> Download Template (.xlsx)
+                            <i class="bi bi-file-earmark-spreadsheet me-1"></i> Template (.xlsx)
                         </a>
                         <a href="<?= htmlspecialchars($baseUrl) ?>/api/products/bulk-template?format=csv" class="btn btn-outline-secondary btn-sm shadow-sm bg-white">
-                            <i class="bi bi-filetype-csv me-1"></i> Download CSV
+                            <i class="bi bi-filetype-csv me-1"></i> CSV
                         </a>
+                        <a href="<?= htmlspecialchars($baseUrl) ?>/api/products/import-reference?format=xlsx" class="btn btn-primary btn-sm shadow-sm">
+                            <i class="bi bi-database-down me-1"></i> Reference Data (.xlsx)
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Supplier Selection for Super Admin -->
+                <div class="mb-4 bg-light p-3 rounded-3 border">
+                    <label class="form-label fw-bold text-dark small mb-1" for="adminBulkSupplierSelect">
+                        Target Supplier <span class="text-danger">*</span>
+                    </label>
+                    <select id="adminBulkSupplierSelect" class="form-select form-select-sm" style="max-width: 480px;">
+                        <option value="">-- Choose Supplier (or specify in file row) --</option>
+                        <?php foreach ($suppliers as $sup): ?>
+                            <option value="<?= (int)$sup['id'] ?>"><?= htmlspecialchars($sup['company_name'] ?: ($sup['name'] ?? 'Supplier #' . $sup['id'])) ?> (ID: <?= (int)$sup['id'] ?>)</option>
+                        <?php endforeach; ?>
+                    </select>
+                    <div class="form-text text-muted" style="font-size: 11px;">
+                        Products will be assigned to this verified supplier unless an explicit supplier ID or company name is given in the spreadsheet.
                     </div>
                 </div>
 
@@ -592,6 +723,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+    const baseUrl = window.SportsJunction?.baseUrl || window.SJ_BASE_URL || '<?= htmlspecialchars($baseUrl) ?>';
     const dropzone = document.getElementById('adminBulkDropzone');
     const fileInput = document.getElementById('adminBulkFileInput');
     const fileInfo = document.getElementById('adminBulkSelectedFileInfo');
@@ -646,15 +778,37 @@ document.addEventListener('DOMContentLoaded', function () {
             btnValidate.disabled = true;
             btnValidate.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Validating...';
 
+            const csrfToken = document.querySelector('input[name="_csrf"]')?.value || '<?= CSRF::getToken() ?>';
             const formData = new FormData();
             formData.append('file', currentFile);
+            formData.append('_csrf', csrfToken);
+
+            const supSelect = document.getElementById('adminBulkSupplierSelect');
+            if (supSelect && supSelect.value) {
+                formData.append('supplier_id', supSelect.value);
+            }
+
+            const headers = {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            };
+            if (csrfToken) {
+                headers['X-CSRF-Token'] = csrfToken;
+            }
 
             try {
                 const res = await fetch(`${baseUrl}/api/products/bulk-preview`, {
                     method: 'POST',
+                    headers: headers,
                     body: formData
                 });
-                const data = await res.json();
+                
+                let data;
+                try {
+                    data = await res.json();
+                } catch (jsonErr) {
+                    throw new Error('Server returned an invalid response (Status ' + res.status + '). Please try again.');
+                }
 
                 if (!data.success) {
                     Swal.fire({
@@ -714,7 +868,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 Swal.fire({
                     icon: 'error',
                     title: 'Network Error',
-                    text: 'Failed to contact validation server.',
+                    text: err.message || 'Failed to contact validation server.',
                     confirmButtonColor: '#00288e'
                 });
             } finally {
@@ -736,13 +890,24 @@ document.addEventListener('DOMContentLoaded', function () {
             try {
                 const res = await fetch(`${baseUrl}/api/products/bulk-commit`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json',
+                        'X-CSRF-Token': csrfToken
+                    },
                     body: new URLSearchParams({
                         file_token: currentFileToken,
                         _csrf: csrfToken
                     })
                 });
-                const data = await res.json();
+                
+                let data;
+                try {
+                    data = await res.json();
+                } catch (jsonErr) {
+                    throw new Error('Server returned an invalid response (Status ' + res.status + '). Please try again.');
+                }
 
                 if (data.success) {
                     Swal.fire({
@@ -753,9 +918,10 @@ document.addEventListener('DOMContentLoaded', function () {
                     }).then(() => {
                         const modalEl = document.getElementById('bulkUploadProductModal');
                         const modalInstance = bootstrap.Modal.getInstance(modalEl);
-                        if (modalInstance) modalInstance.hide();
-                        if (typeof productsDataTable !== 'undefined') {
-                            productsDataTable.ajax.reload();
+                        if (window.productsDataTable) {
+                            window.productsDataTable.ajax.reload();
+                        } else {
+                            setTimeout(() => location.reload(), 500);
                         }
                     });
                 } else {

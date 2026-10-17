@@ -9,6 +9,27 @@ use App\Helpers\Uploader;
 
 class Subcategory extends Model
 {
+    public static function all(): array
+    {
+        return self::fetchAll("
+            SELECT s.*, c.name as category_name, c.slug as category_slug
+            FROM subcategories s
+            LEFT JOIN categories c ON s.category_id = c.id
+            ORDER BY s.display_order ASC, s.name ASC
+        ");
+    }
+
+    public static function allActive(): array
+    {
+        return self::fetchAll("
+            SELECT s.*, c.name as category_name, c.slug as category_slug
+            FROM subcategories s
+            LEFT JOIN categories c ON s.category_id = c.id
+            WHERE s.status = 'ACTIVE'
+            ORDER BY s.display_order ASC, s.name ASC
+        ");
+    }
+
     public static function findById(int $id): ?array
     {
         return self::fetch("
@@ -44,7 +65,13 @@ class Subcategory extends Model
     {
         return self::fetchAll("
             SELECT s.*,
-                   (SELECT COUNT(*) FROM products p WHERE p.subcategory_id = s.id AND p.status IN ('PUBLISHED', 'ACTIVE')) as product_count
+                   (
+                       SELECT COUNT(DISTINCT p.id) 
+                       FROM products p 
+                       LEFT JOIN product_subcategory_assignments psa ON psa.product_id = p.id
+                       WHERE (p.subcategory_id = s.id OR psa.subcategory_id = s.id) 
+                         AND p.status IN ('PUBLISHED', 'ACTIVE')
+                   ) as product_count
             FROM subcategories s
             WHERE s.category_id = :cat_id AND s.status = 'ACTIVE'
             ORDER BY s.display_order ASC, s.name ASC
@@ -60,7 +87,13 @@ class Subcategory extends Model
         $placeholders = implode(',', array_fill(0, count($categoryIds), '?'));
         return self::fetchAll("
             SELECT s.*, c.name as category_name,
-                   (SELECT COUNT(*) FROM products p WHERE p.subcategory_id = s.id AND p.status IN ('PUBLISHED', 'ACTIVE')) as product_count
+                   (
+                       SELECT COUNT(DISTINCT p.id) 
+                       FROM products p 
+                       LEFT JOIN product_subcategory_assignments psa ON psa.product_id = p.id
+                       WHERE (p.subcategory_id = s.id OR psa.subcategory_id = s.id) 
+                         AND p.status IN ('PUBLISHED', 'ACTIVE')
+                   ) as product_count
             FROM subcategories s
             JOIN categories c ON s.category_id = c.id
             WHERE s.category_id IN ({$placeholders}) AND s.status = 'ACTIVE'
@@ -105,8 +138,9 @@ class Subcategory extends Model
             return false;
         }
 
-        $name = trim($data['name']);
-        $slug = !empty($data['slug']) ? Uploader::slugify($data['slug']) : Uploader::slugify($name);
+        $name = isset($data['name']) ? trim($data['name']) : $existing['name'];
+        $categoryId = isset($data['category_id']) ? (int) $data['category_id'] : (int) $existing['category_id'];
+        $slug = !empty($data['slug']) ? Uploader::slugify($data['slug']) : (!empty($data['name']) ? Uploader::slugify($name) : $existing['slug']);
 
         $baseSlug = $slug;
         $counter = 1;
@@ -116,6 +150,9 @@ class Subcategory extends Model
         }
 
         $image = !empty($data['image']) ? trim($data['image']) : $existing['image'];
+        $description = array_key_exists('description', $data) ? (!empty($data['description']) ? trim($data['description']) : null) : $existing['description'];
+        $status = in_array($data['status'] ?? '', ['ACTIVE', 'INACTIVE'], true) ? $data['status'] : ($existing['status'] ?? 'ACTIVE');
+        $displayOrder = isset($data['display_order']) ? (int) $data['display_order'] : (int) ($existing['display_order'] ?? 0);
 
         self::execute("
             UPDATE subcategories 
@@ -123,13 +160,13 @@ class Subcategory extends Model
                 description = :description, status = :status, display_order = :display_order, updated_at = NOW()
             WHERE id = :id
         ", [
-            ':category_id'   => (int) $data['category_id'],
+            ':category_id'   => $categoryId,
             ':name'          => $name,
             ':slug'          => $slug,
             ':image'         => $image,
-            ':description'   => !empty($data['description']) ? trim($data['description']) : null,
-            ':status'        => in_array($data['status'] ?? '', ['ACTIVE', 'INACTIVE'], true) ? $data['status'] : 'ACTIVE',
-            ':display_order' => (int) ($data['display_order'] ?? 0),
+            ':description'   => $description,
+            ':status'        => $status,
+            ':display_order' => $displayOrder,
             ':id'            => $id,
         ]);
 

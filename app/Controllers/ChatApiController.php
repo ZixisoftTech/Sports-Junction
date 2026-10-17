@@ -110,16 +110,35 @@ class ChatApiController extends Controller
         $enquiryId = $this->request->post('enquiry_id') ? (int) $this->request->post('enquiry_id') : null;
         $initialMessage = trim((string) $this->request->post('initial_message', ''));
 
-        // If product given but no supplier_id, derive supplier from product
-        if ($productId && !$supplierId) {
+        $currentSupplierId = Supplier::currentSupplierId();
+        if ($currentSupplierId <= 0 && $role === 'SUPPLIER') {
+            $authSupplier = Supplier::findByUserId($userId);
+            if ($authSupplier) {
+                $currentSupplierId = (int)$authSupplier['id'];
+            }
+        }
+
+        // If product given, check product ownership and derive supplier if missing
+        if ($productId) {
             $product = Product::findById($productId);
-            if ($product && !empty($product['supplier_id'])) {
-                $supplierId = (int) $product['supplier_id'];
+            if ($product) {
+                if (!$supplierId && !empty($product['supplier_id'])) {
+                    $supplierId = (int) $product['supplier_id'];
+                }
+                if ($currentSupplierId > 0 && (int)($product['supplier_id'] ?? 0) === $currentSupplierId) {
+                    $this->json(['success' => false, 'message' => 'You cannot start a chat about your own product.'], 403);
+                    return;
+                }
             }
         }
 
         if (!$supplierId) {
             $this->json(['success' => false, 'message' => 'Supplier information is missing.'], 422);
+            return;
+        }
+
+        if ($currentSupplierId > 0 && $supplierId === $currentSupplierId) {
+            $this->json(['success' => false, 'message' => 'You cannot start a chat with your own supplier store.'], 403);
             return;
         }
 
@@ -131,7 +150,7 @@ class ChatApiController extends Controller
 
         // Check if supplier is trying to chat with themselves
         if ((int) $supplier['user_id'] === $userId) {
-            $this->json(['success' => false, 'message' => 'You cannot start a chat with your own supplier store.'], 422);
+            $this->json(['success' => false, 'message' => 'You cannot start a chat with your own supplier store.'], 403);
             return;
         }
 

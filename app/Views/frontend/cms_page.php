@@ -11,7 +11,7 @@ $hours = $siteSettings['working_hours'] ?? 'Mon - Sat: 9:00 AM - 7:00 PM IST';
 ?>
 
 <div class="bg-surface-container-lowest min-h-screen py-10">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         
         <!-- Breadcrumbs -->
         <nav class="flex items-center gap-2 text-xs text-on-surface-variant mb-6 font-medium">
@@ -19,67 +19,13 @@ $hours = $siteSettings['working_hours'] ?? 'Mon - Sat: 9:00 AM - 7:00 PM IST';
                 <span class="material-symbols-outlined text-[16px]">home</span> Home
             </a>
             <span class="text-outline-variant">/</span>
-            <span class="text-on-surface font-semibold"><?= htmlspecialchars($categoryName) ?></span>
+            <span class="text-on-surface font-semibold"><?= htmlspecialchars(preg_replace('/^Column\s*\d+\s*[-—:]\s*/i', '', (string)$categoryName)) ?></span>
             <span class="text-outline-variant">/</span>
             <span class="text-primary font-bold truncate max-w-xs"><?= htmlspecialchars($page['title']) ?></span>
         </nav>
 
-        <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
-            
-            <!-- Left Sidebar: Related Pages in this Category -->
-            <div class="lg:col-span-1 space-y-6">
-                <div class="bg-white rounded-2xl border border-surface-container p-5 shadow-xs">
-                    <h3 class="font-headline font-bold text-sm text-slate-900 uppercase tracking-wider mb-4 pb-2 border-b border-surface-container flex items-center gap-2">
-                        <span class="material-symbols-outlined text-primary text-[18px]">menu_book</span>
-                        <span><?= htmlspecialchars($categoryName) ?></span>
-                    </h3>
-                    <ul class="space-y-1.5 text-xs">
-                        <?php foreach ($relatedPages as $rp): ?>
-                            <?php 
-                                $isCurrent = ($rp['slug'] === $page['slug']);
-                                $linkUrl = !empty($rp['external_url']) ? htmlspecialchars($baseUrl . $rp['external_url']) : htmlspecialchars($baseUrl . '/page/' . $rp['slug']);
-                            ?>
-                            <li>
-                                <a href="<?= $linkUrl ?>" class="flex items-center justify-between px-3 py-2 rounded-xl transition-all <?= $isCurrent ? 'bg-primary text-white font-bold shadow-2xs' : 'text-slate-600 hover:bg-slate-50 hover:text-primary font-medium' ?>">
-                                    <span class="truncate"><?= htmlspecialchars($rp['title']) ?></span>
-                                    <span class="material-symbols-outlined text-[14px] <?= $isCurrent ? 'text-white' : 'text-slate-400' ?>">chevron_right</span>
-                                </a>
-                            </li>
-                        <?php endforeach; ?>
-                    </ul>
-                </div>
-
-                <!-- Support & Help Widget -->
-                <div class="bg-gradient-to-br from-blue-900 to-indigo-950 rounded-2xl p-5 text-white shadow-md">
-                    <div class="flex items-center gap-2 mb-3">
-                        <span class="material-symbols-outlined text-teal-400 text-[22px]">support_agent</span>
-                        <h4 class="font-headline font-bold text-xs uppercase tracking-wider">Need Assistance?</h4>
-                    </div>
-                    <p class="text-xs text-blue-100 mb-4 leading-relaxed">
-                        Our verified factory relationship managers are available to assist with your B2B sourcing requirements.
-                    </p>
-                    <div class="space-y-2 text-xs text-blue-200">
-                        <div class="flex items-center gap-2">
-                            <span class="material-symbols-outlined text-[15px] text-teal-300">mail</span>
-                            <span class="font-semibold text-white"><?= htmlspecialchars($email) ?></span>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <span class="material-symbols-outlined text-[15px] text-teal-300">schedule</span>
-                            <span><?= htmlspecialchars($hours) ?></span>
-                        </div>
-                    </div>
-                    <div class="mt-4 pt-3 border-t border-blue-800/80">
-                        <button type="button" onclick="openProductChat({title: 'General Support & Sourcing Help', supplier_id: 1, supplier_name: 'Sports Junction Official Desk'})" class="w-full py-2 bg-teal-500 hover:bg-teal-600 text-slate-950 font-bold rounded-xl text-xs transition-colors flex items-center justify-center gap-1.5 shadow-xs">
-                            <span class="material-symbols-outlined text-[16px]">chat</span>
-                            <span>Launch Live Chat</span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Main Content Area -->
-            <div class="lg:col-span-3">
-                <article class="bg-white rounded-2xl border border-surface-container p-6 sm:p-10 shadow-xs">
+        <!-- Main Content Area -->
+        <article class="bg-white rounded-2xl border border-surface-container p-6 sm:p-10 shadow-xs">
                     
                     <header class="mb-8 pb-6 border-b border-surface-container">
                         <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 text-primary text-[11px] font-bold mb-3">
@@ -160,9 +106,5 @@ $hours = $siteSettings['working_hours'] ?? 'Mon - Sat: 9:00 AM - 7:00 PM IST';
                     <?php endif; ?>
 
                 </article>
-            </div>
-
-        </div>
-
     </div>
 </div>

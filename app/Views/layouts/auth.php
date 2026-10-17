@@ -11,6 +11,11 @@ $baseUrl = Response::baseUrl();
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= htmlspecialchars($pageTitle ?? 'Sports Junction — India\'s Sports Manufacturing Marketplace') ?></title>
     
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="<?= htmlspecialchars($baseUrl) ?>/assets/images/favicon.png">
+    <link rel="shortcut icon" href="<?= htmlspecialchars($baseUrl) ?>/favicon.ico">
+    <link rel="apple-touch-icon" href="<?= htmlspecialchars($baseUrl) ?>/assets/images/favicon.png">
+
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -73,7 +78,7 @@ $baseUrl = Response::baseUrl();
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
             <!-- Brand Logo -->
             <a href="<?= htmlspecialchars($baseUrl) ?>/" class="flex items-center shrink-0 group" title="Sports Junction — India's Sports Manufacturing Marketplace">
-                <img src="<?= htmlspecialchars($baseUrl) ?>/assets/images/logo.jpg" alt="Sports Junction Logo" class="h-10 sm:h-11 w-auto object-contain max-w-[200px]">
+                <img src="<?= htmlspecialchars($baseUrl) ?>/assets/images/logo.png" alt="Sports Junction Logo" class="h-10 sm:h-11 w-auto object-contain max-w-[200px]">
             </a>
 
             <!-- Right Links -->
@@ -107,7 +112,7 @@ $baseUrl = Response::baseUrl();
             <div class="flex items-center gap-4 text-[11px] font-medium text-slate-500">
                 <span class="inline-flex items-center gap-1"><span class="material-symbols-outlined text-[14px] text-teal-600">verified</span> ISO 9001:2015 Verified Protocol</span>
                 <span>•</span>
-                <span class="inline-flex items-center gap-1"><span class="material-symbols-outlined text-[14px] text-blue-700">lock</span> 256-Bit Escrow Security</span>
+                <span class="inline-flex items-center gap-1"><span class="material-symbols-outlined text-[14px] text-blue-700">lock</span> 256-Bit SSL Data Security</span>
             </div>
             <p>&copy; <?= date('Y') ?> Sports Junction B2B Marketplace. Direct Factory Wholesale Network.</p>
         </div>

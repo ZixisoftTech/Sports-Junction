@@ -45,12 +45,43 @@ class ProfileChangeRequest extends Model
         return $id;
     }
 
+    public static function createApproved(int $userId, ?int $supplierId, string $role, array $currentValues, array $requestedChanges): int
+    {
+        self::execute("
+            INSERT INTO profile_change_requests (
+                user_id, supplier_id, role, current_values, requested_changes, status, created_at, updated_at
+            ) VALUES (
+                :user_id, :supplier_id, :role, :current_values, :requested_changes, 'APPROVED', NOW(), NOW()
+            )
+        ", [
+            ':user_id'           => $userId,
+            ':supplier_id'       => $supplierId,
+            ':role'              => strtoupper($role),
+            ':current_values'    => json_encode($currentValues, JSON_UNESCAPED_UNICODE),
+            ':requested_changes' => json_encode($requestedChanges, JSON_UNESCAPED_UNICODE),
+        ]);
+
+        $id = (int) self::lastInsertId();
+
+        AuditLogger::log(
+            'PROFILE_UPDATE',
+            'User',
+            $userId,
+            "User #{$userId} ({$role})",
+            null,
+            "Direct profile update applied successfully."
+        );
+
+        return $id;
+    }
+
     public static function findById(int $id): ?array
     {
         $row = self::fetch("
-            SELECT pcr.*, u.name as user_name, u.email as user_email
+            SELECT pcr.*, u.name as user_name, u.email as user_email, sp.company_name as supplier_company
             FROM profile_change_requests pcr
             LEFT JOIN users u ON pcr.user_id = u.id
+            LEFT JOIN suppliers sp ON pcr.supplier_id = sp.id
             WHERE pcr.id = :id
             LIMIT 1
         ", [':id' => $id]);

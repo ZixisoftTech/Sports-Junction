@@ -52,6 +52,27 @@ $currentPrimaryImg = !empty($product['primary_image']) ? Uploader::imageUrl($pro
     </div>
 </div>
 
+<?php if ($isEdit && !empty($product['pending_changes'])): ?>
+    <div class="mb-6 p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs sm:text-sm">
+        <div class="flex items-center gap-2 font-bold mb-1">
+            <span class="material-symbols-outlined text-amber-600 text-[20px]">hourglass_top</span>
+            <span>Product Revision Awaiting Super Admin Approval</span>
+        </div>
+        <p class="text-amber-700">You submitted modifications for this product. The proposed changes are currently queued for Super Admin review. Your active approved product remains live on the marketplace until the revision is approved.</p>
+    </div>
+<?php endif; ?>
+
+<?php if ($isEdit && !empty($product['rejection_reason'])): ?>
+    <div class="mb-6 p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-900 text-xs sm:text-sm">
+        <div class="flex items-center gap-2 font-bold mb-1">
+            <span class="material-symbols-outlined text-rose-600 text-[20px]">cancel</span>
+            <span><?= ($product['approval_status'] ?? '') === 'APPROVED' ? 'Previous Product Revision Was Rejected' : 'Product Submission Requires Attention' ?></span>
+        </div>
+        <p class="text-rose-700 mb-1"><strong>Feedback / Reason:</strong> <?= htmlspecialchars($product['rejection_reason']) ?></p>
+        <small class="text-rose-500">Please review the feedback above, make the required corrections below, and re-submit for review.</small>
+    </div>
+<?php endif; ?>
+
 <!-- Main 5-Step Wizard Card -->
 <div class="sj-card bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden mb-10">
     <!-- Step Wizard Nav Header -->
@@ -425,6 +446,11 @@ $currentPrimaryImg = !empty($product['primary_image']) ? Uploader::imageUrl($pro
                     <div class="md:col-span-12">
                         <label for="prodShippingInfo" class="block text-xs font-bold text-slate-700 mb-1.5">Shipping, Freight &amp; Port Dispatch Terms</label>
                         <textarea class="sj-input w-full" id="prodShippingInfo" name="shipping_info" rows="2" placeholder="e.g. FOB Nhava Sheva (Mumbai) / Mundra Port or Worldwide Express Air Freight"><?= htmlspecialchars($product['shipping_info'] ?? '') ?></textarea>
+                    </div>
+
+                    <div class="md:col-span-12">
+                        <label for="prodExportPackaging" class="block text-xs font-bold text-slate-700 mb-1.5">Export Packaging Specifications</label>
+                        <textarea class="sj-input w-full" id="prodExportPackaging" name="export_packaging" rows="2" placeholder="e.g. Heavy-duty 5-ply export master cartons, individual moisture-proof polybags, and corner protectors"><?= htmlspecialchars($product['export_packaging'] ?? '') ?></textarea>
                     </div>
 
                     <div class="md:col-span-6">

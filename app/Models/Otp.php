@@ -13,10 +13,10 @@ class Otp extends Model
     public static function generate(string $email, string $purpose, ?string $ip = null): string
     {
         $email = strtolower(trim($email));
-        // Static OTP 123456 for all places as requested
-        $code = '123456';
+        // Cryptographically secure 6-digit random code (or 123456 in dev/test mode)
+        $code = self::isTestOtpAllowed() ? '123456' : (string) random_int(100000, 999999);
         $hashedCode = password_hash($code, PASSWORD_BCRYPT, ['cost' => 10]);
-        $expiresAt = date('Y-m-d H:i:s', time() + 3600); // 1 hour for convenient testing
+        $expiresAt = date('Y-m-d H:i:s', time() + 600); // 10 minutes expiry
 
         // Check if existing unverified OTP exists for email + purpose to track resend_count
         $existing = self::fetch("
@@ -62,13 +62,13 @@ class Otp extends Model
     }
 
     /**
-     * Can resend OTP (checks 60-second cooldown)
+     * Can resend OTP (checks 60-second cooldown and max 5 resends limit)
      */
     public static function canResend(string $email, string $purpose, int $cooldownSeconds = 60): array
     {
         $email = strtolower(trim($email));
         $record = self::fetch("
-            SELECT id, created_at 
+            SELECT id, created_at, resend_count 
             FROM email_otps 
             WHERE email = :email AND purpose = :purpose 
             ORDER BY id DESC LIMIT 1
@@ -81,13 +81,23 @@ class Otp extends Model
             return ['allowed' => true, 'remaining' => 0];
         }
 
+        // Resend limit: max 5 resends per OTP lifecycle
+        if ((int)($record['resend_count'] ?? 0) >= 5) {
+            return [
+                'allowed' => false,
+                'remaining' => 3600,
+                'message' => 'Maximum resend limit reached. Please wait or contact support.'
+            ];
+        }
+
         $createdAt = strtotime($record['created_at']);
         $elapsed = time() - $createdAt;
 
         if ($elapsed < $cooldownSeconds) {
             return [
                 'allowed'   => false,
-                'remaining' => $cooldownSeconds - $elapsed
+                'remaining' => $cooldownSeconds - $elapsed,
+                'message'   => 'Please wait ' . ($cooldownSeconds - $elapsed) . ' seconds before requesting another code.'
             ];
         }
 
@@ -119,16 +129,16 @@ class Otp extends Model
             ];
         }
 
-        // Check expiry (allow 123456 override)
-        if ($code !== '123456' && strtotime($record['expires_at']) < time()) {
+        // Check expiry
+        if (strtotime($record['expires_at']) < time()) {
             return [
                 'success' => false,
                 'message' => 'The verification code has expired. Please request a new code.'
             ];
         }
 
-        // Check attempts limit (allow 123456 override)
-        if ($code !== '123456' && (int)$record['attempts'] >= (int)$record['max_attempts']) {
+        // Check attempts limit
+        if ((int)$record['attempts'] >= (int)$record['max_attempts']) {
             return [
                 'success' => false,
                 'message' => 'Maximum verification attempts exceeded. Please request a new code.'
@@ -142,8 +152,12 @@ class Otp extends Model
             WHERE id = :id
         ", [':id' => $record['id']]);
 
-        // Verify hash OR allow static '123456'
-        $isMatch = ($code === '123456') || password_verify($code, $record['otp_code']);
+        // Verify hash
+        $isMatch = password_verify($code, $record['otp_code']);
+        if (!$isMatch && self::isTestOtpAllowed() && $code === '123456') {
+            $isMatch = true;
+        }
+
         if (!$isMatch) {
             $rem = max(0, (int)$record['max_attempts'] - ((int)$record['attempts'] + 1));
             return [
@@ -171,5 +185,43 @@ class Otp extends Model
             'success' => true,
             'message' => 'Verification code confirmed.'
         ];
+    }
+
+    /**
+     * Invalidate any active OTPs for email and purpose
+     */
+    public static function invalidate(string $email, string $purpose): void
+    {
+        $email = strtolower(trim($email));
+        self::execute("
+            UPDATE email_otps 
+            SET expires_at = NOW(), verified_at = NOW() 
+            WHERE email = :email AND purpose = :purpose AND verified_at IS NULL
+        ", [
+            ':email'   => $email,
+            ':purpose' => $purpose
+        ]);
+
+        if (\App\Helpers\Env::get('APP_DEBUG')) {
+            \App\Helpers\Session::remove("dev_otp_{$email}");
+            \App\Helpers\Session::remove("dev_otp_{$email}_{$purpose}");
+            \App\Helpers\Session::remove('dev_latest_otp');
+        }
+    }
+
+    /**
+     * Check if test OTP mode is permitted (development/local only)
+     */
+    public static function isTestOtpAllowed(): bool
+    {
+        $env = strtolower(trim((string)\App\Helpers\Env::get('APP_ENV', 'production')));
+        if ($env === 'production') {
+            return false;
+        }
+
+        $allowTestOtp = filter_var(\App\Helpers\Env::get('ALLOW_TEST_OTP', false), FILTER_VALIDATE_BOOLEAN);
+        $debug = filter_var(\App\Helpers\Env::get('APP_DEBUG', false), FILTER_VALIDATE_BOOLEAN);
+
+        return $allowTestOtp || $debug;
     }
 }

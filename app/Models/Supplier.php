@@ -49,6 +49,52 @@ class Supplier extends Model
         ", [':user_id' => $userId]);
     }
 
+    public static function currentSupplierId(): int
+    {
+        $authUser = \App\Helpers\Session::get('auth_user');
+        if (!$authUser || ($authUser['role'] ?? '') !== 'SUPPLIER' || empty($authUser['id'])) {
+            return 0;
+        }
+
+        $authSupplier = \App\Helpers\Session::get('auth_supplier');
+        if (!empty($authSupplier['id'])) {
+            return (int)$authSupplier['id'];
+        }
+
+        $supplier = self::findByUserId((int)$authUser['id']);
+        if ($supplier && !empty($supplier['id'])) {
+            \App\Helpers\Session::set('auth_supplier', $supplier);
+            return (int)$supplier['id'];
+        }
+
+        return 0;
+    }
+
+    public static function isOwnedByCurrentSupplier(mixed $productOrSupplier): bool
+    {
+        $mySupplierId = self::currentSupplierId();
+        if ($mySupplierId <= 0) {
+            return false;
+        }
+
+        if (is_array($productOrSupplier)) {
+            $targetSupplierId = (int)($productOrSupplier['supplier_id'] ?? 0);
+            if ($targetSupplierId > 0) {
+                return $targetSupplierId === $mySupplierId;
+            }
+            if (isset($productOrSupplier['id']) && (!isset($productOrSupplier['title']) && !isset($productOrSupplier['min_price']))) {
+                return (int)$productOrSupplier['id'] === $mySupplierId;
+            }
+            return false;
+        }
+
+        if (is_numeric($productOrSupplier)) {
+            return (int)$productOrSupplier === $mySupplierId;
+        }
+
+        return false;
+    }
+
     public static function findByEmail(string $email): ?array
     {
         return self::fetch("
@@ -293,27 +339,42 @@ class Supplier extends Model
             return false;
         }
 
+        $companyName    = trim((string)($data['company_name'] ?? ($supplier['company_name'] ?? '')));
+        $contactPerson  = trim((string)($data['contact_person'] ?? ($supplier['contact_person'] ?? '')));
+        $email          = !empty($data['email']) ? strtolower(trim((string)$data['email'])) : strtolower(trim((string)($supplier['email'] ?? '')));
+        $phone          = trim((string)($data['phone'] ?? ($supplier['phone'] ?? '')));
+        $countryCode    = trim((string)($data['country_code'] ?? ($supplier['country_code'] ?? '+91')));
+        $businessTypeId = (int)($data['business_type_id'] ?? ($supplier['business_type_id'] ?? 1));
+        $address        = trim((string)($data['address'] ?? ($supplier['address'] ?? '')));
+        $countryId      = (int)($data['country_id'] ?? ($supplier['country_id'] ?? 1));
+        $stateId        = !empty($data['state_id']) ? (int)$data['state_id'] : ($supplier['state_id'] ?? null);
+        $cityId         = !empty($data['city_id']) ? (int)$data['city_id'] : ($supplier['city_id'] ?? null);
+        $state          = !empty($data['state']) ? trim((string)$data['state']) : ($supplier['state'] ?? null);
+        $city           = !empty($data['city']) ? trim((string)$data['city']) : ($supplier['city'] ?? null);
+        $description    = isset($data['description']) ? trim((string)$data['description']) : ($supplier['description'] ?? null);
+        $postalCode     = trim((string)($data['postal_code'] ?? ($supplier['postal_code'] ?? '')));
+
         $statusSql = "";
         $logoSql = !empty($data['logo']) ? ", logo = :logo" : "";
         $bindings = [
-            ':company_name'     => trim($data['company_name']),
-            ':contact_person'   => trim($data['contact_person']),
-            ':email'            => strtolower(trim($data['email'])),
-            ':phone'            => trim($data['phone'] ?? ''),
-            ':country_code'     => trim($data['country_code'] ?? '+91'),
-            ':business_type_id' => (int)$data['business_type_id'],
-            ':address'          => trim($data['address'] ?? ''),
-            ':country_id'       => (int)$data['country_id'],
-            ':state_id'         => !empty($data['state_id']) ? (int)$data['state_id'] : null,
-            ':city_id'          => !empty($data['city_id']) ? (int)$data['city_id'] : null,
-            ':state'            => !empty($data['state']) ? trim($data['state']) : null,
-            ':city'             => !empty($data['city']) ? trim($data['city']) : null,
-            ':description'      => isset($data['description']) ? trim($data['description']) : ($supplier['description'] ?? null),
-            ':postal_code'      => trim($data['postal_code'] ?? ''),
+            ':company_name'     => $companyName,
+            ':contact_person'   => $contactPerson,
+            ':email'            => $email,
+            ':phone'            => $phone,
+            ':country_code'     => $countryCode,
+            ':business_type_id' => $businessTypeId,
+            ':address'          => $address,
+            ':country_id'       => $countryId,
+            ':state_id'         => $stateId,
+            ':city_id'          => $cityId,
+            ':state'            => $state,
+            ':city'             => $city,
+            ':description'      => $description,
+            ':postal_code'      => $postalCode,
             ':id'               => $id,
         ];
         if (!empty($data['logo'])) {
-            $bindings[':logo'] = trim($data['logo']);
+            $bindings[':logo'] = trim((string)$data['logo']);
         }
         if (!empty($data['status']) && in_array($data['status'], ['ACTIVE', 'INACTIVE'], true)) {
             $statusSql = ", status = :status";
@@ -343,19 +404,19 @@ class Supplier extends Model
         // Keep associated user updated
         if (!empty($supplier['user_id'])) {
             $userUpdate = [
-                ':name'         => trim($data['contact_person']),
-                ':company_name' => trim($data['company_name']),
-                ':email'        => strtolower(trim($data['email'])),
-                ':phone'        => trim($data['phone'] ?? ''),
-                ':country_code' => trim($data['country_code'] ?? '+91'),
-                ':country_id'   => (int)$data['country_id'],
-                ':state'        => !empty($data['state']) ? trim($data['state']) : null,
-                ':city'         => !empty($data['city']) ? trim($data['city']) : null,
+                ':name'         => $contactPerson,
+                ':company_name' => $companyName,
+                ':email'        => $email,
+                ':phone'        => $phone,
+                ':country_code' => $countryCode,
+                ':country_id'   => $countryId,
+                ':state'        => $state,
+                ':city'         => $city,
                 ':user_id'      => (int)$supplier['user_id'],
             ];
             
             // If email changed, require reverification on user account
-            $emailChanged = strtolower(trim($supplier['email'])) !== strtolower(trim($data['email']));
+            $emailChanged = !empty($data['email']) && strtolower(trim((string)$supplier['email'])) !== strtolower(trim((string)$data['email']));
             $emailReverifySql = $emailChanged ? ", email_verified_at = NULL" : "";
 
             self::execute("

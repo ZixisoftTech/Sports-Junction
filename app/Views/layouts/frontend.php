@@ -10,10 +10,11 @@ $baseUrl = Response::baseUrl();
 $currentUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . "://" . ($_SERVER['HTTP_HOST'] ?? 'localhost') . ($_SERVER['REQUEST_URI'] ?? '');
 
 $siteSettings = SiteSetting::getAllKeyed();
-$siteLogo = !empty($siteSettings['site_logo']) ? ($baseUrl . $siteSettings['site_logo']) : ($baseUrl . '/assets/images/logo.jpg');
+$siteLogo = !empty($siteSettings['site_logo']) ? ($baseUrl . $siteSettings['site_logo']) : ($baseUrl . '/assets/images/logo.png');
 $siteName = $siteSettings['site_name'] ?? 'Sports Junction';
 
 $authUser = \App\Helpers\Session::get('auth_user');
+$authSupplierId = \App\Models\Supplier::currentSupplierId();
 $buyerUnreadCount = 0;
 if ($authUser && ($authUser['role'] ?? '') === 'BUYER') {
     try {
@@ -23,6 +24,16 @@ if ($authUser && ($authUser['role'] ?? '') === 'BUYER') {
     }
 }
 $footerColumns = CmsPage::getByColumns(true);
+$allCountries = !empty($countries) ? $countries : \App\Models\Country::allActive();
+$buyerCountryId = null;
+if ($authUser && ($authUser['role'] ?? '') === 'BUYER') {
+    try {
+        $dbBuyer = \App\Models\User::findById((int)$authUser['id']);
+        if ($dbBuyer && !empty($dbBuyer['country_id'])) {
+            $buyerCountryId = (int)$dbBuyer['country_id'];
+        }
+    } catch (\Throwable $e) {}
+}
 ?>
 <!DOCTYPE html>
 <html lang="en" class="scroll-smooth">
@@ -32,6 +43,14 @@ $footerColumns = CmsPage::getByColumns(true);
     <title><?= htmlspecialchars($pageTitle ?? 'Sports Junction — India\'s Sports Manufacturing Marketplace') ?></title>
     <meta name="description" content="<?= htmlspecialchars($metaDescription ?? 'Direct factory wholesale marketplace connecting international buyers with verified Indian sports manufacturers.') ?>">
     <link rel="canonical" href="<?= htmlspecialchars($currentUrl) ?>">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="<?= htmlspecialchars($baseUrl) ?>/assets/images/favicon.png">
+    <link rel="shortcut icon" href="<?= htmlspecialchars($baseUrl) ?>/favicon.ico">
+    <link rel="apple-touch-icon" href="<?= htmlspecialchars($baseUrl) ?>/assets/images/favicon.png">
+
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -89,9 +108,25 @@ $footerColumns = CmsPage::getByColumns(true);
     </style>
 </head>
 <body class="bg-surface text-on-surface font-sans antialiased flex flex-col min-h-screen">
+    <?php 
+    $impersonatorAdmin = \App\Helpers\Session::get('impersonator_admin'); 
+    $authUser = \App\Helpers\Session::get('auth_user');
+    ?>
+    <?php if (!empty($impersonatorAdmin)): ?>
+        <div class="bg-amber-500 text-slate-950 px-4 py-2 text-xs font-bold flex items-center justify-between shadow-md z-[60] fixed top-0 left-0 right-0 border-b border-amber-600 h-9">
+            <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-[18px]">admin_panel_settings</span>
+                <span>IMPERSONATION MODE: Currently viewing as <strong><?= htmlspecialchars($authUser['name'] ?? 'User') ?></strong> (<?= htmlspecialchars($authUser['role'] ?? '') ?> &bull; <?= htmlspecialchars($authUser['email'] ?? '') ?>)</span>
+            </div>
+            <a href="<?= htmlspecialchars($baseUrl) ?>/admin/exit-impersonation" class="px-3 py-1 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-bold transition flex items-center gap-1 shadow-sm">
+                <span class="material-symbols-outlined text-[14px]">logout</span>
+                <span>Return to Super Admin</span>
+            </a>
+        </div>
+    <?php endif; ?>
 
     <!-- Global Header -->
-    <header class="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md shadow-sm border-b border-surface-container">
+    <header class="fixed <?= !empty($impersonatorAdmin) ? 'top-9' : 'top-0' ?> left-0 right-0 z-50 bg-white/95 backdrop-blur-md shadow-sm border-b border-surface-container">
         <!-- Top Utility & Search Bar -->
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
             <!-- Brand Logo -->
@@ -292,82 +327,104 @@ $footerColumns = CmsPage::getByColumns(true);
     </header>
 
     <!-- Main Content Container with Top Padding for Fixed Header -->
-    <main class="w-full flex-grow pt-32">
+    <main class="w-full flex-grow <?= !empty($impersonatorAdmin) ? 'pt-40' : 'pt-32' ?>">
         <?= $content ?>
     </main>
 
     <!-- Quick Factory RFQ Modal -->
-    <div id="inquiry-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm hidden opacity-0 transition-opacity duration-200">
-        <div id="inquiry-modal-card" class="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 relative transform scale-95 transition-transform duration-200">
-            <button type="button" onclick="closeInquiryModal()" class="absolute top-4 right-4 p-1.5 text-gray-400 hover:text-gray-700 rounded-lg bg-gray-100 transition-colors" title="Close">
-                <span class="material-symbols-outlined text-[20px]">close</span>
-            </button>
-            <div class="flex items-center gap-2 mb-2 text-teal-700 font-semibold text-xs uppercase tracking-wider">
-                <span class="material-symbols-outlined text-[18px]">verified</span>
-                <span>Direct Factory Inquiries (Zero Commission)</span>
+    <div id="inquiry-modal" class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/50 backdrop-blur-sm hidden opacity-0 transition-opacity duration-200">
+        <div id="inquiry-modal-card" class="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] flex flex-col relative transform scale-95 transition-transform duration-200 overflow-hidden">
+            <!-- Modal Header (Fixed) -->
+            <div class="p-5 pb-3 border-b border-slate-100 flex-shrink-0 relative">
+                <button type="button" onclick="closeInquiryModal()" class="absolute top-4 right-4 p-1.5 text-gray-400 hover:text-gray-700 rounded-lg bg-gray-100 transition-colors" title="Close">
+                    <span class="material-symbols-outlined text-[20px]">close</span>
+                </button>
+                <div class="flex items-center gap-2 mb-1.5 text-teal-700 font-semibold text-xs uppercase tracking-wider">
+                    <span class="material-symbols-outlined text-[18px]">verified</span>
+                    <span>Direct Factory Inquiries (Zero Commission)</span>
+                </div>
+                <h3 id="modal-product-title" class="font-headline font-bold text-lg sm:text-xl text-on-surface line-clamp-1 pr-8">Send Factory Inquiry</h3>
+                <p id="modal-supplier-name" class="text-xs text-on-surface-variant line-clamp-1 mt-0.5">Target: Sports Junction Certified Manufacturing Hub</p>
             </div>
-            <h3 id="modal-product-title" class="font-headline font-bold text-xl text-on-surface mb-1">Send Factory Inquiry</h3>
-            <p id="modal-supplier-name" class="text-xs text-on-surface-variant mb-4">Target: Sports Junction Certified Manufacturing Hub</p>
 
-            <form id="publicInquiryForm" class="space-y-3" onsubmit="handleInquirySubmit(event)">
+            <!-- Form Wrapper with scrollable body and sticky footer -->
+            <form id="publicInquiryForm" class="flex flex-col flex-1 overflow-hidden m-0" onsubmit="handleInquirySubmit(event)">
                 <input type="hidden" name="product_id" id="modal-product-id" value="">
                 <input type="hidden" name="supplier_id" id="modal-supplier-id" value="">
                 <input type="hidden" name="enquiry_source" id="modal-enquiry-source" value="GENERAL">
                 <input type="hidden" name="subject" id="modal-subject" value="">
 
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-xs font-bold text-on-surface-variant mb-1 uppercase tracking-wider">Your Full Name *</label>
-                        <input type="text" name="buyer_name" id="modal-buyer-name" required placeholder="John Doe" class="w-full bg-surface-container-low px-3 py-2 text-on-surface rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-primary outline-none transition-all">
+                <!-- Scrollable Body -->
+                <div class="p-5 overflow-y-auto flex-1 space-y-3.5">
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-bold text-on-surface-variant mb-1 uppercase tracking-wider">Your Full Name *</label>
+                            <input type="text" name="buyer_name" id="modal-buyer-name" required placeholder="John Doe" class="w-full bg-surface-container-low px-3 py-2 text-on-surface rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-primary outline-none transition-all">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-on-surface-variant mb-1 uppercase tracking-wider">Business Email *</label>
+                            <input type="email" name="buyer_email" id="modal-buyer-email" required placeholder="buyer@company.com" class="w-full bg-surface-container-low px-3 py-2 text-on-surface rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-primary outline-none transition-all">
+                        </div>
                     </div>
-                    <div>
-                        <label class="block text-xs font-bold text-on-surface-variant mb-1 uppercase tracking-wider">Business Email *</label>
-                        <input type="email" name="buyer_email" id="modal-buyer-email" required placeholder="buyer@company.com" class="w-full bg-surface-container-low px-3 py-2 text-on-surface rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-primary outline-none transition-all">
-                    </div>
-                </div>
 
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-xs font-bold text-on-surface-variant mb-1 uppercase tracking-wider">Phone / WhatsApp</label>
-                        <input type="text" name="buyer_phone" id="modal-buyer-phone" placeholder="+1 555-0199" class="w-full bg-surface-container-low px-3 py-2 text-on-surface rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-primary outline-none transition-all">
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-bold text-on-surface-variant mb-1 uppercase tracking-wider">Phone / WhatsApp</label>
+                            <input type="text" name="buyer_phone" id="modal-buyer-phone" placeholder="+1 555-0199" class="w-full bg-surface-container-low px-3 py-2 text-on-surface rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-primary outline-none transition-all">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-on-surface-variant mb-1 uppercase tracking-wider">Company Name</label>
+                            <input type="text" name="company_name" id="modal-company-name" placeholder="Apex Imports LLC" class="w-full bg-surface-container-low px-3 py-2 text-on-surface rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-primary outline-none transition-all">
+                        </div>
                     </div>
-                    <div>
-                        <label class="block text-xs font-bold text-on-surface-variant mb-1 uppercase tracking-wider">Company Name</label>
-                        <input type="text" name="company_name" id="modal-company-name" placeholder="Apex Imports LLC" class="w-full bg-surface-container-low px-3 py-2 text-on-surface rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-primary outline-none transition-all">
-                    </div>
-                </div>
 
-                <div class="grid grid-cols-2 gap-3">
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-bold text-on-surface-variant mb-1 uppercase tracking-wider">Country *</label>
+                            <select name="country_id" id="modal-country-id" required class="w-full bg-surface-container-low px-3 py-2 text-on-surface rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-primary outline-none transition-all">
+                                <option value="">Select Country *</option>
+                                <?php foreach ($allCountries as $c): ?>
+                                    <option value="<?= (int)$c['id'] ?>" data-name="<?= htmlspecialchars($c['name']) ?>" <?= ($buyerCountryId === (int)$c['id'] || (empty($buyerCountryId) && $c['name'] === 'India')) ? 'selected' : '' ?>>
+                                        <?= $c['flag'] ?? '' ?> <?= htmlspecialchars($c['name']) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-on-surface-variant mb-1 uppercase tracking-wider">City / Location</label>
+                            <input type="text" name="delivery_location" id="modal-delivery-location" placeholder="e.g., Delhi, India" class="w-full bg-surface-container-low px-3 py-2 text-on-surface rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-primary outline-none transition-all">
+                        </div>
+                    </div>
+
                     <div>
                         <label class="block text-xs font-bold text-on-surface-variant mb-1 uppercase tracking-wider">Target Order Qty *</label>
                         <input type="number" name="target_quantity" id="modal-qty" required min="1" value="100" class="w-full bg-surface-container-low px-3 py-2 text-on-surface rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-primary outline-none transition-all">
                     </div>
+
                     <div>
-                        <label class="block text-xs font-bold text-on-surface-variant mb-1 uppercase tracking-wider">Delivery Location / City</label>
-                        <input type="text" name="delivery_location" id="modal-delivery-location" placeholder="e.g., Delhi, India" class="w-full bg-surface-container-low px-3 py-2 text-on-surface rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-primary outline-none transition-all">
+                        <label class="block text-xs font-bold text-on-surface-variant mb-1 uppercase tracking-wider">Custom Specifications & Packaging *</label>
+                        <textarea name="specifications" id="modal-specs" required rows="3" placeholder="Specify custom logo requirements, colors, packaging boxes, or destination port for CIF quote..." class="w-full bg-surface-container-low px-3 py-2 text-on-surface rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-primary outline-none transition-all"></textarea>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-on-surface-variant mb-1 uppercase tracking-wider">Tech Pack / Specs File Attachment (Optional)</label>
+                        <input type="file" name="attachment" id="modal-attachment" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.webp" class="w-full bg-surface-container-low px-3 py-1.5 text-on-surface rounded-lg text-xs outline-none focus:bg-white focus:ring-2 focus:ring-primary file:mr-3 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 transition-all">
+                        <div class="text-[11px] text-slate-500 mt-1">Accepted: PDF, Word (.doc, .docx), Images (.jpg, .png, .webp) &bull; Max 10MB</div>
+                    </div>
+
+                    <div class="p-3 bg-surface-container-low rounded-lg flex items-center justify-between text-xs text-on-surface-variant">
+                        <span class="flex items-center gap-1.5"><span class="material-symbols-outlined text-[16px] text-teal-600">shield</span> Guaranteed Response</span>
+                        <span class="font-mono text-primary font-bold">&lt; 2.4 Hours Avg.</span>
                     </div>
                 </div>
 
-                <div>
-                    <label class="block text-xs font-bold text-on-surface-variant mb-1 uppercase tracking-wider">Custom Specifications & Packaging *</label>
-                    <textarea name="specifications" id="modal-specs" required rows="3" placeholder="Specify custom logo requirements, colors, packaging boxes, or destination port for CIF quote..." class="w-full bg-surface-container-low px-3 py-2 text-on-surface rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-primary outline-none transition-all"></textarea>
+                <!-- Sticky Footer -->
+                <div class="p-4 border-t border-slate-100 bg-slate-50 flex-shrink-0">
+                    <button type="submit" id="modal-submit-btn" class="w-full py-3 bg-blue-700 text-white rounded-xl font-bold hover:bg-blue-800 shadow-md transition-all flex items-center justify-center gap-2">
+                        <span class="material-symbols-outlined text-[18px]">send</span>
+                        <span>Dispatch Direct Factory Inquiry</span>
+                    </button>
                 </div>
-
-                <div>
-                    <label class="block text-xs font-bold text-on-surface-variant mb-1 uppercase tracking-wider">Tech Pack / Specs File Attachment (Optional)</label>
-                    <input type="file" name="attachment" id="modal-attachment" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.webp" class="w-full bg-surface-container-low px-3 py-1.5 text-on-surface rounded-lg text-xs outline-none focus:bg-white focus:ring-2 focus:ring-primary file:mr-3 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 transition-all">
-                    <div class="text-[11px] text-slate-500 mt-1">Accepted: PDF, Word (.doc, .docx), Images (.jpg, .png, .webp) &bull; Max 10MB</div>
-                </div>
-
-                <div class="p-3 bg-surface-container-low rounded-lg flex items-center justify-between text-xs text-on-surface-variant">
-                    <span class="flex items-center gap-1.5"><span class="material-symbols-outlined text-[16px] text-teal-600">shield</span> Guaranteed Response</span>
-                    <span class="font-mono text-primary font-bold">&lt; 2.4 Hours Avg.</span>
-                </div>
-
-                <button type="submit" id="modal-submit-btn" class="w-full py-3 bg-blue-700 text-white rounded-xl font-bold hover:bg-blue-800 shadow-md transition-all flex items-center justify-center gap-2">
-                    <span class="material-symbols-outlined text-[18px]">send</span>
-                    <span>Dispatch Direct Factory Inquiry</span>
-                </button>
             </form>
         </div>
     </div>
@@ -378,190 +435,116 @@ $footerColumns = CmsPage::getByColumns(true);
         <span id="toast-text" class="text-sm font-semibold">Direct factory RFQ successfully transmitted!</span>
     </div>
 
-    <!-- Footer: Dark Navy / Near-Black Background Matching Redesign Requirements -->
-    <footer class="bg-[#071328] text-slate-300 border-t border-slate-800 mt-20 pt-14 pb-10">
+    <!-- Footer: Clean Dark Navy / Near-Black Exactly 3 Columns Matching Reference -->
+    <footer class="bg-[#030712] text-slate-300 border-t border-slate-900 mt-20 pt-16 pb-12">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             
-            <!-- Column Grid -->
-            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-8 lg:gap-10 pb-12">
+            <!-- Column Grid: Exactly Three Columns -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-10 md:gap-14 lg:gap-20 pb-12">
                 
-                <!-- Col 1: About Sports Junction -->
+                <!-- Column 1 — TOP SECTORS -->
                 <div>
-                    <h4 class="font-headline font-bold text-xs sm:text-sm text-white mb-4 tracking-tight uppercase">
-                        ABOUT <?= htmlspecialchars(strtoupper($siteName)) ?>
-                    </h4>
-                    <ul class="space-y-2.5 text-xs text-slate-400">
-                        <?php if (!empty($footerColumns['ABOUT'])): ?>
-                            <?php foreach ($footerColumns['ABOUT'] as $p): ?>
-                                <?php $url = !empty($p['external_url']) ? (str_starts_with($p['external_url'], 'http') ? htmlspecialchars($p['external_url']) : htmlspecialchars($baseUrl . $p['external_url'])) : htmlspecialchars($baseUrl . '/page/' . $p['slug']); ?>
-                                <li>
-                                    <a href="<?= $url ?>" class="hover:text-teal-400 transition-colors block leading-relaxed">
-                                        <?= htmlspecialchars($p['title']) ?>
-                                    </a>
-                                </li>
-                            <?php endforeach; ?>
-                        <?php else: ?>
-                            <li><a href="<?= $baseUrl ?>/page/why-choose-sports-junction" class="hover:text-teal-400 transition-colors block">Why choose <?= htmlspecialchars($siteName) ?></a></li>
-                            <li><a href="<?= $baseUrl ?>/page/corporate-responsibility" class="hover:text-teal-400 transition-colors block">Corporate responsibility</a></li>
-                            <li><a href="<?= $baseUrl ?>/page/careers" class="hover:text-teal-400 transition-colors block">Careers</a></li>
-                        <?php endif; ?>
-                    </ul>
-                </div>
-
-                <!-- Col 2: Top Sectors -->
-                <div>
-                    <h4 class="font-headline font-bold text-xs sm:text-sm text-white mb-4 tracking-tight uppercase">
+                    <h4 class="font-headline font-bold text-xs sm:text-sm text-white mb-5 tracking-wider uppercase">
                         TOP SECTORS
                     </h4>
-                    <ul class="space-y-2.5 text-xs text-slate-400">
+                    <ul class="space-y-3.5 text-xs text-slate-400">
                         <?php if (!empty($footerColumns['TOP_SECTORS'])): ?>
                             <?php foreach ($footerColumns['TOP_SECTORS'] as $p): ?>
                                 <?php $url = !empty($p['external_url']) ? (str_starts_with($p['external_url'], 'http') ? htmlspecialchars($p['external_url']) : htmlspecialchars($baseUrl . $p['external_url'])) : htmlspecialchars($baseUrl . '/page/' . $p['slug']); ?>
                                 <li>
-                                    <a href="<?= $url ?>" class="hover:text-teal-400 transition-colors block leading-relaxed">
+                                    <a href="<?= $url ?>" class="hover:text-white transition-colors block leading-relaxed">
                                         <?= htmlspecialchars($p['title']) ?>
                                     </a>
                                 </li>
                             <?php endforeach; ?>
                         <?php else: ?>
-                            <li><a href="<?= $baseUrl ?>/category/cricket-and-field-sports" class="hover:text-teal-400 transition-colors block">Cricket Bats &amp; Pads</a></li>
-                            <li><a href="<?= $baseUrl ?>/category/football-and-inflatables" class="hover:text-teal-400 transition-colors block">Match Footballs</a></li>
-                            <li><a href="<?= $baseUrl ?>/category/agility-and-speed-training" class="hover:text-teal-400 transition-colors block">Agility Hurdles &amp; Ladders</a></li>
-                            <li><a href="<?= $baseUrl ?>/category/sports-and-fitness" class="hover:text-teal-400 transition-colors block">Commercial Gym Equipment</a></li>
-                            <li><a href="<?= $baseUrl ?>/category/apparel-and-accessories" class="hover:text-teal-400 transition-colors block">Sportswear &amp; Uniforms</a></li>
+                            <li><a href="<?= $baseUrl ?>/category/cricket-and-field-sports" class="hover:text-white transition-colors block leading-relaxed">Cricket Bats &amp; Pads</a></li>
+                            <li><a href="<?= $baseUrl ?>/category/football-and-inflatables" class="hover:text-white transition-colors block leading-relaxed">Match Footballs</a></li>
+                            <li><a href="<?= $baseUrl ?>/category/agility-and-speed-training" class="hover:text-white transition-colors block leading-relaxed">Agility Hurdles &amp; Ladders</a></li>
+                            <li><a href="<?= $baseUrl ?>/category/sports-and-fitness" class="hover:text-white transition-colors block leading-relaxed">Commercial Gym Equipment</a></li>
+                            <li><a href="<?= $baseUrl ?>/category/apparel-and-accessories" class="hover:text-white transition-colors block leading-relaxed">Sportswear &amp; Uniforms</a></li>
                         <?php endif; ?>
                     </ul>
                 </div>
 
-                <!-- Col 3: Sourcing Solutions -->
+                <!-- Column 2 — SOURCING SOLUTIONS -->
                 <div>
-                    <h4 class="font-headline font-bold text-xs sm:text-sm text-white mb-4 tracking-tight uppercase">
+                    <h4 class="font-headline font-bold text-xs sm:text-sm text-white mb-5 tracking-wider uppercase">
                         SOURCING SOLUTIONS
                     </h4>
-                    <ul class="space-y-2.5 text-xs text-slate-400">
+                    <ul class="space-y-3.5 text-xs text-slate-400">
                         <?php if (!empty($footerColumns['SOURCING'])): ?>
                             <?php foreach ($footerColumns['SOURCING'] as $p): ?>
-                                <?php $url = !empty($p['external_url']) ? (str_starts_with($p['external_url'], 'http') ? htmlspecialchars($p['external_url']) : htmlspecialchars($baseUrl . $p['external_url'])) : htmlspecialchars($baseUrl . '/page/' . $p['slug']); ?>
+                                <?php 
+                                    $rawUrl = $p['external_url'] ?? '';
+                                    if (empty($rawUrl)) {
+                                        $url = htmlspecialchars($baseUrl . '/page/' . $p['slug']);
+                                    } elseif (str_starts_with($rawUrl, 'http')) {
+                                        $url = htmlspecialchars($rawUrl);
+                                    } else {
+                                        $url = htmlspecialchars($baseUrl . $rawUrl);
+                                    }
+                                    $isRfq = stripos($p['title'], 'RFQ') !== false || stripos($p['title'], 'Request for Quotation') !== false;
+                                ?>
                                 <li>
-                                    <a href="<?= $url ?>" class="hover:text-teal-400 transition-colors block leading-relaxed">
-                                        <?= htmlspecialchars($p['title']) ?>
-                                    </a>
+                                    <?php if ($isRfq): ?>
+                                        <a href="javascript:void(0)" onclick="openRfqModal()" class="hover:text-white transition-colors block leading-relaxed cursor-pointer">
+                                            <?= htmlspecialchars($p['title']) ?>
+                                        </a>
+                                    <?php else: ?>
+                                        <a href="<?= $url ?>" class="hover:text-white transition-colors block leading-relaxed">
+                                            <?= htmlspecialchars($p['title']) ?>
+                                        </a>
+                                    <?php endif; ?>
                                 </li>
                             <?php endforeach; ?>
                         <?php else: ?>
-                            <li><a href="<?= $baseUrl ?>/products" class="hover:text-teal-400 transition-colors block">Direct Factory Catalog</a></li>
-                            <li><a href="javascript:void(0)" onclick="openRfqModal()" class="hover:text-teal-400 transition-colors block">Request for Quotation (RFQ)</a></li>
-                            <li><a href="<?= $baseUrl ?>/contact" class="hover:text-teal-400 transition-colors block">Contact Us &amp; Support</a></li>
-                            <li><a href="<?= $baseUrl ?>/sitemap.xml" target="_blank" class="hover:text-teal-400 transition-colors block">XML Sitemap</a></li>
+                            <li><a href="<?= $baseUrl ?>/products" class="hover:text-white transition-colors block leading-relaxed">Direct Factory Catalog</a></li>
+                            <li><a href="javascript:void(0)" onclick="openRfqModal()" class="hover:text-white transition-colors block leading-relaxed cursor-pointer">Request for Quotation (RFQ)</a></li>
+                            <li><a href="<?= $baseUrl ?>/contact" class="hover:text-white transition-colors block leading-relaxed">Contact Us &amp; Support</a></li>
+                            <li><a href="<?= $baseUrl ?>/page/container-freight-logistics" class="hover:text-white transition-colors block leading-relaxed">Container Freight Logistics</a></li>
+                            <li><a href="<?= $baseUrl ?>/sitemap.xml" target="_blank" class="hover:text-white transition-colors block leading-relaxed">XML Sitemap</a></li>
                         <?php endif; ?>
                     </ul>
                 </div>
 
-                <!-- Col 4: Platform & Admin -->
+                <!-- Column 3 — PLATFORM & POLICIES -->
                 <div>
-                    <h4 class="font-headline font-bold text-xs sm:text-sm text-white mb-4 tracking-tight uppercase">
-                        PLATFORM &amp; ADMIN
+                    <h4 class="font-headline font-bold text-xs sm:text-sm text-white mb-5 tracking-wider uppercase">
+                        PLATFORM &amp; POLICIES
                     </h4>
-                    <ul class="space-y-2.5 text-xs text-slate-400">
+                    <ul class="space-y-3.5 text-xs text-slate-400">
                         <?php if (!empty($footerColumns['PLATFORM_ADMIN'])): ?>
                             <?php foreach ($footerColumns['PLATFORM_ADMIN'] as $p): ?>
                                 <?php 
+                                    // Skip any administrative or portal links
+                                    if (stripos($p['title'], 'admin') !== false || stripos($p['slug'], 'admin') !== false || (!empty($p['external_url']) && stripos($p['external_url'], 'admin') !== false)) {
+                                        continue;
+                                    }
                                     $url = !empty($p['external_url']) ? (str_starts_with($p['external_url'], 'http') ? htmlspecialchars($p['external_url']) : htmlspecialchars($baseUrl . $p['external_url'])) : htmlspecialchars($baseUrl . '/page/' . $p['slug']); 
-                                    $isSuperAdmin = stripos($p['title'], 'Super Admin') !== false;
                                 ?>
                                 <li>
-                                    <a href="<?= $url ?>" class="<?= $isSuperAdmin ? 'text-emerald-400 hover:text-emerald-300 font-semibold' : 'hover:text-teal-400' ?> transition-colors block leading-relaxed">
+                                    <a href="<?= $url ?>" class="hover:text-white transition-colors block leading-relaxed">
                                         <?= htmlspecialchars($p['title']) ?>
                                     </a>
                                 </li>
                             <?php endforeach; ?>
                         <?php else: ?>
-                            <li><a href="<?= $baseUrl ?>/admin/login" class="text-emerald-400 hover:text-emerald-300 font-semibold transition-colors block">Super Admin Portal &rarr;</a></li>
-                            <li><a href="<?= $baseUrl ?>/admin/dashboard" class="hover:text-teal-400 transition-colors block">Master CRUD Management</a></li>
-                            <li><a href="<?= $baseUrl ?>/admin/products" class="hover:text-teal-400 transition-colors block">Product Publishing Hub</a></li>
-                            <li><a href="<?= $baseUrl ?>/page/policies-and-rules" class="hover:text-teal-400 transition-colors block">Terms &amp; Manufacturing SLA</a></li>
-                        <?php endif; ?>
-                    </ul>
-                </div>
-
-                <!-- Col 5: Help & Protection -->
-                <div>
-                    <h4 class="font-headline font-bold text-xs sm:text-sm text-white mb-4 tracking-tight uppercase">
-                        HELP &amp; PROTECTION
-                    </h4>
-                    <ul class="space-y-2.5 text-xs text-slate-400">
-                        <?php if (!empty($footerColumns['ORDER_PROTECTION'])): ?>
-                            <?php foreach ($footerColumns['ORDER_PROTECTION'] as $p): ?>
-                                <?php $url = !empty($p['external_url']) ? (str_starts_with($p['external_url'], 'http') ? htmlspecialchars($p['external_url']) : htmlspecialchars($baseUrl . $p['external_url'])) : htmlspecialchars($baseUrl . '/page/' . $p['slug']); ?>
-                                <li>
-                                    <a href="<?= $url ?>" class="hover:text-teal-400 transition-colors block leading-relaxed">
-                                        <?= htmlspecialchars($p['title']) ?>
-                                    </a>
-                                </li>
-                            <?php endforeach; ?>
-                        <?php else: ?>
-                            <li><a href="<?= $baseUrl ?>/page/secure-payments" class="hover:text-teal-400 transition-colors block">Secure Payments</a></li>
-                            <li><a href="<?= $baseUrl ?>/page/guaranteed-delivery" class="hover:text-teal-400 transition-colors block">Guaranteed Delivery</a></li>
-                            <li><a href="<?= $baseUrl ?>/page/inspection-services" class="hover:text-teal-400 transition-colors block">Inspection Services</a></li>
-                            <li><a href="<?= $baseUrl ?>/page/buyer-help-center" class="hover:text-teal-400 transition-colors block">Buyer Help Center</a></li>
+                            <li><a href="<?= $baseUrl ?>/page/terms-manufacturing-sla" class="hover:text-white transition-colors block leading-relaxed">Terms &amp; Manufacturing SLA</a></li>
+                            <li><a href="<?= $baseUrl ?>/page/seller-agreement" class="hover:text-white transition-colors block leading-relaxed">Seller &amp; Manufacturer Agreement</a></li>
                         <?php endif; ?>
                     </ul>
                 </div>
 
             </div>
 
-            <!-- Lower Section: Badges & Social Media in Dark Theme -->
-            <div class="border-t border-slate-800 pt-8 pb-6 flex flex-col lg:flex-row items-center justify-between gap-6">
-                
-                <!-- Left: Trust & Payment Icons -->
-                <div class="flex flex-wrap items-center gap-2 sm:gap-2.5">
-                    
-                    <!-- Trust Seals -->
-                    <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-[11px] font-semibold text-slate-300">
-                        <span class="inline-flex w-3.5 h-3.5 rounded-full bg-emerald-600 items-center justify-center text-white text-[9px] font-black">&#10003;</span>
-                        <span>ID Check</span>
-                    </div>
-
-                    <div class="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-[11px] font-bold text-slate-300">
-                        <span class="material-symbols-outlined text-emerald-400 text-[14px]">shield</span>
-                        <span>PCI DSS</span>
-                    </div>
-
-                    <div class="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-[11px] font-bold text-slate-300">
-                        <span class="material-symbols-outlined text-teal-400 text-[14px]">verified</span>
-                        <span>VERIFIED</span>
-                    </div>
-
-                    <div class="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-[11px] font-bold text-slate-300">
-                        <span class="text-amber-400 font-extrabold text-[12px]">&#10004;</span>
-                        <span>VERISIGN</span>
-                    </div>
-
-                    <!-- Divider -->
-                    <div class="h-6 w-px bg-slate-800 mx-1 hidden sm:block"></div>
-
-                    <!-- Payment Badges -->
-                    <span class="px-2.5 py-0.5 rounded bg-blue-900 text-white font-extrabold text-[11px] tracking-wider italic">VISA</span>
-
-                    <span class="inline-flex items-center gap-0.5 px-2 py-0.5 rounded bg-slate-900 border border-slate-800">
-                        <span class="w-2.5 h-2.5 rounded-full bg-red-500 inline-block"></span>
-                        <span class="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block -ml-1.5"></span>
-                        <span class="text-[10px] font-bold text-slate-200 ml-0.5">mastercard</span>
-                    </span>
-
-                    <span class="px-2 py-0.5 rounded bg-sky-800 text-white font-bold text-[10px] tracking-tight">AMEX</span>
-
-                    <span class="px-2 py-0.5 rounded bg-blue-950 text-blue-300 border border-blue-900 font-black text-[10px] italic">PayPal</span>
-
-                    <span class="px-2 py-0.5 rounded bg-black text-white font-semibold text-[10px] border border-slate-800 flex items-center gap-0.5">
-                        <span class="text-[11px]">&apple;</span>Pay
-                    </span>
-
-                    <span class="px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-300 font-bold text-[10px]">T/T Wire</span>
-
+            <!-- Bottom Sub-Footer: Legal & Social Media in Dark Theme -->
+            <div class="border-t border-slate-900 pt-8 pb-6 flex flex-col md:flex-row items-center justify-between text-[11px] text-slate-400 gap-4">
+                <div>
+                    <span>&copy; <?= date('Y') ?> Sports Junction | All rights reserved.</span>
                 </div>
 
-                <!-- Right: Stay Connected (Task 11: Exactly Three Social Platforms: Facebook, X, Instagram) -->
+                <!-- Right: Stay Connected -->
                 <?php 
                     $hasFacebook = !empty(trim($siteSettings['social_facebook'] ?? ''));
                     $hasTwitter = !empty(trim($siteSettings['social_twitter'] ?? ''));
@@ -569,7 +552,7 @@ $footerColumns = CmsPage::getByColumns(true);
                     $hasAnySocial = $hasFacebook || $hasTwitter || $hasInstagram;
                 ?>
                 <?php if ($hasAnySocial): ?>
-                <div class="flex flex-col sm:flex-row items-center gap-3 shrink-0">
+                <div class="flex items-center gap-3 shrink-0">
                     <span class="font-headline font-bold text-xs text-white tracking-tight">Stay Connected</span>
                     <div class="flex items-center gap-2">
                         
@@ -597,20 +580,6 @@ $footerColumns = CmsPage::getByColumns(true);
                     </div>
                 </div>
                 <?php endif; ?>
-
-            </div>
-
-            <!-- Bottom Sub-Footer: Legal & Clean Contact (No Public Telephone - Task 15) -->
-            <div class="border-t border-slate-800/80 pt-6 flex flex-col md:flex-row items-center justify-between text-[11px] text-slate-400 gap-3">
-                <div class="flex items-center gap-3">
-                    <img src="<?= htmlspecialchars($siteLogo) ?>" alt="Logo" class="h-6 w-auto object-contain brightness-200 opacity-80">
-                    <span>&copy; <?= date('Y') ?> <?= htmlspecialchars($siteName) ?> Private Limited. All rights reserved. India's Premier Sports Manufacturing Marketplace.</span>
-                </div>
-                <div class="flex flex-wrap items-center gap-3 text-slate-400">
-                    <?php if (!empty($siteSettings['contact_email'])): ?>
-                        <span><strong class="text-white">Official Trade Desk:</strong> <a href="mailto:<?= htmlspecialchars($siteSettings['contact_email']) ?>" class="text-teal-400 hover:underline"><?= htmlspecialchars($siteSettings['contact_email']) ?></a></span>
-                    <?php endif; ?>
-                </div>
             </div>
 
         </div>
@@ -795,6 +764,7 @@ $footerColumns = CmsPage::getByColumns(true);
             document.getElementById('modal-enquiry-source').value = 'FAST_OEM';
             document.getElementById('modal-subject').value = 'Fast OEM Customization Request';
 
+            document.body.classList.add('overflow-hidden');
             modal.classList.remove('hidden');
             setTimeout(() => {
                 modal.classList.remove('opacity-0');
@@ -802,7 +772,16 @@ $footerColumns = CmsPage::getByColumns(true);
             }, 10);
         }
 
+        const sjCurrentSupplierId = <?= (int)$authSupplierId ?>;
+        const sjCurrentUserRole = <?= json_encode($authUser['role'] ?? '') ?>;
+
         function openInquiryModal(productTitle, supplierName, defaultQty, productId, supplierId) {
+            if (sjCurrentUserRole === 'SUPPLIER' && sjCurrentSupplierId > 0 && supplierId) {
+                if (parseInt(supplierId) === sjCurrentSupplierId) {
+                    alert('You cannot submit inquiries to your own supplier store or products.');
+                    return;
+                }
+            }
             const modal = document.getElementById('inquiry-modal');
             const card = document.getElementById('inquiry-modal-card');
             if (!modal || !card) return;
@@ -817,6 +796,7 @@ $footerColumns = CmsPage::getByColumns(true);
             document.getElementById('modal-enquiry-source').value = productId ? 'PRODUCT_PAGE' : 'GENERAL';
             document.getElementById('modal-subject').value = productTitle || 'General Bulk Requirement / RFQ';
 
+            document.body.classList.add('overflow-hidden');
             modal.classList.remove('hidden');
             setTimeout(() => {
                 modal.classList.remove('opacity-0');
@@ -829,6 +809,7 @@ $footerColumns = CmsPage::getByColumns(true);
             const card = document.getElementById('inquiry-modal-card');
             if (!modal || !card) return;
 
+            document.body.classList.remove('overflow-hidden');
             card.classList.add('scale-95');
             modal.classList.add('opacity-0');
             setTimeout(() => {
@@ -852,6 +833,13 @@ $footerColumns = CmsPage::getByColumns(true);
             submitBtn.innerHTML = '<span class="material-symbols-outlined text-[18px] animate-spin">refresh</span> Transmitting RFQ...';
 
             const formData = new FormData(form);
+            const countrySelect = document.getElementById('modal-country-id');
+            if (countrySelect && countrySelect.selectedIndex >= 0) {
+                const opt = countrySelect.options[countrySelect.selectedIndex];
+                if (opt && opt.dataset.name) {
+                    formData.set('country_name', opt.dataset.name);
+                }
+            }
 
             fetch(`${baseUrl}/api/inquiries`, {
                 method: 'POST',
@@ -867,15 +855,32 @@ $footerColumns = CmsPage::getByColumns(true);
                 if (data.success) {
                     closeInquiryModal();
                     form.reset();
-                    showNotification(data.message || 'Direct factory RFQ successfully transmitted!');
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'RFQ Transmitted!',
+                            text: data.message || 'Direct factory RFQ successfully transmitted!',
+                            confirmButtonColor: '#1d4ed8'
+                        });
+                    } else {
+                        showNotification(data.message || 'Direct factory RFQ successfully transmitted!');
+                    }
                 } else {
-                    alert(data.message || 'Error sending inquiry. Please check your inputs.');
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire('Inquiry Error', data.message || 'Error sending inquiry. Please check your inputs.', 'error');
+                    } else {
+                        alert(data.message || 'Error sending inquiry. Please check your inputs.');
+                    }
                 }
             })
             .catch(() => {
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = origText;
-                alert('Connection error. Please try again.');
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire('Error', 'Connection error. Please try again.', 'error');
+                } else {
+                    alert('Connection error. Please try again.');
+                }
             });
         }
 

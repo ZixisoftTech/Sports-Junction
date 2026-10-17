@@ -450,6 +450,11 @@ $subcategories = $subcategories ?? [];
                         <textarea class="form-control" id="prodShippingInfo" name="shipping_info" rows="2" placeholder="e.g. FOB Nhava Sheva (Mumbai) / Mundra Port or Worldwide Express Air Freight"><?= htmlspecialchars($product['shipping_info'] ?? '') ?></textarea>
                     </div>
 
+                    <div class="col-12">
+                        <label for="prodExportPackaging" class="form-label fw-semibold small">Export Packaging Specifications</label>
+                        <textarea class="form-control" id="prodExportPackaging" name="export_packaging" rows="2" placeholder="e.g. Heavy-duty 5-ply export master cartons, individual moisture-proof polybags, and corner protectors"><?= htmlspecialchars($product['export_packaging'] ?? '') ?></textarea>
+                    </div>
+
                     <div class="col-md-3">
                         <label for="prodApprovalStatus" class="form-label fw-semibold small">Approval Status <span class="text-danger">*</span></label>
                         <select class="form-select" id="prodApprovalStatus" name="approval_status" required>

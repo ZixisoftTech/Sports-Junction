@@ -180,7 +180,7 @@ if (!empty($offers)) {
                 <div class="px-4 py-1.5 bg-amber-50 border-b border-amber-200 text-amber-900 text-[11px] flex items-center justify-between flex-shrink-0">
                     <div class="flex items-center gap-2">
                         <span class="material-symbols-outlined text-amber-600 text-[15px]">security</span>
-                        <span>Trade safely: keep all communications, price agreements, and file shares on Sports Junction for official escrow protection.</span>
+                        <span>Trade safely: Keep communications and quotation agreements on Sports Junction. Commercial contracts and payments are settled directly between buyers and verified suppliers under proforma invoice terms.</span>
                     </div>
                 </div>
 

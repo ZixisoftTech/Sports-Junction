@@ -140,11 +140,15 @@
 
         // Read options from select
         const options = [];
+        const emojiFlagRegex = /^([\p{Extended_Pictographic}\p{Regional_Indicator}\uD83C\uDDE6-\uD83C\uDDFF\s]+)/u;
         Array.from(selectEl.options).forEach(opt => {
             if (!opt.value) return; // skip placeholder if empty
-            const flag = opt.dataset.flag || (opt.text.match(/^(\p{Extended_Pictographic}+)/u)?.[1] || '🌐');
-            const phone = opt.dataset.phone || opt.dataset.phoneCode || (opt.text.match(/\((\+\d+)\)/)?.[1] || '');
-            let name = opt.text.replace(/^(\p{Extended_Pictographic}+\s*)/u, '').replace(/\s*\(\+\d+\)\s*$/, '').trim();
+            const flag = opt.dataset.flag || (opt.text.match(emojiFlagRegex)?.[1]?.trim() || '🌐');
+            const phone = opt.dataset.phone || opt.dataset.phoneCode || (opt.text.match(/\((\+\d+[\d-]*)\)/)?.[1] || '');
+            let name = opt.dataset.countryName || opt.dataset.name;
+            if (!name) {
+                name = opt.text.replace(emojiFlagRegex, '').replace(/\s*\(\+\d+[\d-]*\)\s*$/, '').trim();
+            }
             options.push({
                 value: opt.value,
                 name: name || opt.text,

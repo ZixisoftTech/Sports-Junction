@@ -88,9 +88,11 @@ use App\Controllers\SupplierMessagesController;
 use App\Controllers\AdminCommunicationController;
 use App\Controllers\ChatApiController;
 use App\Controllers\AdminSettingsController;
+use App\Controllers\AdminProfileChangeController;
 use App\Controllers\CmsPageController;
 use App\Controllers\ProductCertificateController;
 use App\Controllers\CertificationTagController;
+use App\Controllers\AdminImpersonationController;
 
 $request = new Request();
 $response = new Response();
@@ -110,6 +112,9 @@ $router->post('/api/inquiries', [ShopController::class, 'submitInquiry']);
 $router->get('/contact', [ShopController::class, 'contact']);
 $router->post('/api/contact', [ShopController::class, 'submitContact']);
 $router->get('/page/{slug}', [CmsPageController::class, 'show']);
+$router->get('/seller-agreement', function (Request $req, Response $res) {
+    (new CmsPageController($req, $res))->show(['slug' => 'seller-agreement']);
+});
 $router->get('/sitemap.xml', [ShopController::class, 'sitemap']);
 
 // -------------------------------------------------------------
@@ -132,12 +137,17 @@ $router->post('/supplier/login', [AuthController::class, 'sellerLogin']);
 // Stitch Screen 2: OTP Email Verification
 $router->get('/verify-email', [AuthController::class, 'showVerifyOtp']);
 $router->post('/verify-email', [AuthController::class, 'verifyOtp']);
+$router->get('/change-email', [AuthController::class, 'changeRegistrationEmail']);
 
 // Stitch Screen 3: Email Verified Success
 $router->get('/email-verified', [AuthController::class, 'showVerified']);
 
 // OTP Resend Endpoint
 $router->post('/api/otp/resend', [AuthController::class, 'resendOtp']);
+
+// Profile Email Change Endpoints (Secure Authenticated OTP Verification)
+$router->post('/api/profile/change-email', [AuthController::class, 'requestEmailChange']);
+$router->post('/api/profile/verify-change-email', [AuthController::class, 'verifyEmailChange']);
 
 // Stitch Screen 4: Unified Login (Buyer / Supplier / Admin)
 $router->get('/login', [AuthController::class, 'showLogin']);
@@ -200,6 +210,7 @@ $router->get('/supplier/products/add', [SupplierPortalController::class, 'addPro
 $router->post('/supplier/products/add', [SupplierPortalController::class, 'storeProduct'], [SupplierAuthMiddleware::class]);
 $router->post('/supplier/products/store', [SupplierPortalController::class, 'storeProduct'], [SupplierAuthMiddleware::class]);
 $router->get('/supplier/products/bulk-template', [SupplierPortalController::class, 'downloadBulkTemplate'], [SupplierAuthMiddleware::class]);
+$router->get('/supplier/products/import-reference', [SupplierPortalController::class, 'downloadImportReference'], [SupplierAuthMiddleware::class]);
 $router->post('/supplier/products/bulk-preview', [SupplierPortalController::class, 'bulkPreview'], [SupplierAuthMiddleware::class]);
 $router->post('/supplier/products/bulk-commit', [SupplierPortalController::class, 'bulkCommit'], [SupplierAuthMiddleware::class]);
 $router->get('/supplier/products/edit/{id}', [SupplierPortalController::class, 'editProduct'], [SupplierAuthMiddleware::class]);
@@ -227,6 +238,14 @@ $router->get('/api/admin/buyers/{id}', [BuyerManagementController::class, 'show'
 $router->post('/api/admin/buyers/{id}/update', [BuyerManagementController::class, 'update'], [AuthMiddleware::class]);
 $router->post('/api/admin/buyers/{id}/toggle-status', [BuyerManagementController::class, 'toggleStatus'], [AuthMiddleware::class]);
 
+// Super Admin One-Click Login as Buyer or Seller (Impersonation)
+$router->get('/admin/impersonate/user/{id}', [AdminImpersonationController::class, 'impersonateUser'], [AuthMiddleware::class]);
+$router->get('/admin/impersonate/supplier/{id}', [AdminImpersonationController::class, 'impersonateSupplier'], [AuthMiddleware::class]);
+$router->get('/admin/exit-impersonation', [AdminImpersonationController::class, 'exitImpersonation']);
+$router->get('/api/admin/users/{id}/credentials', [AdminImpersonationController::class, 'getCredentials'], [AuthMiddleware::class]);
+$router->get('/api/admin/suppliers/{id}/credentials', [AdminImpersonationController::class, 'getSupplierCredentials'], [AuthMiddleware::class]);
+$router->post('/api/admin/users/{id}/set-password', [AdminImpersonationController::class, 'setPassword'], [AuthMiddleware::class]);
+
 // Super Admin Centralized Enquiry Management
 $router->get('/admin/enquiries', [EnquiryManagementController::class, 'index'], [AuthMiddleware::class]);
 $router->get('/admin/rfq-oem', [EnquiryManagementController::class, 'rfqOem'], [AuthMiddleware::class]);
@@ -251,11 +270,21 @@ $router->post('/admin/communication/reports/{id}/resolve', [AdminCommunicationCo
 
 // Super Admin Site Settings & Footer CMS Management
 $router->get('/admin/settings', [AdminSettingsController::class, 'index'], [AuthMiddleware::class]);
+$router->post('/admin/settings', [AdminSettingsController::class, 'updateGeneral'], [AuthMiddleware::class]);
 $router->post('/admin/settings/general', [AdminSettingsController::class, 'updateGeneral'], [AuthMiddleware::class]);
 $router->get('/admin/pages', [AdminSettingsController::class, 'pages'], [AuthMiddleware::class]);
+$router->post('/admin/pages', [AdminSettingsController::class, 'storePage'], [AuthMiddleware::class]);
 $router->post('/admin/pages/create', [AdminSettingsController::class, 'storePage'], [AuthMiddleware::class]);
 $router->post('/admin/pages/edit/{id}', [AdminSettingsController::class, 'updatePage'], [AuthMiddleware::class]);
+$router->post('/admin/pages/{id}', [AdminSettingsController::class, 'updatePage'], [AuthMiddleware::class]);
+$router->put('/admin/pages/{id}', [AdminSettingsController::class, 'updatePage'], [AuthMiddleware::class]);
 $router->post('/admin/pages/delete/{id}', [AdminSettingsController::class, 'deletePage'], [AuthMiddleware::class]);
+$router->post('/admin/pages/{id}/delete', [AdminSettingsController::class, 'deletePage'], [AuthMiddleware::class]);
+$router->delete('/admin/pages/{id}', [AdminSettingsController::class, 'deletePage'], [AuthMiddleware::class]);
+
+// Super Admin Dedicated Seller Agreement Management
+$router->get('/admin/seller-agreement', [AdminSettingsController::class, 'sellerAgreement'], [AuthMiddleware::class]);
+$router->post('/admin/seller-agreement', [AdminSettingsController::class, 'updateSellerAgreement'], [AuthMiddleware::class]);
 
 // Super Admin Supplier Management & Approvals
 $router->get('/admin/suppliers', [SupplierApprovalController::class, 'index'], [AuthMiddleware::class]);
@@ -307,6 +336,8 @@ $router->get('/admin/products/create', [ProductController::class, 'create'], [Au
 $router->get('/admin/products/add', [ProductController::class, 'create'], [AuthMiddleware::class]);
 $router->get('/admin/products/bulk-template', [ProductController::class, 'downloadBulkTemplate'], [AuthMiddleware::class]);
 $router->get('/api/products/bulk-template', [ProductController::class, 'downloadBulkTemplate'], [AuthMiddleware::class]);
+$router->get('/admin/products/import-reference', [ProductController::class, 'downloadImportReference'], [AuthMiddleware::class]);
+$router->get('/api/products/import-reference', [ProductController::class, 'downloadImportReference'], [AuthMiddleware::class]);
 $router->post('/api/products/bulk-preview', [ProductController::class, 'bulkPreview'], [AuthMiddleware::class]);
 $router->post('/api/products/bulk-commit', [ProductController::class, 'bulkCommit'], [AuthMiddleware::class]);
 $router->get('/admin/products/edit/{id}', [ProductController::class, 'edit'], [AuthMiddleware::class]);

@@ -351,8 +351,11 @@ $(document).ready(function() {
             {
                 data: null,
                 render: function(row) {
+                    const country = row.country_name ? `<span class="badge bg-light text-dark border px-2 py-0.5 small"><i class="bi bi-geo-alt text-primary me-1"></i>${escapeHtml(row.country_name)}</span>` : '';
                     let loc = row.delivery_location || row.lead_time_req;
-                    return loc ? `<span class="small text-slate-700">${escapeHtml(loc)}</span>` : '<span class="text-muted">—</span>';
+                    const locText = loc ? `<div class="small text-slate-700 mt-1">${escapeHtml(loc)}</div>` : '';
+                    if (!country && !locText) return '<span class="text-muted">—</span>';
+                    return `<div>${country}${locText}</div>`;
                 }
             },
             {

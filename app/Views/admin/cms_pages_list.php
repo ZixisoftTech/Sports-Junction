@@ -3,7 +3,7 @@
  * Admin CMS Pages List & Editor View
  * Manage dynamic footer pages and content
  */
-$baseUrl = $baseUrl ?? '';
+$baseUrl = !empty($baseUrl) ? $baseUrl : \App\Core\Response::baseUrl();
 ?>
 
 <div class="container-fluid py-4">
@@ -386,7 +386,7 @@ function openEditModal(page) {
     const form = document.getElementById('editPageForm');
     form.action = `<?= $baseUrl ?>/admin/pages/edit/${page.id}`;
     document.getElementById('editPageTitle').value = page.title || '';
-    document.getElementById('editPageCategory').value = page.column_category || 'ABOUT';
+    document.getElementById('editPageCategory').value = page.column_category || 'TOP_SECTORS';
     document.getElementById('editPageSlug').value = page.slug || '';
     document.getElementById('editPageUrl').value = page.external_url || '';
     document.getElementById('editPageOrder').value = page.sort_order || 0;

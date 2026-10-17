@@ -264,11 +264,17 @@ document.addEventListener('DOMContentLoaded', function() {
             {
                 data: 'category_name',
                 render: function(data, type, row) {
-                    const catName = data || 'Unassigned';
-                    const subcat = row.subcategory_name ? `<div class="small text-muted mt-1 d-flex align-items-center"><i class="bi bi-arrow-return-right text-primary me-1" style="font-size: 11px;"></i>${row.subcategory_name}</div>` : '';
+                    const catString = row.all_category_names || data || 'Unassigned';
+                    const cats = catString.split(',').map(s => s.trim()).filter(Boolean);
+                    let catBadges = cats.map(c => `<span class="badge badge-soft-primary px-2 py-0.5 rounded-pill me-1 mb-1">${escapeHtml(c)}</span>`).join('');
+                    if (!catBadges) {
+                        catBadges = '<span class="badge badge-soft-secondary px-2 py-0.5 rounded-pill">Unassigned</span>';
+                    }
+                    const subcatString = row.all_subcategory_names || row.subcategory_name || '';
+                    const subcat = subcatString ? `<div class="small text-muted mt-1 d-flex align-items-center flex-wrap"><i class="bi bi-arrow-return-right text-primary me-1" style="font-size: 11px;"></i>${escapeHtml(subcatString)}</div>` : '';
                     return `
-                        <div>
-                            <span class="badge badge-soft-primary px-2.5 py-1 rounded-pill">${catName}</span>
+                        <div class="d-flex flex-column align-items-start">
+                            <div class="d-flex flex-wrap gap-1">${catBadges}</div>
                             ${subcat}
                         </div>
                     `;
@@ -281,12 +287,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     const minFormatted = minNum.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                     const maxNum = row.max_price ? parseFloat(row.max_price) : 0;
                     const maxFormatted = maxNum > minNum ? maxNum.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : null;
-                    const unit = row.price_unit_symbol || row.price_unit_name || 'Unit';
                     const priceStr = maxFormatted ? `$${minFormatted} – $${maxFormatted}` : `$${minFormatted}`;
                     return `
                         <div>
                             <div class="fw-bold text-success">${priceStr}</div>
-                            <div class="small text-muted">/ ${unit}</div>
                         </div>
                     `;
                 }
@@ -380,9 +384,10 @@ function reviewProduct(id) {
             const p = res.data;
             const changes = p.decoded_pending_changes;
             const img = SportsJunction.formatImageUrl(p.primary_image);
-            const sym = p.price_unit_symbol || '$';
+            const sym = '$';
 
             $('#reviewModalTitle').text(`Product Complete Details: ${p.title}`);
+
 
             // Populate Modal Footer Buttons (Edit All Details + Approve/Reject)
             const needsApprove = (p.approval_status !== 'APPROVED' || changes);
@@ -452,8 +457,8 @@ function reviewProduct(id) {
                             <div class="row g-2 small">
                                 <div class="col-md-8"><strong>Title:</strong> ${p.title || '—'}</div>
                                 <div class="col-md-4"><strong>SKU:</strong> ${p.sku || 'N/A'}</div>
-                                <div class="col-md-6"><strong>Category:</strong> ${p.category_name || '—'}</div>
-                                <div class="col-md-6"><strong>Subcategory:</strong> ${p.subcategory_name || '—'}</div>
+                                <div class="col-md-6"><strong>Category:</strong> ${p.all_category_names || p.category_name || '—'}</div>
+                                <div class="col-md-6"><strong>Subcategory:</strong> ${p.all_subcategory_names || p.subcategory_name || '—'}</div>
                                 <div class="col-md-6"><strong>Brand Name:</strong> ${p.brand_name || '—'}</div>
                                 <div class="col-md-6"><strong>URL Slug:</strong> <code>${p.slug || '—'}</code></div>
                                 <div class="col-12 mt-2"><strong>Short Description:</strong><div class="text-muted">${p.short_description || '—'}</div></div>
@@ -467,7 +472,7 @@ function reviewProduct(id) {
                             <div class="row g-2 small">
                                 <div class="col-md-4"><strong>Min Price:</strong> <span class="text-success fw-bold">${sym}${parseFloat(p.min_price || 0).toFixed(2)}</span></div>
                                 <div class="col-md-4"><strong>Max Price:</strong> <span class="text-success fw-bold">${sym}${parseFloat(p.max_price || 0).toFixed(2)}</span></div>
-                                <div class="col-md-4"><strong>Price Unit:</strong> ${p.price_unit_name || ''} (${sym})</div>
+                                <div class="col-md-4"><strong>Currency:</strong> USD ($)</div>
                                 <div class="col-md-4"><strong>MOQ:</strong> ${p.moq_quantity} ${p.moq_unit_name || 'units'}</div>
                                 <div class="col-md-4"><strong>Available Ready Stock:</strong> ${p.available_quantity ?? 0}</div>
                                 <div class="col-md-4"><strong>Sample Available:</strong> ${parseInt(p.sample_available || 0) === 1 ? `Yes (${sym}${parseFloat(p.sample_price || 0).toFixed(2)})` : 'No'}</div>
@@ -512,6 +517,7 @@ function reviewProduct(id) {
                                 <div class="col-md-6"><strong>Origin Country:</strong> ${p.country_name || 'India'}</div>
                                 <div class="col-md-6"><strong>Lead Time:</strong> ${p.lead_time || '—'}</div>
                                 <div class="col-12"><strong>Shipping &amp; Freight Terms:</strong> ${p.shipping_info || '—'}</div>
+                                <div class="col-12"><strong>Export Packaging:</strong> ${p.export_packaging || '—'}</div>
                             </div>
                         </div>
                     </div>
@@ -534,6 +540,7 @@ function reviewProduct(id) {
                             <div class="col-md-4"><strong>Proposed Lead Time:</strong> ${changes.lead_time || p.lead_time || '—'}</div>
                             <div class="col-md-6"><strong>Proposed Material:</strong> ${changes.material || '—'}</div>
                             <div class="col-md-6"><strong>Proposed Colors / Size:</strong> ${changes.colors || '—'} / ${changes.size || '—'}</div>
+                            <div class="col-12"><strong>Proposed Export Packaging:</strong> ${changes.export_packaging || '—'}</div>
                             <div class="col-12"><strong>Proposed Short Description:</strong> ${changes.short_description || '—'}</div>
                             <div class="col-12"><strong>Proposed Full Description:</strong><div class="p-2 bg-white rounded border mt-1" style="white-space: pre-wrap;">${changes.description || '—'}</div></div>
                         </div>
