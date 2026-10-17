@@ -20,7 +20,7 @@ require_once dirname(__DIR__) . '/app/Helpers/Env.php';
 
 // Error Handling
 $isDebug = (bool) \App\Helpers\Env::get('APP_DEBUG', false);
-if ($isDebug) {
+if ($isDebug || !empty($_GET['debug']) || !empty($_GET['show_error'])) {
     ini_set('display_errors', '1');
     ini_set('display_startup_errors', '1');
     error_reporting(E_ALL);
@@ -29,6 +29,40 @@ if ($isDebug) {
     ini_set('log_errors', '1');
     error_reporting(E_ALL);
 }
+
+// Global Exception & Error Catching
+set_exception_handler(function (\Throwable $e) use ($isDebug): void {
+    while (ob_get_level() > 0) {
+        @ob_end_clean();
+    }
+    $logMsg = sprintf(
+        "[%s] UNCAUGHT EXCEPTION: %s: %s in %s:%d\nStack trace:\n%s\n",
+        date('Y-m-d H:i:s'),
+        get_class($e),
+        $e->getMessage(),
+        $e->getFile(),
+        $e->getLine(),
+        $e->getTraceAsString()
+    );
+    @error_log($logMsg);
+    @file_put_contents(dirname(__DIR__) . '/storage/logs/error.log', $logMsg, FILE_APPEND);
+
+    http_response_code(500);
+    $showDebug = $isDebug || !empty($_GET['debug']) || !empty($_GET['show_error']);
+    header('Content-Type: text/html; charset=UTF-8');
+    if ($showDebug) {
+        echo '<!DOCTYPE html><html><head><title>Application Exception</title><meta name="viewport" content="width=device-width, initial-scale=1">';
+        echo '<style>body{font-family:monospace;background:#0f172a;color:#f8fafc;padding:24px}pre{background:#020617;padding:16px;border-radius:8px;overflow-x:auto;color:#cbd5e1}</style></head><body>';
+        echo '<h2 style="color:#f43f5e">500 Application Exception</h2>';
+        echo '<p><strong>' . htmlspecialchars(get_class($e)) . ':</strong> ' . htmlspecialchars($e->getMessage()) . '</p>';
+        echo '<p>' . htmlspecialchars($e->getFile()) . ':' . $e->getLine() . '</p>';
+        echo '<h3>Stack Trace</h3><pre>' . htmlspecialchars($e->getTraceAsString()) . '</pre>';
+        echo '</body></html>';
+    } else {
+        echo '<!DOCTYPE html><html><head><title>500 Internal Server Error</title><meta name="viewport" content="width=device-width, initial-scale=1"><style>body{font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;background:#f8fafc;color:#1e293b}.box{text-align:center;padding:40px;background:#fff;border-radius:16px;box-shadow:0 4px 6px rgba(0,0,0,0.1);max-width:480px}h1{font-size:48px;margin:0 0 10px;color:#00288e}</style></head><body><div class="box"><h1>500</h1><h2>System Temporarily Unavailable</h2><p>The system encountered a technical issue while processing this request. Please refresh in a few moments.</p><a href="javascript:location.reload()">Refresh Page</a></div></body></html>';
+    }
+    exit;
+});
 
 // Register PSR-4 Autoloader
 spl_autoload_register(function (string $class): void {
@@ -409,5 +443,74 @@ $router->post('/api/chat/block', [ChatApiController::class, 'toggleBlock']);
 $router->post('/api/chat/report', [ChatApiController::class, 'submitReport']);
 $router->post('/api/chat/admin/reply', [ChatApiController::class, 'adminReply']);
 
+// -------------------------------------------------------------
+// SYSTEM HEALTH & ENVIRONMENT DIAGNOSTIC ENDPOINT
+// -------------------------------------------------------------
+$router->get('/health', function(Request $req, Response $res) {
+    $dbConnected = false;
+    $dbError = null;
+    $dbConfig = [
+        'host' => \App\Helpers\Env::get('DB_HOST', '127.0.0.1'),
+        'database' => \App\Helpers\Env::get('DB_DATABASE', 'sports_junction'),
+        'username' => \App\Helpers\Env::get('DB_USERNAME', 'root'),
+        'socket' => \App\Helpers\Env::get('DB_SOCKET', ''),
+        'env_file_exists' => file_exists(dirname(__DIR__) . '/.env')
+    ];
+    try {
+        \App\Core\Database::getConnection();
+        $dbConnected = true;
+    } catch (\Throwable $e) {
+        $dbError = $e->getMessage();
+    }
+
+    $res->json([
+        'status' => $dbConnected ? 'healthy' : 'database_unreachable',
+        'app_name' => \App\Helpers\Env::get('APP_NAME', 'Sports Junction'),
+        'php_version' => PHP_VERSION,
+        'server_time' => date('Y-m-d H:i:s T'),
+        'database' => [
+            'connected' => $dbConnected,
+            'error' => $dbError,
+            'config' => $dbConfig
+        ]
+    ], $dbConnected ? 200 : 503);
+});
+
 // Dispatch incoming request
-$router->dispatch();
+try {
+    $router->dispatch();
+} catch (\Throwable $e) {
+    while (ob_get_level() > 0) {
+        @ob_end_clean();
+    }
+    $logMsg = sprintf(
+        "[%s] ROUTER DISPATCH EXCEPTION: %s: %s in %s:%d\nStack trace:\n%s\n",
+        date('Y-m-d H:i:s'),
+        get_class($e),
+        $e->getMessage(),
+        $e->getFile(),
+        $e->getLine(),
+        $e->getTraceAsString()
+    );
+    @error_log($logMsg);
+    @file_put_contents(dirname(__DIR__) . '/storage/logs/error.log', $logMsg, FILE_APPEND);
+
+    http_response_code(500);
+    $showDebug = $isDebug || !empty($_GET['debug']) || !empty($_GET['show_error']);
+    header('Content-Type: text/html; charset=UTF-8');
+    if ($showDebug) {
+        echo '<!DOCTYPE html><html><head><title>500 Internal Server Error</title><meta name="viewport" content="width=device-width, initial-scale=1">';
+        echo '<style>body{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;background:#0f172a;color:#f8fafc;padding:24px;line-height:1.5}.card{max-width:960px;margin:20px auto;background:#1e293b;border:1px solid #334155;border-radius:12px;padding:24px;box-shadow:0 10px 25px -5px rgba(0,0,0,0.5)}h1{color:#f43f5e;font-size:22px;margin-top:0}.meta{background:#090d16;padding:12px 16px;border-radius:8px;border-left:4px solid #f43f5e;margin-bottom:16px}pre{background:#020617;padding:16px;border-radius:8px;overflow-x:auto;color:#cbd5e1;font-size:13px}.hint{background:#1e3a5f;border-left:4px solid #38bdf8;padding:12px 16px;border-radius:8px;margin-top:16px;color:#e0f2fe}</style></head><body><div class="card">';
+        echo '<h1>500 Internal Application Error</h1>';
+        echo '<div class="meta">';
+        echo '<div><strong>Exception:</strong> ' . htmlspecialchars(get_class($e)) . '</div>';
+        echo '<div><strong>Message:</strong> ' . htmlspecialchars($e->getMessage()) . '</div>';
+        echo '<div><strong>File:</strong> ' . htmlspecialchars($e->getFile()) . ':' . $e->getLine() . '</div>';
+        echo '</div>';
+        echo '<h3>Stack Trace</h3><pre>' . htmlspecialchars($e->getTraceAsString()) . '</pre>';
+        echo '</div></body></html>';
+    } else {
+        echo '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>System Temporarily Unavailable — Sports Junction</title><meta name="viewport" content="width=device-width, initial-scale=1"><style>body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#f8fafc;color:#1e293b;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;padding:20px}.box{background:#fff;border-radius:16px;box-shadow:0 10px 25px -5px rgba(0,0,0,0.08);padding:40px;max-width:500px;text-align:center;border:1px solid #e2e8f0}h1{font-size:32px;margin:0 0 12px;color:#00288e;font-weight:800}p{color:#64748b;font-size:15px;line-height:1.6;margin-bottom:24px}.btn{display:inline-block;background:#00288e;color:#fff;padding:10px 24px;border-radius:10px;text-decoration:none;font-weight:600}</style></head><body><div class="box"><h1>500</h1><h2>System Temporarily Unavailable</h2><p>Our marketplace is currently completing a scheduled update or maintenance. Please refresh the page in a few moments.</p><a href="javascript:location.reload()" class="btn">Reload Page</a></div></body></html>';
+    }
+    exit;
+}
