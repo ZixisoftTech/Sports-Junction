@@ -4,7 +4,7 @@
  * Manage Website Logo, Contact Info, Social Media Handles & Footer Links
  */
 $baseUrl = !empty($baseUrl) ? $baseUrl : \App\Core\Response::baseUrl();
-$logoUrl = !empty($settings['site_logo']) ? ($baseUrl . $settings['site_logo']) : ($baseUrl . '/assets/images/logo.png');
+$logoUrl = \App\Models\SiteSetting::getLogoUrl();
 ?>
 
 <div class="container-fluid py-4">
@@ -68,7 +68,7 @@ $logoUrl = !empty($settings['site_logo']) ? ($baseUrl . $settings['site_logo']) 
                             <div class="col-sm-4 text-center mb-3 mb-sm-0">
                                 <label class="small text-muted fw-bold d-block mb-2">Current Logo</label>
                                 <div class="p-2 border rounded-3 bg-light d-inline-block shadow-2xs">
-                                    <img id="logoPreview" src="<?= htmlspecialchars($logoUrl) ?>" alt="Site Logo" style="max-height: 70px; max-width: 180px; object-fit: contain;">
+                                    <img id="logoPreview" src="<?= htmlspecialchars($logoUrl) ?>" alt="Site Logo" style="max-height: 70px; max-width: 180px; object-fit: contain;" onerror="this.onerror=null;this.src='<?= htmlspecialchars($baseUrl) ?>/assets/images/logo.png';">
                                 </div>
                             </div>
                             <div class="col-sm-8">

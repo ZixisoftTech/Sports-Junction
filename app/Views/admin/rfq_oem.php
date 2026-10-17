@@ -290,6 +290,11 @@ $(document).ready(function() {
                 d.category_id    = $('#filterCategory').val();
                 d.start_date     = $('#filterStartDate').val();
                 d.end_date       = $('#filterEndDate').val();
+            },
+            error: function(xhr, error, thrown) {
+                console.error("RFQ/OEM table AJAX error:", xhr.status, thrown);
+                const proc = document.getElementById('rfqOemTable_processing');
+                if (proc) proc.style.display = 'none';
             }
         },
         columns: [

@@ -34,7 +34,37 @@ $activeMenu = $activeMenu ?? 'dashboard';
         window.SportsJunction = window.SportsJunction || {};
         window.SportsJunction.baseUrl = '<?= htmlspecialchars($baseUrl) ?>';
         window.SportsJunction.csrfToken = '<?= \App\Helpers\CSRF::getToken() ?>';
+        window.SportsJunction.defaultLogo = '<?= htmlspecialchars($baseUrl) ?>/assets/images/logo.png';
         window.baseUrl = '<?= htmlspecialchars($baseUrl) ?>';
+
+        window.SportsJunction.formatImageUrl = function (path) {
+            if (!path || typeof path !== 'string' || path.trim() === '') {
+                return window.SportsJunction.defaultLogo;
+            }
+            path = path.trim();
+            if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('data:')) {
+                return path;
+            }
+            var b = window.SportsJunction.baseUrl || '';
+            var clean = path.startsWith('/') ? path : '/' + path;
+            if (b && clean.startsWith(b + '/')) {
+                return clean;
+            }
+            return b + clean;
+        };
+
+        window.SportsJunction.escapeHtml = function (str) {
+            if (str === null || str === undefined) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        };
+
+        window.formatImageUrl = window.SportsJunction.formatImageUrl;
+        window.escapeHtml = window.SportsJunction.escapeHtml;
     </script>
 </head>
 <body>
@@ -43,7 +73,7 @@ $activeMenu = $activeMenu ?? 'dashboard';
 <aside class="sj-sidebar">
     <div class="sj-sidebar-brand">
         <a href="<?= htmlspecialchars($baseUrl) ?>/admin/dashboard" class="d-block text-center">
-            <img src="<?= htmlspecialchars($baseUrl) ?>/assets/images/logo.png" alt="Sports Junction" class="img-fluid" style="max-height: 48px; width: auto; object-fit: contain;">
+            <img src="<?= htmlspecialchars(\App\Models\SiteSetting::getLogoUrl()) ?>" alt="Sports Junction" class="img-fluid" style="max-height: 48px; width: auto; object-fit: contain;" onerror="this.onerror=null;this.src='<?= htmlspecialchars($baseUrl) ?>/assets/images/logo.png';">
         </a>
     </div>
 
@@ -359,36 +389,43 @@ $activeMenu = $activeMenu ?? 'dashboard';
 <!-- Mobile Sidebar Backdrop -->
 <div class="sj-sidebar-backdrop" id="sidebarBackdrop"></div>
 
-<!-- Global Application Settings & Helper JS -->
 <script>
     window.SportsJunction = Object.assign(window.SportsJunction || {}, {
         baseUrl: '<?= htmlspecialchars($baseUrl) ?>',
-        csrfToken: '<?= CSRF::getToken() ?>',
-        defaultLogo: '<?= htmlspecialchars($baseUrl) ?>/assets/images/logo.jpg',
-        formatImageUrl: function (path) {
-            if (!path || path.trim() === '') return this.defaultLogo;
-            path = path.trim();
-            if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('data:')) {
-                return path;
-            }
-            var b = this.baseUrl || '';
-            var clean = path.startsWith('/') ? path : '/' + path;
-            if (b && clean.startsWith(b + '/')) {
-                return clean;
-            }
-            return b + clean;
-        },
-        escapeHtml: function (str) {
-            if (str === null || str === undefined) return '';
-            return String(str)
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;')
-                .replace(/'/g, '&#039;');
-        }
-    };
+        csrfToken: '<?= \App\Helpers\CSRF::getToken() ?>',
+        defaultLogo: '<?= htmlspecialchars($baseUrl) ?>/assets/images/logo.png',
+        formatImageUrl: window.SportsJunction.formatImageUrl,
+        escapeHtml: window.SportsJunction.escapeHtml
+    });
     window.escapeHtml = window.SportsJunction.escapeHtml;
+    window.formatImageUrl = window.SportsJunction.formatImageUrl;
+
+    // Universal DataTables Global Configuration & Stuck Loader Recovery
+    if (window.jQuery && $.fn && $.fn.dataTable) {
+        $.fn.dataTable.ext.errMode = 'none'; // Suppress default browser alerts
+        $(document).on('error.dt', function (e, settings, techNote, message) {
+            console.error('DataTables error on #' + settings.sTableId + ':', message);
+            const tableId = settings.sTableId;
+            const proc = document.getElementById(tableId + '_processing');
+            if (proc) {
+                proc.style.display = 'none';
+            }
+            const tableEl = document.getElementById(tableId);
+            if (tableEl) {
+                const tbody = tableEl.querySelector('tbody');
+                if (tbody) {
+                    tbody.innerHTML = `<tr><td colspan="100" class="text-center py-4">
+                        <div class="text-danger mb-2"><i class="bi bi-exclamation-triangle-fill fs-3"></i></div>
+                        <div class="fw-bold text-slate-800 mb-1">Failed to load data from server</div>
+                        <p class="text-muted small mb-3">A temporary network or server error occurred while retrieving records.</p>
+                        <button type="button" class="btn btn-sm btn-outline-primary px-3 rounded-pill fw-semibold" onclick="$('#${tableId}').DataTable().ajax.reload(null, false)">
+                            <i class="bi bi-arrow-clockwise me-1"></i> Retry Loading
+                        </button>
+                    </td></tr>`;
+                }
+            }
+        });
+    }
 
     // Mobile Sidebar Toggle Handling
     document.addEventListener('DOMContentLoaded', () => {

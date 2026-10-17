@@ -61,12 +61,38 @@ class SiteSetting extends Model
     }
 
     /**
-     * Set multiple key values at once
+     * Resolves the site logo URL safely.
+     * If the configured logo is empty or the referenced file is physically missing on disk,
+     * it falls back to the guaranteed default brand asset (/assets/images/logo.png).
      */
-    public static function setMany(array $settings, string $group = 'general'): void
+    public static function getLogoUrl(): string
     {
-        foreach ($settings as $key => $val) {
-            self::set((string) $key, is_null($val) ? null : (string) $val, $group);
+        $all = self::getAllKeyed();
+        $stored = $all['site_logo'] ?? '';
+        $baseUrl = \App\Core\Response::baseUrl();
+        $defaultLogo = $baseUrl . '/assets/images/logo.png';
+
+        if (empty($stored) || trim($stored) === '') {
+            return $defaultLogo;
         }
+
+        $trimmed = trim($stored);
+        if (str_starts_with($trimmed, 'http://') || str_starts_with($trimmed, 'https://') || str_starts_with($trimmed, 'data:')) {
+            return $trimmed;
+        }
+
+        $cleanPath = '/' . ltrim($trimmed, '/');
+        // Check physical file existence in public directory
+        $publicDir = dirname(__DIR__, 2) . '/public';
+        $filePath = $publicDir . $cleanPath;
+        if (!file_exists($filePath)) {
+            return $defaultLogo;
+        }
+
+        if (!empty($baseUrl) && str_starts_with($cleanPath, $baseUrl . '/')) {
+            return $cleanPath;
+        }
+
+        return $baseUrl . $cleanPath;
     }
 }

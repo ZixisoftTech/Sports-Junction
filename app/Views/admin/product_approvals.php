@@ -223,6 +223,8 @@ document.addEventListener('DOMContentLoaded', function() {
             },
             error: function(xhr, error, thrown) {
                 console.error("DataTables AJAX error:", xhr.status, thrown);
+                const proc = document.getElementById('productApprovalsTable_processing');
+                if (proc) proc.style.display = 'none';
             }
         },
         order: [[0, 'desc']],
@@ -230,7 +232,7 @@ document.addEventListener('DOMContentLoaded', function() {
             {
                 data: 'title',
                 render: function(data, type, row) {
-                    const img = SportsJunction.formatImageUrl(row.primary_image);
+                    const img = window.SportsJunction.formatImageUrl(row.primary_image);
                     const featBadge = parseInt(row.is_featured || 0) === 1
                         ? `<span class="badge-pill-featured ms-1" title="Featured Product"><i class="bi bi-star-fill text-warning"></i>Featured</span>`
                         : '';

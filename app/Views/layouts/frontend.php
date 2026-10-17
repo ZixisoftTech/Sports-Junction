@@ -10,7 +10,7 @@ $baseUrl = Response::baseUrl();
 $currentUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . "://" . ($_SERVER['HTTP_HOST'] ?? 'localhost') . ($_SERVER['REQUEST_URI'] ?? '');
 
 $siteSettings = SiteSetting::getAllKeyed();
-$siteLogo = !empty($siteSettings['site_logo']) ? ($baseUrl . $siteSettings['site_logo']) : ($baseUrl . '/assets/images/logo.png');
+$siteLogo = \App\Models\SiteSetting::getLogoUrl();
 $siteName = $siteSettings['site_name'] ?? 'Sports Junction';
 
 $authUser = \App\Helpers\Session::get('auth_user');
@@ -131,7 +131,7 @@ if ($authUser && ($authUser['role'] ?? '') === 'BUYER') {
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
             <!-- Brand Logo -->
             <a href="<?= htmlspecialchars($baseUrl) ?>/" class="flex items-center shrink-0 group" title="<?= htmlspecialchars($siteName) ?>">
-                <img src="<?= htmlspecialchars($siteLogo) ?>" alt="<?= htmlspecialchars($siteName) ?>" class="h-12 sm:h-14 w-auto object-contain max-w-[210px] sm:max-w-[240px]">
+                <img src="<?= htmlspecialchars($siteLogo) ?>" alt="<?= htmlspecialchars($siteName) ?>" class="h-12 sm:h-14 w-auto object-contain max-w-[210px] sm:max-w-[240px]" onerror="this.onerror=null;this.src='<?= htmlspecialchars($baseUrl) ?>/assets/images/logo.png';">
             </a>
 
             <!-- Central Search Bar -->

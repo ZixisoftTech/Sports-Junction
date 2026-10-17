@@ -236,6 +236,11 @@ document.addEventListener('DOMContentLoaded', function () {
                 d.category_id = $('#prodCategoryFilter').val();
                 d.status = $('#prodStatusFilter').val();
                 d.is_featured = $('#prodFeaturedFilter').val();
+            },
+            error: function (xhr, error, thrown) {
+                console.error("Products table AJAX error:", xhr.status, thrown);
+                const proc = document.getElementById('productsTable_processing');
+                if (proc) proc.style.display = 'none';
             }
         },
         columns: [

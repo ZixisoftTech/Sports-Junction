@@ -37,7 +37,7 @@ const MasterModule = (function () {
 
     function init(config) {
         currentConfig = config;
-        const baseUrl = window.SportsJunction.baseUrl;
+        const baseUrl = window.SportsJunction?.baseUrl || window.baseUrl || '';
         const entity = config.entity;
 
         // 1. Initialize DataTable
@@ -53,8 +53,10 @@ const MasterModule = (function () {
                         Object.assign(d, config.getExtraFilters());
                     }
                 },
-                error: function (xhr) {
+                error: function (xhr, error, thrown) {
                     showToast('Failed to load table data. Server returned error.', 'danger');
+                    const proc = document.querySelector(config.tableSelector + '_processing');
+                    if (proc) proc.style.display = 'none';
                 }
             },
             columns: config.columns,
