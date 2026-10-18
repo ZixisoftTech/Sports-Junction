@@ -167,6 +167,43 @@ $logoUrl = \App\Models\SiteSetting::getLogoUrl();
                     </div>
                 </div>
 
+                <!-- Card 4: Email & Passcode Delivery -->
+                <div class="card border-0 shadow-sm rounded-3 mb-4">
+                    <div class="card-header bg-white py-3 border-bottom d-flex align-items-center justify-content-between">
+                        <h6 class="fw-bold mb-0 text-slate-900 d-flex align-items-center gap-2">
+                            <i class="bi bi-shield-lock-fill text-primary"></i>
+                            Passcode & Email Authentication Mode
+                        </h6>
+                    </div>
+                    <div class="card-body p-4">
+                        <p class="text-muted small mb-3">Control whether the platform uses static passcode verification (<code class="fw-bold text-primary">123456</code>) or dynamic codes delivered through live SMTP.</p>
+
+                        <?php $currentStatic = \App\Models\Otp::isStaticOtpEnabled(); ?>
+                        <div class="p-3 rounded-3 <?= $currentStatic ? 'bg-amber-50 border border-amber-200' : 'bg-emerald-50 border border-emerald-200' ?> mb-3">
+                            <div class="d-flex align-items-center gap-2 mb-1">
+                                <span class="badge <?= $currentStatic ? 'bg-amber-600' : 'bg-success' ?>">
+                                    <?= $currentStatic ? 'STATIC PASSCODE (123456) ACTIVE' : 'LIVE SMTP DELIVERY ACTIVE' ?>
+                                </span>
+                            </div>
+                            <div class="small text-slate-700">
+                                <?= $currentStatic 
+                                    ? 'Static passcode <strong class="text-blue-900 font-monospace">123456</strong> is enabled for Buyer Registration, Supplier Registration, and Password Reset.' 
+                                    : 'Live random 6-digit OTP codes are generated and dispatched to the user’s inbox via SMTP.' ?>
+                            </div>
+                        </div>
+
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" role="switch" id="useStaticOtpSwitch" name="use_static_otp" value="1" <?= $currentStatic ? 'checked' : '' ?>>
+                            <label class="form-check-label fw-bold small text-slate-800" for="useStaticOtpSwitch">
+                                Use static passcode <span class="badge bg-secondary">123456</span> until SMTP is set up
+                            </label>
+                            <div class="form-text small text-muted">
+                                Uncheck this once your SMTP host, port, and credentials are configured in your environment to enable real email deliveries.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Save Action Card -->
                 <div class="card border-0 shadow-sm rounded-3 bg-light">
                     <div class="card-body p-3 text-end">

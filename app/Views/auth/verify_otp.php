@@ -46,14 +46,14 @@ $success = Session::flash('success');
             <a href="<?= htmlspecialchars($baseUrl) ?>/change-email" class="text-blue-700 hover:underline font-bold ml-1">Change</a>
         </div>
 
-        <?php if (\App\Models\Otp::isTestOtpAllowed()): ?>
+        <?php if (\App\Models\Otp::isStaticOtpEnabled()): ?>
             <div class="mt-4 p-3 rounded-2xl bg-amber-50 border border-amber-200/80 text-amber-950 text-xs flex items-center justify-between gap-3 text-left">
                 <div class="flex items-center gap-2">
-                    <span class="material-symbols-outlined text-amber-600 text-[20px] shrink-0">terminal</span>
+                    <span class="material-symbols-outlined text-amber-600 text-[20px] shrink-0">key</span>
                     <div>
-                        <span class="font-bold text-amber-900">Development Testing OTP:</span> 
+                        <span class="font-bold text-amber-900">Static Verification Passcode:</span> 
                         Passcode is <strong class="font-mono text-sm text-blue-900 bg-amber-100/90 px-2 py-0.5 rounded">123456</strong> 
-                        <span class="text-slate-500 block text-[11px] mt-0.5">Development test passcode enabled for this environment</span>
+                        <span class="text-slate-500 block text-[11px] mt-0.5">Static passcode active until live SMTP delivery is configured</span>
                     </div>
                 </div>
                 <button type="button" onclick="fillOtp('123456')" class="shrink-0 text-xs bg-blue-900 hover:bg-blue-950 text-white font-bold px-3 py-1.5 rounded-lg transition-colors shadow-xs">Auto-Fill</button>

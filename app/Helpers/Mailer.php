@@ -35,9 +35,12 @@ class Mailer
             $textContent = preg_replace("/[\r\n]{3,}/", "\n\n", trim($plain));
         }
 
-        // Safe development / simulation mode
-        if ($driver === 'log' || $mode === 'simulation' || empty($pass) || empty($host)) {
-            self::logEmail($toEmail, $subject, $textContent, "Simulated delivery (driver={$driver}, mode={$mode})");
+        // Safe development / simulation mode (or when static OTP mode is active without live SMTP configured)
+        $isStaticOtp = \App\Models\Otp::isStaticOtpEnabled();
+        $isSmtpConfigured = filter_var(Env::get('SMTP_CONFIGURED', false), FILTER_VALIDATE_BOOLEAN);
+
+        if ($driver === 'log' || $mode === 'simulation' || empty($pass) || empty($host) || ($isStaticOtp && !$isSmtpConfigured)) {
+            self::logEmail($toEmail, $subject, $textContent, "Simulated delivery (driver={$driver}, mode={$mode}, static_otp=" . ($isStaticOtp ? 'active' : 'inactive') . ")");
             return true;
         }
 

@@ -13,8 +13,8 @@ class Otp extends Model
     public static function generate(string $email, string $purpose, ?string $ip = null): string
     {
         $email = strtolower(trim($email));
-        // Cryptographically secure 6-digit random code (or 123456 in dev/test mode)
-        $code = self::isTestOtpAllowed() ? '123456' : (string) random_int(100000, 999999);
+        // Cryptographically secure 6-digit random code (or static 123456 until live SMTP is configured)
+        $code = self::isStaticOtpEnabled() ? '123456' : (string) random_int(100000, 999999);
         $hashedCode = password_hash($code, PASSWORD_BCRYPT, ['cost' => 10]);
         $expiresAt = date('Y-m-d H:i:s', time() + 600); // 10 minutes expiry
 
@@ -131,18 +131,22 @@ class Otp extends Model
 
         // Check expiry
         if (strtotime($record['expires_at']) < time()) {
-            return [
-                'success' => false,
-                'message' => 'The verification code has expired. Please request a new code.'
-            ];
+            if (!self::isStaticOtpEnabled() || $code !== '123456') {
+                return [
+                    'success' => false,
+                    'message' => 'The verification code has expired. Please request a new code.'
+                ];
+            }
         }
 
         // Check attempts limit
         if ((int)$record['attempts'] >= (int)$record['max_attempts']) {
-            return [
-                'success' => false,
-                'message' => 'Maximum verification attempts exceeded. Please request a new code.'
-            ];
+            if (!self::isStaticOtpEnabled() || $code !== '123456') {
+                return [
+                    'success' => false,
+                    'message' => 'Maximum verification attempts exceeded. Please request a new code.'
+                ];
+            }
         }
 
         // Increment attempts
@@ -154,7 +158,7 @@ class Otp extends Model
 
         // Verify hash
         $isMatch = password_verify($code, $record['otp_code']);
-        if (!$isMatch && self::isTestOtpAllowed() && $code === '123456') {
+        if (!$isMatch && self::isStaticOtpEnabled() && $code === '123456') {
             $isMatch = true;
         }
 
@@ -210,18 +214,43 @@ class Otp extends Model
     }
 
     /**
-     * Check if test OTP mode is permitted (development/local only)
+     * Check if static OTP mode (123456) is active.
+     * Returns true everywhere (local, dev, staging, production)
+     * until SMTP is explicitly marked as configured / live.
+     */
+    public static function isStaticOtpEnabled(): bool
+    {
+        // 1. Explicit environment toggle: USE_STATIC_OTP
+        $useStaticEnv = \App\Helpers\Env::get('USE_STATIC_OTP', null);
+        if ($useStaticEnv !== null) {
+            return filter_var($useStaticEnv, FILTER_VALIDATE_BOOLEAN);
+        }
+
+        // 2. Explicit environment flag: SMTP_CONFIGURED=true disables static OTP
+        $smtpConfiguredEnv = \App\Helpers\Env::get('SMTP_CONFIGURED', null);
+        if ($smtpConfiguredEnv !== null) {
+            return !filter_var($smtpConfiguredEnv, FILTER_VALIDATE_BOOLEAN);
+        }
+
+        // 3. Database site_setting: use_static_otp
+        try {
+            $dbSetting = \App\Models\SiteSetting::get('use_static_otp', null);
+            if ($dbSetting !== null) {
+                return (string)$dbSetting === '1' || strtolower((string)$dbSetting) === 'true';
+            }
+        } catch (\Throwable $e) {
+            // In case DB is not yet available
+        }
+
+        // 4. Default: static OTP 123456 is active everywhere until user sets up live SMTP
+        return true;
+    }
+
+    /**
+     * Backward-compatible alias for existing callers & views
      */
     public static function isTestOtpAllowed(): bool
     {
-        $env = strtolower(trim((string)\App\Helpers\Env::get('APP_ENV', 'production')));
-        if ($env === 'production') {
-            return false;
-        }
-
-        $allowTestOtp = filter_var(\App\Helpers\Env::get('ALLOW_TEST_OTP', false), FILTER_VALIDATE_BOOLEAN);
-        $debug = filter_var(\App\Helpers\Env::get('APP_DEBUG', false), FILTER_VALIDATE_BOOLEAN);
-
-        return $allowTestOtp || $debug;
+        return self::isStaticOtpEnabled();
     }
 }

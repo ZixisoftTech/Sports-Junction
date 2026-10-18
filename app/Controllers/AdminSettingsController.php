@@ -125,6 +125,10 @@ class AdminSettingsController extends Controller
         SiteSetting::set('social_youtube', '', 'social');
         SiteSetting::set('social_tiktok', '', 'social');
 
+        // Authentication & Passcode Mode
+        $useStaticOtp = $this->request->post('use_static_otp') ? '1' : '0';
+        SiteSetting::set('use_static_otp', $useStaticOtp, 'auth');
+
         Session::flash('success', 'Website settings, branding, and contact details updated successfully.');
         $this->redirect('/admin/settings');
     }
