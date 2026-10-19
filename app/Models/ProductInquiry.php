@@ -381,22 +381,40 @@ class ProductInquiry extends Model
 
         $filteredRecords = (int) (self::fetch("SELECT COUNT(*) AS cnt {$fromJoins} WHERE {$whereSql}", $bindings)['cnt'] ?? 0);
 
-        $columns = [
-            0  => 'i.id',
-            1  => 'i.enquiry_source',
-            2  => 'i.buyer_name',
-            3  => 'i.company_name',
-            4  => 'i.buyer_email',
-            5  => 'i.buyer_phone',
-            6  => 'p.title',
-            7  => 's.company_name',
-            8  => 'i.target_quantity',
-            9  => 'i.delivery_location',
-            10 => 'i.subject',
-            11 => 'i.created_at',
-            12 => 'i.status',
-        ];
-        $orderColIdx = (int) ($params['order'][0]['column'] ?? 11);
+        if (!empty($params['rfq_oem_only'])) {
+            $columns = [
+                0  => 'i.id',
+                1  => 'i.enquiry_source',
+                2  => 'i.buyer_name',
+                3  => 'i.company_name',
+                4  => 'i.buyer_email',
+                5  => 'p.title',
+                6  => 'i.target_quantity',
+                7  => 'i.target_price',
+                8  => 'i.delivery_location',
+                9  => 's.company_name',
+                10 => 'i.created_at',
+                11 => 'i.status',
+            ];
+            $orderColIdx = (int) ($params['order'][0]['column'] ?? 10);
+        } else {
+            $columns = [
+                0  => 'i.id',
+                1  => 'i.enquiry_source',
+                2  => 'i.buyer_name',
+                3  => 'i.company_name',
+                4  => 'i.buyer_email',
+                5  => 'i.buyer_phone',
+                6  => 'p.title',
+                7  => 's.company_name',
+                8  => 'i.target_quantity',
+                9  => 'i.delivery_location',
+                10 => 'i.subject',
+                11 => 'i.created_at',
+                12 => 'i.status',
+            ];
+            $orderColIdx = (int) ($params['order'][0]['column'] ?? 11);
+        }
         $orderCol    = $columns[$orderColIdx] ?? 'i.created_at';
         $orderDir    = strtoupper($params['order'][0]['dir'] ?? 'DESC') === 'ASC' ? 'ASC' : 'DESC';
 

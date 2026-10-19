@@ -544,4 +544,4 @@ function exportRfqOem(format) {
     window.location.href = BASE_URL + '/api/admin/rfq-oem/export?' + params.toString();
 }
 </script>
-<?php $scripts = ob_get_clean(); ?>
+<?php $pageScripts = ob_get_clean(); ?>

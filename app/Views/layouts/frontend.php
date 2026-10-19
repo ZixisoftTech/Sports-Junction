@@ -24,6 +24,7 @@ if ($authUser && ($authUser['role'] ?? '') === 'BUYER') {
     }
 }
 $footerColumns = CmsPage::getByColumns(true);
+$categories = !empty($categories) ? $categories : \App\Models\Category::allActive();
 $allCountries = !empty($countries) ? $countries : \App\Models\Country::allActive();
 $buyerCountryId = null;
 if ($authUser && ($authUser['role'] ?? '') === 'BUYER') {
