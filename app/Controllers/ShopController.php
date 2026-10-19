@@ -419,12 +419,30 @@ class ShopController extends Controller
     public function submitContact(): void
     {
         $input = $this->request->all();
+        $isAjax = $this->request->isJson() || $this->request->isAjax() || !empty($_SERVER['HTTP_X_REQUESTED_WITH']);
+
+        $csrf = $input['csrf_token'] ?? $input['_csrf'] ?? $this->request->header('X-CSRF-Token');
+        if (!CSRF::validate($csrf)) {
+            if ($isAjax) {
+                $this->json(['success' => false, 'message' => 'Security token invalid or expired. Please refresh the page.'], 403);
+                return;
+            }
+            \App\Helpers\Session::flash('error', 'Security token invalid or expired. Please refresh the page.');
+            $this->redirect('/contact');
+            return;
+        }
+
         $user = $this->authUser();
 
         if ($user && ($user['role'] ?? '') === 'BUYER') {
             $liveUser = \App\Models\User::findById((int)$user['id']);
             if ($liveUser && ($liveUser['status'] ?? '') === 'INACTIVE') {
-                $this->json(['success' => false, 'message' => 'Your buyer account is currently deactivated.'], 403);
+                if ($isAjax) {
+                    $this->json(['success' => false, 'message' => 'Your buyer account is currently deactivated.'], 403);
+                    return;
+                }
+                \App\Helpers\Session::flash('error', 'Your buyer account is currently deactivated.');
+                $this->redirect('/contact');
                 return;
             }
             $input['buyer_user_id'] = (int)$user['id'];
@@ -467,12 +485,24 @@ class ShopController extends Controller
         }
 
         if ($name === '' || $email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL) || strlen($message) < 5) {
-            $this->json(['success' => false, 'message' => 'Please provide your Full Name, a valid Email Address, and a detailed Message (at least 5 characters).'], 422);
+            $errMsg = 'Please provide your Full Name, a valid Email Address, and a detailed Message (at least 5 characters).';
+            if ($isAjax) {
+                $this->json(['success' => false, 'message' => $errMsg], 422);
+                return;
+            }
+            \App\Helpers\Session::flash('error', $errMsg);
+            $this->redirect('/contact');
             return;
         }
 
         if (empty($countryId) && empty($countryName)) {
-            $this->json(['success' => false, 'message' => 'Please select your country.'], 422);
+            $errMsg = 'Please select your country.';
+            if ($isAjax) {
+                $this->json(['success' => false, 'message' => $errMsg], 422);
+                return;
+            }
+            \App\Helpers\Session::flash('error', $errMsg);
+            $this->redirect('/contact');
             return;
         }
 
@@ -498,10 +528,9 @@ class ShopController extends Controller
             $id = ProductInquiry::create($inquiryData);
             $inquiryData['id'] = $id;
 
-            // Task 7: Send Contact Us Emails
+            // Send notification email
             try {
                 $userSent = Mailer::sendContactUsConfirmationToUser($inquiryData);
-
                 $siteSettings = SiteSetting::getAllKeyed();
                 $adminEmail = $siteSettings['contact_email'] ?? Env::get('SUPER_ADMIN_EMAIL', 'support@sportsjunction.com');
                 $adminSent = Mailer::sendContactUsNotificationToAdmin($inquiryData, $adminEmail);
@@ -520,13 +549,25 @@ class ShopController extends Controller
                 ", [':err' => $mailErr->getMessage(), ':id' => $id]);
             }
 
-            $this->json([
-                'success' => true,
-                'id'      => $id,
-                'message' => 'Thank you for contacting Sports Junction! Your message (#ENQ-' . str_pad((string)$id, 5, '0', STR_PAD_LEFT) . ') has been received by our Super Admin desk.',
-            ]);
+            $successMsg = 'Thank you! Your message has been sent. Our team will get back to you shortly.';
+            if ($isAjax) {
+                $this->json([
+                    'success' => true,
+                    'id'      => $id,
+                    'message' => $successMsg,
+                ]);
+                return;
+            }
+            \App\Helpers\Session::flash('success', $successMsg);
+            $this->redirect('/contact');
         } catch (\Throwable $e) {
-            $this->json(['success' => false, 'message' => 'Failed to submit Contact Us message: ' . $e->getMessage()], 500);
+            $errMsg = 'Failed to submit Contact Us message: ' . $e->getMessage();
+            if ($isAjax) {
+                $this->json(['success' => false, 'message' => $errMsg], 500);
+                return;
+            }
+            \App\Helpers\Session::flash('error', $errMsg);
+            $this->redirect('/contact');
         }
     }
 

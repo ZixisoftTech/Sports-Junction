@@ -144,6 +144,7 @@ $router->get('/supplier-store/{id}', [ShopController::class, 'supplierProfile'])
 $router->get('/suppliers/{id}', [ShopController::class, 'supplierProfile']);
 $router->post('/api/inquiries', [ShopController::class, 'submitInquiry']);
 $router->get('/contact', [ShopController::class, 'contact']);
+$router->post('/contact', [ShopController::class, 'submitContact']);
 $router->post('/api/contact', [ShopController::class, 'submitContact']);
 $router->get('/page/{slug}', [CmsPageController::class, 'show']);
 $router->get('/seller-agreement', function (Request $req, Response $res) {
