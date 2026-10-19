@@ -6,6 +6,8 @@ namespace App\Models;
 use App\Core\Model;
 use App\Helpers\ContactPolicy;
 use App\Helpers\ChatNotifier;
+use App\Helpers\Mailer;
+use App\Models\Supplier;
 use PDO;
 
 class ChatMessage extends Model
@@ -91,6 +93,26 @@ class ChatMessage extends Model
                     $recipientRole = 'BUYER';
                 }
 
+                // Check message count in conversation to identify first message
+                $msgCount = (int) self::fetchColumn("SELECT COUNT(*) FROM `chat_messages` WHERE `conversation_id` = :cid", [':cid' => $conversationId]);
+                $isFirstBuyerMessage = ($senderRole === 'BUYER' && $msgCount === 1);
+
+                if ($isFirstBuyerMessage && !empty($conv['supplier_id'])) {
+                    $supp = Supplier::findById((int)$conv['supplier_id']);
+                    if ($supp && !empty($supp['email'])) {
+                        $buyerName = $conv['buyer_first_name'] ?: 'Procurement Buyer';
+                        $buyerCompany = $conv['buyer_company'] ?: '';
+                        Mailer::sendBuyerChatNotificationToSupplier(
+                            $supp['email'],
+                            $supp['company_name'] ?: 'Valued Supplier',
+                            $buyerName,
+                            $buyerCompany,
+                            $rawBody,
+                            $conversationId
+                        );
+                    }
+                }
+
                 if ($recipientUserId > 0) {
                     $title = "New message from " . ($senderRole === 'BUYER' ? ($conv['buyer_first_name'] . ' (' . ($conv['buyer_company'] ?: 'Buyer') . ')') : $conv['supplier_company_name']);
                     $snippet = mb_substr($rawBody, 0, 100);
@@ -100,7 +122,8 @@ class ChatMessage extends Model
                         $snippet = "Shared a business document/attachment.";
                     }
                     $link = ($recipientRole === 'SUPPLIER') ? "/supplier/messages?conversation_id={$conversationId}" : "/buyer/messages?conversation_id={$conversationId}";
-                    ChatNotifier::notify($recipientUserId, 'NEW_CHAT_MESSAGE', $title, $snippet, $link);
+                    // If first buyer message was already sent via Template V, dispatch in-app only; otherwise dispatch both
+                    ChatNotifier::notify($recipientUserId, 'NEW_CHAT_MESSAGE', $title, $snippet, $link, !$isFirstBuyerMessage);
                 }
             }
         }

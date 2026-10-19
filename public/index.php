@@ -320,6 +320,10 @@ $router->delete('/admin/pages/{id}', [AdminSettingsController::class, 'deletePag
 $router->get('/admin/seller-agreement', [AdminSettingsController::class, 'sellerAgreement'], [AuthMiddleware::class]);
 $router->post('/admin/seller-agreement', [AdminSettingsController::class, 'updateSellerAgreement'], [AuthMiddleware::class]);
 
+// Super Admin Transactional Email Templates & SMTP Delivery Tool
+$router->get('/admin/email-templates', [AdminSettingsController::class, 'emailTemplates'], [AuthMiddleware::class]);
+$router->post('/admin/email-templates/test-send', [AdminSettingsController::class, 'testSendEmail'], [AuthMiddleware::class]);
+
 // Super Admin Supplier Management & Approvals
 $router->get('/admin/suppliers', [SupplierApprovalController::class, 'index'], [AuthMiddleware::class]);
 $router->get('/api/admin/suppliers/data', [SupplierApprovalController::class, 'data'], [AuthMiddleware::class]);

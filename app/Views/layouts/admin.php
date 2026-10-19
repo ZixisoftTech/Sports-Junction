@@ -169,6 +169,10 @@ $activeMenu = $activeMenu ?? 'dashboard';
             <i class="bi bi-file-earmark-text-fill"></i>
             <span>Seller Agreement</span>
         </a>
+        <a href="<?= htmlspecialchars($baseUrl) ?>/admin/email-templates" class="sj-nav-item <?= ($activeMenu === 'email_templates') ? 'active' : '' ?>">
+            <i class="bi bi-envelope-paper-fill"></i>
+            <span>Email Templates &amp; SMTP</span>
+        </a>
 
         <div class="sj-nav-section-title">Security & Audit</div>
         <a href="<?= htmlspecialchars($baseUrl) ?>/admin/dashboard#audit" class="sj-nav-item">

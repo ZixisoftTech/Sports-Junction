@@ -360,4 +360,80 @@ class AdminSettingsController extends Controller
         Session::flash('success', 'Seller Agreement has been successfully saved and published.');
         $this->redirect('/admin/seller-agreement');
     }
+
+    /**
+     * GET /admin/email-templates
+     * Super Admin Email Templates Hub & Live SMTP Monitor
+     */
+    public function emailTemplates(): void
+    {
+        $admin = $this->requireAdmin();
+        $inventory = \App\Helpers\Mailer::getTemplateInventory();
+        $smtpStatus = \App\Helpers\Mailer::testConnection();
+        $selectedKey = (string) $this->request->get('template', 'template_a');
+        if (!isset($inventory[$selectedKey])) {
+            $selectedKey = 'template_a';
+        }
+
+        $this->render('admin/email_templates', [
+            'pageTitle'   => 'Transactional Email Templates & SMTP — Super Admin',
+            'activeMenu'  => 'email_templates',
+            'admin'       => $admin,
+            'inventory'   => $inventory,
+            'smtpStatus'  => $smtpStatus,
+            'selectedKey' => $selectedKey,
+        ], 'admin');
+    }
+
+    /**
+     * POST /admin/email-templates/test-send
+     * Dispatch live test email for any template to specified address
+     */
+    public function testSendEmail(): void
+    {
+        $admin = $this->requireAdmin();
+
+        $token = $this->request->input('_csrf') ?? $this->request->input('csrf_token') ?? $this->request->header('X-CSRF-Token');
+        \App\Helpers\CSRF::validateOrFail($token);
+
+        $templateKey = (string) $this->request->post('template_key', '');
+        $recipientEmail = trim((string) $this->request->post('recipient_email', ''));
+
+        if (empty($recipientEmail) || !filter_var($recipientEmail, FILTER_VALIDATE_EMAIL)) {
+            $this->json(['success' => false, 'message' => 'Please provide a valid recipient email address.'], 422);
+            return;
+        }
+
+        $inventory = \App\Helpers\Mailer::getTemplateInventory();
+        if (!isset($inventory[$templateKey])) {
+            $this->json(['success' => false, 'message' => "Invalid template key: {$templateKey}"], 404);
+            return;
+        }
+
+        $tpl = $inventory[$templateKey];
+        $sampleData = $tpl['sample_data'] ?? [];
+
+        try {
+            $sent = ($tpl['send_callable'])($recipientEmail, $sampleData);
+            if ($sent) {
+                $this->json([
+                    'success' => true,
+                    'message' => "Template {$tpl['code']} ({$tpl['name']}) successfully dispatched to {$recipientEmail}!",
+                    'template' => $tpl['code'],
+                    'subject' => $tpl['subject'],
+                    'recipient' => $recipientEmail,
+                ]);
+            } else {
+                $this->json([
+                    'success' => false,
+                    'message' => "Delivery failed. Please check SMTP configuration or storage/logs/mail.log."
+                ], 500);
+            }
+        } catch (\Throwable $e) {
+            $this->json([
+                'success' => false,
+                'message' => 'Exception during test delivery: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }

@@ -348,6 +348,7 @@ class BuyerPortalController extends Controller
         }
 
         User::updatePassword((int)$buyer['id'], $newPass);
+        Mailer::sendBuyerPasswordUpdated($buyer['email'], $buyer['name'] ?? 'Valued Buyer');
         Session::flash('success', 'Your password has been changed securely.');
         $this->redirect('/buyer/profile');
     }

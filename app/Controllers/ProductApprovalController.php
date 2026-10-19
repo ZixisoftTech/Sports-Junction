@@ -82,12 +82,17 @@ class ProductApprovalController extends Controller
         $adminUser = $this->authUser();
         $adminId = (int)($adminUser['id'] ?? 1);
 
+        $hasPendingChanges = !empty($product['pending_changes']);
         $ok = Product::approveProduct($id, $adminId);
         if ($ok) {
             // Send email to supplier
             $supplier = Supplier::findById((int)$product['supplier_id']);
             if ($supplier) {
-                Mailer::sendProductApproved($supplier['email'], $supplier['company_name'], $product['title']);
+                if ($hasPendingChanges) {
+                    Mailer::sendProductUpdateApproved($supplier['email'], $supplier['company_name'], $product['title']);
+                } else {
+                    Mailer::sendProductCreationApproved($supplier['email'], $supplier['company_name'], $product['title']);
+                }
             }
 
             AuditLogger::log('APPROVE', 'Product', $id, $product['title'], null, 'Super Admin approved product submission');
@@ -118,11 +123,16 @@ class ProductApprovalController extends Controller
         $adminUser = $this->authUser();
         $adminId = (int)($adminUser['id'] ?? 1);
 
+        $hasPendingChanges = !empty($product['pending_changes']);
         $ok = Product::rejectProduct($id, $adminId, $reason);
         if ($ok) {
             $supplier = Supplier::findById((int)$product['supplier_id']);
             if ($supplier) {
-                Mailer::sendProductRejected($supplier['email'], $supplier['company_name'], $product['title'], $reason);
+                if ($hasPendingChanges) {
+                    Mailer::sendProductUpdateRejected($supplier['email'], $supplier['company_name'], $product['title'], $reason);
+                } else {
+                    Mailer::sendProductCreationRejected($supplier['email'], $supplier['company_name'], $product['title'], $reason);
+                }
             }
 
             AuditLogger::log('REJECT', 'Product', $id, $product['title'], ['reason' => $reason], 'Super Admin rejected product submission');

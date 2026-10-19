@@ -593,11 +593,16 @@ class AuthController extends Controller
         $otp = Otp::generate($email, $purpose, $this->request->getIp());
 
         if ($purpose === 'SUPPLIER_REGISTRATION') {
-            Mailer::sendSupplierOtp($email, $name, $otp);
+            Mailer::sendOtpResend($email, $name, $otp, true);
         } elseif ($purpose === 'PASSWORD_RESET') {
-            Mailer::sendPasswordResetOtp($email, $name, $otp);
+            $isSupplier = ($user && ($user['role'] ?? '') === 'SUPPLIER');
+            if ($isSupplier) {
+                Mailer::sendSupplierPasswordResetOtp($email, $name, $otp);
+            } else {
+                Mailer::sendBuyerPasswordResetOtp($email, $name, $otp);
+            }
         } else {
-            Mailer::sendBuyerOtp($email, $name, $otp);
+            Mailer::sendOtpResend($email, $name, $otp, false);
         }
 
         $this->json([
@@ -663,7 +668,11 @@ class AuthController extends Controller
         }
 
         $otp = Otp::generate($email, 'PASSWORD_RESET', $this->request->getIp());
-        Mailer::sendPasswordResetOtp($email, $user['name'] ?? 'User', $otp);
+        if (($user['role'] ?? '') === 'SUPPLIER') {
+            Mailer::sendSupplierPasswordResetOtp($email, $user['name'] ?? 'Manufacturer', $otp);
+        } else {
+            Mailer::sendBuyerPasswordResetOtp($email, $user['name'] ?? 'Valued Buyer', $otp);
+        }
         Session::set('reset_email', $email);
         Session::flash('success', "A 6-digit recovery passcode has been dispatched to {$email}.");
         $this->redirect('/reset-password');
@@ -732,6 +741,11 @@ class AuthController extends Controller
         $user = User::findByEmail($email);
         if ($user) {
             User::updatePassword((int)$user['id'], $password);
+            if (($user['role'] ?? '') === 'SUPPLIER') {
+                Mailer::sendSupplierPasswordUpdated($email, $user['name'] ?? 'Manufacturer');
+            } else {
+                Mailer::sendBuyerPasswordUpdated($email, $user['name'] ?? 'Valued Buyer');
+            }
             Session::remove('reset_email');
             Session::flash('success', 'Your password has been successfully reset! Please sign in with your new credentials.');
             $this->redirect('/login');

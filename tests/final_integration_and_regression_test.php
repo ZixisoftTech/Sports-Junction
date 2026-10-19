@@ -98,16 +98,17 @@ check('Task 4', 'Zero OTP records in database for unknown email address',
 );
 
 // -------------------------------------------------------------------------
-// Task 5: Dev/Test Static OTP 123456
+// Task 5: OTP Passcode Generation & Verification Lifecycle
 // -------------------------------------------------------------------------
 $otpEmail = 'final_regression_test_' . time() . '@sportsjunction.test';
 $otpCode = \App\Models\Otp::generate($otpEmail, 'EMAIL_VERIFICATION');
-check('Task 5', 'In DEV_TEST mode, generated OTP is static 123456',
-    $otpCode === '123456',
-    "Generated OTP: $otpCode"
+$isStaticMode = \App\Models\Otp::isStaticOtpEnabled();
+check('Task 5', 'OTP generated according to active authentication mode (Dynamic: 6 digits, Static: 123456)',
+    strlen($otpCode) === 6 && is_numeric($otpCode) && (!$isStaticMode || $otpCode === '123456'),
+    "Generated OTP: $otpCode (Mode: " . ($isStaticMode ? 'Static 123456' : 'Dynamic Cryptographic') . ")"
 );
-$otpResult = \App\Models\Otp::verify($otpEmail, '123456', 'EMAIL_VERIFICATION');
-check('Task 5', 'Verification of static OTP 123456 succeeds and marks verified',
+$otpResult = \App\Models\Otp::verify($otpEmail, $otpCode, 'EMAIL_VERIFICATION');
+check('Task 5', 'Verification of generated OTP succeeds and marks verified',
     is_array($otpResult) && ($otpResult['success'] ?? false) === true,
     'Verified successfully: ' . ($otpResult['message'] ?? '')
 );

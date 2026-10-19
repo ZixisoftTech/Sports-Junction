@@ -417,7 +417,7 @@ class SupplierPortalController extends Controller
 
             Product::commit();
 
-            Mailer::sendProductSubmitted($supplier['email'], $supplier['company_name'], (string)$input['name']);
+            Mailer::sendProductUpdateUnderReview($supplier['email'], $supplier['company_name'], (string)$input['name']);
 
             $msg = "Product modifications saved and queued for Super Admin review.";
             Session::flash('success', $msg);
@@ -606,6 +606,8 @@ class SupplierPortalController extends Controller
             $requestedChanges
         );
 
+        Mailer::sendSupplierProfileUpdateUnderReview($supplier['email'], $supplier['company_name']);
+
         Session::flash('success', 'Your factory profile update request has been submitted for Super Admin review. Your active profile remains live until approved.');
         $this->redirect('/supplier/profile');
     }
@@ -642,6 +644,7 @@ class SupplierPortalController extends Controller
         }
 
         \App\Models\User::updatePassword((int)$fullUser['id'], $newPass);
+        Mailer::sendSupplierPasswordUpdated($fullUser['email'], $supplier['company_name'] ?? 'Manufacturer');
         Session::flash('success', 'Password updated successfully.');
         $this->redirect('/supplier/profile');
     }
