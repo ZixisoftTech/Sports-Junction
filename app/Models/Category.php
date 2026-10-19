@@ -11,12 +11,22 @@ class Category extends Model
 {
     public static function findById(int $id): ?array
     {
-        return self::fetch("SELECT * FROM categories WHERE id = :id LIMIT 1", [':id' => $id]);
+        self::ensureSchema();
+        $cat = self::fetch("SELECT * FROM categories WHERE id = :id LIMIT 1", [':id' => $id]);
+        if ($cat && !isset($cat['show_on_homepage'])) {
+            $cat['show_on_homepage'] = 0;
+        }
+        return $cat;
     }
 
     public static function findBySlug(string $slug): ?array
     {
-        return self::fetch("SELECT * FROM categories WHERE slug = :slug LIMIT 1", [':slug' => $slug]);
+        self::ensureSchema();
+        $cat = self::fetch("SELECT * FROM categories WHERE slug = :slug LIMIT 1", [':slug' => $slug]);
+        if ($cat && !isset($cat['show_on_homepage'])) {
+            $cat['show_on_homepage'] = 0;
+        }
+        return $cat;
     }
 
     public static function all(): array
@@ -26,6 +36,7 @@ class Category extends Model
 
     public static function allActive(): array
     {
+        self::ensureSchema();
         $categories = self::fetchAll("
             SELECT c.*, 
                    (
@@ -306,16 +317,30 @@ class Category extends Model
 
     public static function getDataTable(array $params): array
     {
+        self::ensureSchema();
+
         $draw = (int)($params['draw'] ?? 1);
         $start = (int)($params['start'] ?? 0);
         $length = (int)($params['length'] ?? 10);
         $search = trim((string)($params['search']['value'] ?? ($params['search'] ?? '')));
         $statusFilter = trim((string)($params['status'] ?? ''));
 
-        $columns = ['id', 'name', 'slug', 'display_order', 'status', 'created_at'];
-        $orderColIdx = (int)($params['order'][0]['column'] ?? 3);
+        // Client columns in categories.php:
+        // 0: id, 1: image, 2: name, 3: slug, 4: display_order, 5: subcategories_count, 6: products_count, 7: status, 8: actions
+        $columnMap = [
+            0 => 'c.id',
+            1 => 'c.id',
+            2 => 'c.name',
+            3 => 'c.slug',
+            4 => 'c.display_order',
+            5 => 'subcategories_count',
+            6 => 'products_count',
+            7 => 'c.status',
+            8 => 'c.created_at',
+        ];
+        $orderColIdx = (int)($params['order'][0]['column'] ?? 4);
         $orderDir = strtoupper((string)($params['order'][0]['dir'] ?? 'ASC')) === 'DESC' ? 'DESC' : 'ASC';
-        $orderCol = $columns[$orderColIdx] ?? 'display_order';
+        $orderCol = $columnMap[$orderColIdx] ?? 'c.display_order';
 
         $where = [];
         $bindings = [];
@@ -338,15 +363,22 @@ class Category extends Model
         $filteredRecords = (int) self::fetchColumn("SELECT COUNT(*) FROM categories c {$whereClause}", $bindings);
 
         $limitClause = $length > 0 ? "LIMIT {$start}, {$length}" : "";
-        $sql = "SELECT c.id, c.name, c.slug, c.image, c.icon, c.description, c.display_order, c.status, c.show_on_homepage, c.created_at,
+        $sql = "SELECT c.*,
                        (SELECT COUNT(*) FROM subcategories s WHERE s.category_id = c.id) as subcategories_count,
                        (SELECT COUNT(*) FROM products p WHERE p.category_id = c.id) as products_count
                 FROM categories c 
                 {$whereClause} 
-                ORDER BY c.{$orderCol} {$orderDir} 
+                ORDER BY {$orderCol} {$orderDir} 
                 {$limitClause}";
 
         $data = self::fetchAll($sql, $bindings);
+
+        foreach ($data as &$row) {
+            if (!isset($row['show_on_homepage'])) {
+                $row['show_on_homepage'] = 0;
+            }
+        }
+        unset($row);
 
         return [
             'draw'            => $draw,

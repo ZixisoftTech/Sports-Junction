@@ -64,8 +64,19 @@ class MasterApiController extends Controller
             return;
         }
 
-        $result = $model::getDataTable($this->request->all());
-        $this->json($result);
+        try {
+            $result = $model::getDataTable($this->request->all());
+            $this->json($result);
+        } catch (\Throwable $e) {
+            @error_log("MasterApiController::data exception for {$entity}: " . $e->getMessage() . " at " . $e->getFile() . ":" . $e->getLine());
+            $this->json([
+                'draw'            => (int)($this->request->get('draw') ?? 1),
+                'recordsTotal'    => 0,
+                'recordsFiltered' => 0,
+                'data'            => [],
+                'error'           => 'Data loading error: ' . $e->getMessage()
+            ]);
+        }
     }
 
     public function show(array $params): void

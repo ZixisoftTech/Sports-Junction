@@ -33,9 +33,9 @@ class Subcategory extends Model
     public static function findById(int $id): ?array
     {
         return self::fetch("
-            SELECT s.*, c.name as category_name, c.slug as category_slug
+            SELECT s.*, COALESCE(c.name, 'Unassigned') as category_name, c.slug as category_slug
             FROM subcategories s
-            JOIN categories c ON s.category_id = c.id
+            LEFT JOIN categories c ON s.category_id = c.id
             WHERE s.id = :id 
             LIMIT 1
         ", [':id' => $id]);
@@ -44,9 +44,9 @@ class Subcategory extends Model
     public static function findBySlug(string $slug): ?array
     {
         return self::fetch("
-            SELECT s.*, c.name as category_name, c.slug as category_slug
+            SELECT s.*, COALESCE(c.name, 'Unassigned') as category_name, c.slug as category_slug
             FROM subcategories s
-            JOIN categories c ON s.category_id = c.id
+            LEFT JOIN categories c ON s.category_id = c.id
             WHERE s.slug = :slug 
             LIMIT 1
         ", [':slug' => $slug]);
@@ -250,17 +250,22 @@ class Subcategory extends Model
         $statusFilter = trim((string)($params['status'] ?? ''));
         $categoryFilter = (int)($params['category_id'] ?? 0);
 
-        $columns = ['id', 'name', 'category_name', 'slug', 'display_order', 'status', 'created_at'];
+        // Client columns in subcategories.php:
+        // 0: id, 1: image, 2: name, 3: category_name, 4: slug, 5: display_order, 6: products_count, 7: status, 8: actions
+        $columnMap = [
+            0 => 's.id',
+            1 => 's.id',
+            2 => 's.name',
+            3 => 'category_name',
+            4 => 's.slug',
+            5 => 's.display_order',
+            6 => 'products_count',
+            7 => 's.status',
+            8 => 's.created_at',
+        ];
         $orderColIdx = (int)($params['order'][0]['column'] ?? 0);
         $orderDir = strtoupper((string)($params['order'][0]['dir'] ?? 'ASC')) === 'DESC' ? 'DESC' : 'ASC';
-        $orderCol = $columns[$orderColIdx] ?? 's.id';
-        if ($orderCol === 'category_name') {
-            $orderCol = 'c.name';
-        } else if ($orderCol !== 'id') {
-            $orderCol = 's.' . $orderCol;
-        } else {
-            $orderCol = 's.id';
-        }
+        $orderCol = $columnMap[$orderColIdx] ?? 's.id';
 
         $where = [];
         $bindings = [];
@@ -287,16 +292,16 @@ class Subcategory extends Model
         $totalRecords = (int) self::fetchColumn("SELECT COUNT(*) FROM subcategories");
         $filteredRecords = (int) self::fetchColumn("
             SELECT COUNT(*) FROM subcategories s 
-            JOIN categories c ON s.category_id = c.id 
+            LEFT JOIN categories c ON s.category_id = c.id 
             {$whereClause}
         ", $bindings);
 
         $limitClause = $length > 0 ? "LIMIT {$start}, {$length}" : "";
-        $sql = "SELECT s.id, s.name, s.slug, s.image, s.display_order, s.status, s.created_at,
-                       c.id as category_id, c.name as category_name,
+        $sql = "SELECT s.id, s.name, s.slug, s.image, s.description, s.display_order, s.status, s.created_at,
+                       c.id as category_id, COALESCE(c.name, 'Unassigned') as category_name,
                        (SELECT COUNT(*) FROM products p WHERE p.subcategory_id = s.id) as products_count
                 FROM subcategories s 
-                JOIN categories c ON s.category_id = c.id
+                LEFT JOIN categories c ON s.category_id = c.id
                 {$whereClause} 
                 ORDER BY {$orderCol} {$orderDir} 
                 {$limitClause}";
