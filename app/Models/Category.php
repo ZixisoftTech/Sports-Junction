@@ -52,11 +52,30 @@ class Category extends Model
         return $categories;
     }
 
+    public static function ensureSchema(): void
+    {
+        static $checked = false;
+        if ($checked) return;
+        $checked = true;
+
+        try {
+            $col = self::fetch("SHOW COLUMNS FROM categories LIKE 'show_on_homepage'");
+            if (!$col) {
+                self::execute("ALTER TABLE categories ADD COLUMN show_on_homepage TINYINT(1) NOT NULL DEFAULT 0 AFTER status, ADD INDEX idx_show_on_homepage (show_on_homepage)");
+                self::execute("UPDATE categories SET show_on_homepage = 1 WHERE status = 'ACTIVE' ORDER BY display_order ASC, name ASC LIMIT 8");
+            }
+        } catch (\Throwable $e) {
+            // Fail gracefully
+        }
+    }
+
     /**
      * Get categories configured for the public Homepage 'Popular Sports Sourcing Categories' section
      */
     public static function getHomepageCategories(): array
     {
+        self::ensureSchema();
+
         // 1. Check if section is enabled (default enabled)
         $enabled = SiteSetting::get('homepage_categories_enabled', '1');
         if ($enabled === '0' || strtolower((string)$enabled) === 'false') {
@@ -69,14 +88,31 @@ class Category extends Model
             $maxCount = 8;
         }
 
-        // 3. Fetch all active categories with verified product count
-        $all = self::allActive();
-        if (empty($all)) {
+        // 3. Fetch active categories explicitly enabled for homepage display with product count
+        $categories = self::fetchAll("
+            SELECT c.*, 
+                   (
+                       SELECT COUNT(DISTINCT p.id) 
+                       FROM products p 
+                       JOIN suppliers sp ON p.supplier_id = sp.id
+                       LEFT JOIN product_category_assignments pca ON pca.product_id = p.id
+                       WHERE (p.category_id = c.id OR pca.category_id = c.id) 
+                         AND p.status IN ('PUBLISHED', 'ACTIVE')
+                         AND p.approval_status = 'APPROVED'
+                         AND sp.status = 'ACTIVE'
+                         AND sp.approval_status = 'APPROVED'
+                   ) as product_count
+            FROM categories c 
+            WHERE c.status = 'ACTIVE' AND c.show_on_homepage = 1
+            ORDER BY c.display_order ASC, c.name ASC
+        ");
+
+        if (empty($categories)) {
             return [];
         }
 
         $allById = [];
-        foreach ($all as $c) {
+        foreach ($categories as $c) {
             $allById[(int)$c['id']] = $c;
         }
 
@@ -98,11 +134,13 @@ class Category extends Model
         }
 
         // Fallback: Default top categories ordered by display_order
-        return array_slice($all, 0, $maxCount);
+        return array_slice($categories, 0, $maxCount);
     }
 
     public static function create(array $data): int
     {
+        self::ensureSchema();
+
         $name = trim($data['name']);
         $slug = !empty($data['slug']) ? Uploader::slugify($data['slug']) : Uploader::slugify($name);
 
@@ -114,17 +152,20 @@ class Category extends Model
             $counter++;
         }
 
+        $showOnHomepage = !empty($data['show_on_homepage']) && ($data['show_on_homepage'] === 1 || $data['show_on_homepage'] === '1' || $data['show_on_homepage'] === true || $data['show_on_homepage'] === 'on') ? 1 : 0;
+
         self::execute("
-            INSERT INTO categories (name, slug, image, icon, description, status, display_order, created_at, updated_at)
-            VALUES (:name, :slug, :image, :icon, :description, :status, :display_order, NOW(), NOW())
+            INSERT INTO categories (name, slug, image, icon, description, status, show_on_homepage, display_order, created_at, updated_at)
+            VALUES (:name, :slug, :image, :icon, :description, :status, :show_on_homepage, :display_order, NOW(), NOW())
         ", [
-            ':name'          => $name,
-            ':slug'          => $slug,
-            ':image'         => !empty($data['image']) ? trim($data['image']) : null,
-            ':icon'          => !empty($data['icon']) ? trim($data['icon']) : 'sports_tennis',
-            ':description'   => !empty($data['description']) ? trim($data['description']) : null,
-            ':status'        => in_array($data['status'] ?? '', ['ACTIVE', 'INACTIVE'], true) ? $data['status'] : 'ACTIVE',
-            ':display_order' => (int) ($data['display_order'] ?? 0),
+            ':name'             => $name,
+            ':slug'             => $slug,
+            ':image'            => !empty($data['image']) ? trim($data['image']) : null,
+            ':icon'             => !empty($data['icon']) ? trim($data['icon']) : 'sports_tennis',
+            ':description'      => !empty($data['description']) ? trim($data['description']) : null,
+            ':status'           => in_array($data['status'] ?? '', ['ACTIVE', 'INACTIVE'], true) ? $data['status'] : 'ACTIVE',
+            ':show_on_homepage' => $showOnHomepage,
+            ':display_order'    => (int) ($data['display_order'] ?? 0),
         ]);
 
         $id = (int) self::lastInsertId();
@@ -134,6 +175,8 @@ class Category extends Model
 
     public static function update(int $id, array $data): bool
     {
+        self::ensureSchema();
+
         $existing = self::findById($id);
         if (!$existing) {
             return false;
@@ -153,20 +196,26 @@ class Category extends Model
         $image = !empty($data['image']) ? trim($data['image']) : $existing['image'];
         $icon = !empty($data['icon']) ? trim($data['icon']) : ($existing['icon'] ?? 'sports_tennis');
 
+        $showOnHomepage = isset($data['show_on_homepage'])
+            ? (!empty($data['show_on_homepage']) && ($data['show_on_homepage'] === 1 || $data['show_on_homepage'] === '1' || $data['show_on_homepage'] === true || $data['show_on_homepage'] === 'on') ? 1 : 0)
+            : (int)($existing['show_on_homepage'] ?? 0);
+
         self::execute("
             UPDATE categories 
             SET name = :name, slug = :slug, image = :image, icon = :icon, 
-                description = :description, status = :status, display_order = :display_order, updated_at = NOW()
+                description = :description, status = :status, show_on_homepage = :show_on_homepage, 
+                display_order = :display_order, updated_at = NOW()
             WHERE id = :id
         ", [
-            ':name'          => $name,
-            ':slug'          => $slug,
-            ':image'         => $image,
-            ':icon'          => $icon,
-            ':description'   => !empty($data['description']) ? trim($data['description']) : null,
-            ':status'        => in_array($data['status'] ?? '', ['ACTIVE', 'INACTIVE'], true) ? $data['status'] : 'ACTIVE',
-            ':display_order' => (int) ($data['display_order'] ?? 0),
-            ':id'            => $id,
+            ':name'             => $name,
+            ':slug'             => $slug,
+            ':image'            => $image,
+            ':icon'             => $icon,
+            ':description'      => !empty($data['description']) ? trim($data['description']) : null,
+            ':status'           => in_array($data['status'] ?? '', ['ACTIVE', 'INACTIVE'], true) ? $data['status'] : 'ACTIVE',
+            ':show_on_homepage' => $showOnHomepage,
+            ':display_order'    => (int) ($data['display_order'] ?? 0),
+            ':id'               => $id,
         ]);
 
         AuditLogger::log('UPDATE', 'Category', $id, $name, null, 'Updated category');
@@ -289,7 +338,7 @@ class Category extends Model
         $filteredRecords = (int) self::fetchColumn("SELECT COUNT(*) FROM categories c {$whereClause}", $bindings);
 
         $limitClause = $length > 0 ? "LIMIT {$start}, {$length}" : "";
-        $sql = "SELECT c.id, c.name, c.slug, c.image, c.icon, c.description, c.display_order, c.status, c.created_at,
+        $sql = "SELECT c.id, c.name, c.slug, c.image, c.icon, c.description, c.display_order, c.status, c.show_on_homepage, c.created_at,
                        (SELECT COUNT(*) FROM subcategories s WHERE s.category_id = c.id) as subcategories_count,
                        (SELECT COUNT(*) FROM products p WHERE p.category_id = c.id) as products_count
                 FROM categories c 

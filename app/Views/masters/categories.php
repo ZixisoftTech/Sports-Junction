@@ -94,17 +94,29 @@ $baseUrl = Response::baseUrl();
                             <input type="text" class="form-control form-control-sm" id="catSlug" name="slug" placeholder="e.g. sports-and-fitness" maxlength="160">
                         </div>
 
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <label for="catOrder" class="form-label fw-semibold small">Display Priority Order</label>
                             <input type="number" class="form-control form-control-sm" id="catOrder" name="display_order" value="0" min="0">
                             <div class="form-text small text-muted">Lower numbers appear first (0, 1, 2...)</div>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <label for="catStatus" class="form-label fw-semibold small">Status <span class="text-danger">*</span></label>
                             <select class="form-select form-select-sm" id="catStatus" name="status" required>
                                 <option value="ACTIVE">Active (Published)</option>
                                 <option value="INACTIVE">Inactive (Hidden)</option>
                             </select>
+                            <div class="form-text small text-muted">Overall category availability</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold small d-block">Show on Homepage</label>
+                            <div class="form-check form-switch pt-1">
+                                <input type="hidden" name="show_on_homepage" value="0">
+                                <input class="form-check-input fs-5" type="checkbox" role="switch" id="catShowOnHomepage" name="show_on_homepage" value="1">
+                                <label class="form-check-label small fw-semibold text-muted ms-1" for="catShowOnHomepage" id="catShowOnHomepageLabel">
+                                    OFF: Hidden from the homepage
+                                </label>
+                            </div>
+                            <div class="form-text small text-muted">Toggle public homepage visibility</div>
                         </div>
 
                         <!-- Icon Selection (Searchable Library OR Custom File Upload) -->
@@ -449,17 +461,24 @@ document.addEventListener('DOMContentLoaded', function () {
             },
             { 
                 data: 'status', 
-                width: '85px',
+                width: '105px',
                 className: 'text-center',
                 render: function (data, type, row) {
                     const isActive = data === 'ACTIVE';
                     const badgeClass = isActive ? 'bg-success' : 'bg-danger';
+                    const isHomepage = parseInt(row.show_on_homepage) === 1;
+                    const homepageBadge = isHomepage
+                        ? `<span class="badge bg-primary-subtle text-primary border border-primary-subtle" title="Visible on Homepage" style="font-size: 10px;"><i class="bi bi-house-door-fill me-1"></i>Homepage</span>`
+                        : `<span class="badge bg-light text-muted border" title="Hidden from Homepage" style="font-size: 10px;">Off Homepage</span>`;
                     return `
-                        <div class="d-flex align-items-center justify-content-center gap-1">
-                            <span class="badge ${badgeClass}">${data}</span>
-                            <button type="button" class="btn btn-sm btn-link p-0 text-muted btn-toggle-status" data-id="${row.id}" data-name="${row.name}" data-status="${data}" title="Toggle status">
-                                <i class="bi bi-arrow-repeat"></i>
-                            </button>
+                        <div class="d-flex flex-column align-items-center justify-content-center gap-1">
+                            <div class="d-flex align-items-center gap-1">
+                                <span class="badge ${badgeClass}">${data}</span>
+                                <button type="button" class="btn btn-sm btn-link p-0 text-muted btn-toggle-status" data-id="${row.id}" data-name="${row.name}" data-status="${data}" title="Toggle status">
+                                    <i class="bi bi-arrow-repeat"></i>
+                                </button>
+                            </div>
+                            <div>${homepageBadge}</div>
                         </div>
                     `;
                 }
@@ -522,6 +541,11 @@ document.addEventListener('DOMContentLoaded', function () {
             renderIconGrid(iconSearch ? iconSearch.value : '');
 
             document.getElementById('catStatus').value = data.status || 'ACTIVE';
+            
+            const showOnHomepage = parseInt(data.show_on_homepage) === 1;
+            document.getElementById('catShowOnHomepage').checked = showOnHomepage;
+            updateHomepageToggleLabel();
+
             document.getElementById('catImageUrl').value = data.image || '';
             if (fileInput) fileInput.value = '';
             if (iconFileInput) iconFileInput.value = '';
@@ -529,6 +553,24 @@ document.addEventListener('DOMContentLoaded', function () {
             updatePreview(data.image);
         }
     });
+
+    function updateHomepageToggleLabel() {
+        const cb = document.getElementById('catShowOnHomepage');
+        const lbl = document.getElementById('catShowOnHomepageLabel');
+        if (!cb || !lbl) return;
+        if (cb.checked) {
+            lbl.textContent = 'ON: Visible on the homepage';
+            lbl.className = 'form-check-label small fw-bold text-success ms-1';
+        } else {
+            lbl.textContent = 'OFF: Hidden from the homepage';
+            lbl.className = 'form-check-label small fw-semibold text-muted ms-1';
+        }
+    }
+
+    const catShowOnHomepageEl = document.getElementById('catShowOnHomepage');
+    if (catShowOnHomepageEl) {
+        catShowOnHomepageEl.addEventListener('change', updateHomepageToggleLabel);
+    }
 
     // Reset preview on Add New
     document.getElementById('btnAddNewCategory').addEventListener('click', function () {
@@ -547,6 +589,9 @@ document.addEventListener('DOMContentLoaded', function () {
         if (iconPreview) iconPreview.textContent = 'fitness_center';
         renderIconGrid();
         updatePreview('');
+
+        document.getElementById('catShowOnHomepage').checked = false;
+        updateHomepageToggleLabel();
     });
 });
 </script>

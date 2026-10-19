@@ -29,7 +29,12 @@ class CmsPage extends Model
     public static function findBySlug(string $slug): ?array
     {
         $sql = "SELECT * FROM `cms_pages` WHERE `slug` = :s LIMIT 1";
-        return self::fetch($sql, [':s' => $slug]);
+        $page = self::fetch($sql, [':s' => $slug]);
+        if (!$page && in_array($slug, ['terms-and-conditions', 'privacy-policy', 'terms-manufacturing-sla', 'seller-agreement'], true)) {
+            self::ensureDefaultPolicies();
+            $page = self::fetch($sql, [':s' => $slug]);
+        }
+        return $page;
     }
 
     /**
@@ -46,6 +51,7 @@ class CmsPage extends Model
      */
     public static function all(bool $activeOnly = false): array
     {
+        self::ensureDefaultPolicies();
         $sql = "SELECT * FROM `cms_pages`";
         if ($activeOnly) {
             $sql .= " WHERE `is_active` = 1";
@@ -59,12 +65,59 @@ class CmsPage extends Model
      */
     public static function getByCategory(string $category, bool $activeOnly = true): array
     {
+        if ($category === 'PLATFORM_ADMIN') {
+            self::ensureDefaultPolicies();
+        }
         $sql = "SELECT * FROM `cms_pages` WHERE `column_category` = :cat";
         if ($activeOnly) {
             $sql .= " AND `is_active` = 1";
         }
         $sql .= " ORDER BY `sort_order` ASC, `id` ASC";
         return self::fetchAll($sql, [':cat' => $category]);
+    }
+
+    /**
+     * Self-healing: Ensure essential platform policy pages exist in database
+     */
+    public static function ensureDefaultPolicies(): void
+    {
+        try {
+            $policies = \App\Helpers\PolicyPagesData::getAll();
+            foreach ($policies as $slug => $data) {
+                $existing = self::fetch("SELECT id, sort_order, title, content FROM cms_pages WHERE slug = :s LIMIT 1", [':s' => $slug]);
+                if (!$existing) {
+                    self::execute("
+                        INSERT INTO cms_pages (title, slug, column_category, content, external_url, meta_title, meta_description, sort_order, is_active, created_at, updated_at)
+                        VALUES (:title, :slug, 'PLATFORM_ADMIN', :content, NULL, :meta_title, :meta_description, :sort_order, 1, NOW(), NOW())
+                    ", [
+                        ':title' => $data['title'],
+                        ':slug' => $slug,
+                        ':content' => $data['content'],
+                        ':meta_title' => $data['meta_title'],
+                        ':meta_description' => $data['meta_description'],
+                        ':sort_order' => $data['sort_order'],
+                    ]);
+                } else {
+                    $updates = [];
+                    $params = [':id' => $existing['id']];
+                    if ((int)$existing['sort_order'] !== (int)$data['sort_order']) {
+                        $updates[] = "sort_order = :sort_order";
+                        $params[':sort_order'] = $data['sort_order'];
+                    }
+                    if (empty($existing['content']) || strlen($existing['content']) < 300) {
+                        $updates[] = "content = :content";
+                        $params[':content'] = $data['content'];
+                    }
+                    if (!empty($updates)) {
+                        $updates[] = "column_category = 'PLATFORM_ADMIN'";
+                        $updates[] = "is_active = 1";
+                        self::execute("UPDATE cms_pages SET " . implode(', ', $updates) . " WHERE id = :id", $params);
+                    }
+                }
+            }
+        } catch (\Throwable $e) {
+            // Fail gracefully
+        }
     }
 
     /**

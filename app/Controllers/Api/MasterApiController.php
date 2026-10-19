@@ -246,6 +246,8 @@ class MasterApiController extends Controller
                 $this->json(['success' => false, 'message' => "City '{$input['name']}' already exists in this state."], 422);
                 return;
             }
+        if (strtolower($entity) === 'categories') {
+            $input['show_on_homepage'] = !empty($input['show_on_homepage']) && ($input['show_on_homepage'] === 1 || $input['show_on_homepage'] === '1' || $input['show_on_homepage'] === true || $input['show_on_homepage'] === 'on') ? 1 : 0;
         }
 
         try {
@@ -427,6 +429,8 @@ class MasterApiController extends Controller
                 $this->json(['success' => false, 'message' => "City '{$input['name']}' already exists in this state."], 422);
                 return;
             }
+        if (strtolower($entity) === 'categories') {
+            $input['show_on_homepage'] = !empty($input['show_on_homepage']) && ($input['show_on_homepage'] === 1 || $input['show_on_homepage'] === '1' || $input['show_on_homepage'] === true || $input['show_on_homepage'] === 'on') ? 1 : 0;
         }
 
         try {
