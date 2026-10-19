@@ -45,20 +45,6 @@ $success = Session::flash('success');
             </div>
         <?php endif; ?>
 
-        <?php if (\App\Models\Otp::isStaticOtpEnabled()): ?>
-            <div class="mb-5 p-3 rounded-2xl bg-amber-50 border border-amber-200/80 text-amber-950 text-xs flex items-center justify-between gap-3 text-left">
-                <div class="flex items-center gap-2">
-                    <span class="material-symbols-outlined text-amber-600 text-[20px] shrink-0">key</span>
-                    <div>
-                        <span class="font-bold text-amber-900">Static Recovery Passcode:</span> 
-                        Passcode is <strong class="font-mono text-sm text-blue-900 bg-amber-100/90 px-2 py-0.5 rounded">123456</strong>
-                        <span class="text-slate-500 block text-[11px] mt-0.5">Static passcode active until live SMTP delivery is configured</span>
-                    </div>
-                </div>
-                <button type="button" onclick="document.querySelector('input[name=otp]').value='123456'" class="shrink-0 text-xs bg-blue-900 hover:bg-blue-950 text-white font-bold px-3 py-1.5 rounded-lg transition-colors shadow-xs">Auto-Fill</button>
-            </div>
-        <?php endif; ?>
-
         <form action="<?= htmlspecialchars($baseUrl) ?>/reset-password" method="POST" class="space-y-4">
             <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(CSRF::token()) ?>">
             <input type="hidden" name="email" value="<?= htmlspecialchars($email) ?>">
@@ -67,7 +53,7 @@ $success = Session::flash('success');
             <div>
                 <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">6-Digit Recovery Passcode <span class="text-red-500">*</span></label>
                 <div class="relative">
-                    <input type="text" name="otp" required maxlength="6" inputmode="numeric" placeholder="123456" class="w-full pl-3.5 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-center font-mono text-lg font-bold tracking-widest text-slate-900 focus:bg-white focus:border-blue-700 focus:ring-2 focus:ring-blue-100 outline-none transition-all">
+                    <input type="text" name="otp" required maxlength="6" inputmode="numeric" placeholder="Enter 6-digit passcode" class="w-full pl-3.5 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-center font-mono text-lg font-bold tracking-widest text-slate-900 focus:bg-white focus:border-blue-700 focus:ring-2 focus:ring-blue-100 outline-none transition-all">
                     <span class="material-symbols-outlined absolute right-3 top-3 text-slate-400 text-[18px]">pin</span>
                 </div>
             </div>

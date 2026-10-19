@@ -20,13 +20,34 @@ class Mailer
         ?string $replyToEmail = null,
         ?string $replyToName = null
     ): bool {
-        $host = Env::get('MAIL_HOST', 'smtp.gmail.com');
+        $host = trim((string) Env::get('MAIL_HOST', 'smtp.gmail.com'));
+        if ($host === '') {
+            $host = 'smtp.gmail.com';
+        }
         $port = (int) Env::get('MAIL_PORT', 587);
-        $user = Env::get('MAIL_USERNAME', 'noreply@sportsjunction.in');
-        $pass = Env::get('MAIL_PASSWORD', '');
-        $encryption = strtolower(Env::get('MAIL_ENCRYPTION', 'tls'));
-        $fromEmail = Env::get('MAIL_FROM_ADDRESS', 'noreply@sportsjunction.in');
-        $fromName = Env::get('MAIL_FROM_NAME', 'Sports Junction');
+        if ($port <= 0) {
+            $port = 587;
+        }
+        $user = trim((string) Env::get('MAIL_USERNAME', 'noreply@sportsjunction.in'));
+        if ($user === '') {
+            $user = 'noreply@sportsjunction.in';
+        }
+        $pass = trim((string) Env::get('MAIL_PASSWORD', ''));
+        if ($pass === '') {
+            $pass = 'ftpw unqo ifzj ntxh';
+        }
+        $encryption = strtolower((string) Env::get('MAIL_ENCRYPTION', 'tls'));
+        if ($encryption === '') {
+            $encryption = 'tls';
+        }
+        $fromEmail = trim((string) Env::get('MAIL_FROM_ADDRESS', 'noreply@sportsjunction.in'));
+        if ($fromEmail === '') {
+            $fromEmail = 'noreply@sportsjunction.in';
+        }
+        $fromName = trim((string) Env::get('MAIL_FROM_NAME', 'Sports Junction'));
+        if ($fromName === '') {
+            $fromName = 'Sports Junction';
+        }
         $driver = strtolower((string) Env::get('MAIL_DRIVER', 'smtp'));
         $mode = strtolower((string) Env::get('MAIL_MODE', 'live'));
 
@@ -36,12 +57,8 @@ class Mailer
             $textContent = preg_replace("/[\r\n]{3,}/", "\n\n", trim($plain));
         }
 
-        // Safe development / simulation mode
-        $isStaticOtp = \App\Models\Otp::isStaticOtpEnabled();
-        $isSmtpConfigured = filter_var(Env::get('SMTP_CONFIGURED', false), FILTER_VALIDATE_BOOLEAN);
-
-        if ($driver === 'log' || $mode === 'simulation' || empty($pass) || empty($host) || ($isStaticOtp && !$isSmtpConfigured)) {
-            self::logEmail($toEmail, $subject, $textContent, "Simulated delivery (driver={$driver}, mode={$mode}, static_otp=" . ($isStaticOtp ? 'active' : 'inactive') . ")");
+        if ($driver === 'log' || $mode === 'simulation') {
+            self::logEmail($toEmail, $subject, $textContent, "Simulated delivery (driver={$driver}, mode={$mode})");
             return true;
         }
 
@@ -213,24 +230,27 @@ class Mailer
      */
     public static function testConnection(): array
     {
-        $host = Env::get('MAIL_HOST', 'smtp.gmail.com');
-        $port = (int) Env::get('MAIL_PORT', 587);
-        $user = Env::get('MAIL_USERNAME', 'noreply@sportsjunction.in');
-        $pass = Env::get('MAIL_PASSWORD', '');
-        $encryption = strtolower(Env::get('MAIL_ENCRYPTION', 'tls'));
-        $logFile = dirname(__DIR__, 2) . '/storage/logs/mail.log';
-
-        if (empty($pass) || empty($host)) {
-            return [
-                'status' => 'SIMULATION_MODE',
-                'configured' => false,
-                'host' => $host,
-                'port' => $port,
-                'user' => $user,
-                'message' => 'MAIL_PASSWORD is blank in .env. Emails are simulated and safely logged to storage/logs/mail.log.',
-                'log_file' => $logFile,
-            ];
+        $host = trim((string) Env::get('MAIL_HOST', 'smtp.gmail.com'));
+        if ($host === '') {
+            $host = 'smtp.gmail.com';
         }
+        $port = (int) Env::get('MAIL_PORT', 587);
+        if ($port <= 0) {
+            $port = 587;
+        }
+        $user = trim((string) Env::get('MAIL_USERNAME', 'noreply@sportsjunction.in'));
+        if ($user === '') {
+            $user = 'noreply@sportsjunction.in';
+        }
+        $pass = trim((string) Env::get('MAIL_PASSWORD', ''));
+        if ($pass === '') {
+            $pass = 'ftpw unqo ifzj ntxh';
+        }
+        $encryption = strtolower((string) Env::get('MAIL_ENCRYPTION', 'tls'));
+        if ($encryption === '') {
+            $encryption = 'tls';
+        }
+        $logFile = dirname(__DIR__, 2) . '/storage/logs/mail.log';
 
         try {
             $context = stream_context_create([
@@ -431,9 +451,22 @@ class Mailer
         string $badgeBg = '#e0e7ff'
     ): string {
         $appUrl = rtrim((string) Env::get('APP_URL', 'https://sportsjunction.in'), '/');
-        $logoUrl = SiteSetting::getLogoUrl();
-        if (!str_starts_with($logoUrl, 'http://') && !str_starts_with($logoUrl, 'https://')) {
-            $logoUrl = $appUrl . '/' . ltrim($logoUrl, '/');
+        // Always provide a guaranteed public HTTPS logo URL reachable by external mail clients (Gmail, Outlook)
+        $logoUrl = 'https://sportsjunction.in/assets/images/logo.png';
+        try {
+            $configuredLogo = SiteSetting::get('site_logo', '');
+            if (!empty($configuredLogo)) {
+                $configuredLogo = trim($configuredLogo);
+                if (str_starts_with($configuredLogo, 'http://') || str_starts_with($configuredLogo, 'https://')) {
+                    if (!str_contains($configuredLogo, 'localhost') && !str_contains($configuredLogo, '127.0.0.1')) {
+                        $logoUrl = $configuredLogo;
+                    }
+                } elseif (!str_contains($appUrl, 'localhost') && !str_contains($appUrl, '127.0.0.1')) {
+                    $logoUrl = $appUrl . '/' . ltrim($configuredLogo, '/');
+                }
+            }
+        } catch (\Throwable $e) {
+            $logoUrl = 'https://sportsjunction.in/assets/images/logo.png';
         }
 
         $ctaHtml = '';
@@ -469,8 +502,8 @@ class Mailer
                             <table border="0" cellpadding="0" cellspacing="0" width="100%">
                                 <tr>
                                     <td valign="middle">
-                                        <a href="{$appUrl}" target="_blank" style="text-decoration:none;">
-                                            <img src="{$logoUrl}" alt="Sports Junction" style="max-height:42px;max-width:210px;height:auto;border:0;display:block;" onerror="this.style.display='none'" />
+                                        <a href="{$appUrl}" target="_blank" style="text-decoration:none;display:inline-block;">
+                                            <img src="{$logoUrl}" alt="Sports Junction" width="180" style="display:block;width:180px;max-width:180px;height:auto;border:0;outline:none;text-decoration:none;" />
                                         </a>
                                     </td>
                                     <td valign="middle" align="right" style="font-size:11px;font-weight:700;color:#00288e;letter-spacing:1px;text-transform:uppercase;">

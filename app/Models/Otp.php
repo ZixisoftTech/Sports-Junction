@@ -242,8 +242,8 @@ class Otp extends Model
             // In case DB is not yet available
         }
 
-        // 4. Default: static OTP 123456 is active everywhere until user sets up live SMTP
-        return true;
+        // 4. Default: Dynamic OTP is standard; static OTP is false unless explicitly forced via env/db
+        return false;
     }
 
     /**
