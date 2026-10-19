@@ -302,14 +302,8 @@ if ($authUser && ($authUser['role'] ?? '') === 'BUYER') {
                         </div>
                     </div>
 
-                    <a href="<?= htmlspecialchars($baseUrl) ?>/products?verified=1" class="text-on-surface-variant hover:text-primary transition-colors shrink-0 flex items-center gap-1">
-                        <span class="material-symbols-outlined text-[14px] text-teal-600">verified</span>
-                        <span>VERIFIED FACTORIES</span>
-                    </a>
                     <a href="<?= htmlspecialchars($baseUrl) ?>/products" class="text-on-surface-variant hover:text-primary transition-colors shrink-0">ALL PRODUCTS</a>
-                    <a href="<?= htmlspecialchars($baseUrl) ?>/category/sports-and-fitness" class="text-on-surface-variant hover:text-primary transition-colors shrink-0">FITNESS & GYM</a>
-                    <a href="<?= htmlspecialchars($baseUrl) ?>/category/cricket-and-field-sports" class="text-on-surface-variant hover:text-primary transition-colors shrink-0">CRICKET HUB</a>
-                    <a href="<?= htmlspecialchars($baseUrl) ?>/contact" class="text-on-surface-variant hover:text-primary transition-colors shrink-0">CONTACT US</a>
+                    <a href="<?= htmlspecialchars($baseUrl) ?>/contact" class="text-on-surface-variant hover:text-primary transition-colors shrink-0">HELP</a>
                 </nav>
 
                 <div class="hidden lg:flex items-center gap-5 text-on-surface-variant normal-case shrink-0 text-xs">
