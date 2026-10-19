@@ -153,8 +153,10 @@ $sort = $filters['sort'] ?? 'featured';
                         <?php endif; ?>
                     </h1>
                     <p class="text-xs text-outline mt-0.5">
-                        <?php if ($total > 0): ?>
+                        <?php if ($total > 0 && $from > 0): ?>
                             Showing <?= $from ?>–<?= $to ?> of <?= $total ?> products
+                        <?php elseif ($total > 0): ?>
+                            Showing 0 of <?= $total ?> products
                         <?php else: ?>
                             Showing 0 of 0 products
                         <?php endif; ?>

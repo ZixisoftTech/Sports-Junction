@@ -477,8 +477,8 @@ class Product extends Model
             'current_page' => $page,
             'per_page'     => $perPage,
             'last_page'    => $lastPage,
-            'from'         => $total > 0 ? $offset + 1 : 0,
-            'to'           => min($offset + $perPage, $total),
+            'from'         => ($total > 0 && $offset < $total) ? $offset + 1 : 0,
+            'to'           => ($total > 0 && $offset < $total) ? min($offset + $perPage, $total) : 0,
         ];
     }
 
