@@ -160,6 +160,12 @@ class Request
             || (str_contains($this->getHeader('Accept') ?? '', 'application/json'));
     }
 
+    public function isJson(): bool
+    {
+        $contentType = $this->getHeader('Content-Type') ?? '';
+        return str_contains($contentType, 'application/json');
+    }
+
     public function getHeader(string $name): ?string
     {
         $normalized = strtolower($name);

@@ -363,14 +363,14 @@ if ($authUser && ($authUser['role'] ?? '') === 'BUYER') {
                         </div>
                         <div>
                             <label class="block text-xs font-bold text-on-surface-variant mb-1 uppercase tracking-wider">Business Email *</label>
-                            <input type="email" name="buyer_email" id="modal-buyer-email" required placeholder="buyer@company.com" class="w-full bg-surface-container-low px-3 py-2 text-on-surface rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-primary outline-none transition-all">
+                            <input type="email" name="buyer_email" id="modal-buyer-email" required placeholder="Enter your business email" class="w-full bg-surface-container-low px-3 py-2 text-on-surface rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-primary outline-none transition-all">
                         </div>
                     </div>
 
                     <div class="grid grid-cols-2 gap-3">
                         <div>
                             <label class="block text-xs font-bold text-on-surface-variant mb-1 uppercase tracking-wider">Phone / WhatsApp</label>
-                            <input type="text" name="buyer_phone" id="modal-buyer-phone" placeholder="+1 555-0199" class="w-full bg-surface-container-low px-3 py-2 text-on-surface rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-primary outline-none transition-all">
+                            <input type="text" name="buyer_phone" id="modal-buyer-phone" placeholder="Enter contact number" class="w-full bg-surface-container-low px-3 py-2 text-on-surface rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-primary outline-none transition-all">
                         </div>
                         <div>
                             <label class="block text-xs font-bold text-on-surface-variant mb-1 uppercase tracking-wider">Company Name</label>
