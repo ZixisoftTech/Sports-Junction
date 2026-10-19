@@ -122,6 +122,7 @@ use App\Controllers\SupplierMessagesController;
 use App\Controllers\AdminCommunicationController;
 use App\Controllers\ChatApiController;
 use App\Controllers\AdminSettingsController;
+use App\Controllers\AdminHeroBannerController;
 use App\Controllers\AdminProfileChangeController;
 use App\Controllers\CmsPageController;
 use App\Controllers\ProductCertificateController;
@@ -317,6 +318,17 @@ $router->put('/admin/pages/{id}', [AdminSettingsController::class, 'updatePage']
 $router->post('/admin/pages/delete/{id}', [AdminSettingsController::class, 'deletePage'], [AuthMiddleware::class]);
 $router->post('/admin/pages/{id}/delete', [AdminSettingsController::class, 'deletePage'], [AuthMiddleware::class]);
 $router->delete('/admin/pages/{id}', [AdminSettingsController::class, 'deletePage'], [AuthMiddleware::class]);
+
+// Super Admin Hero Banner Management
+$router->get('/admin/banners', [AdminHeroBannerController::class, 'index'], [AuthMiddleware::class]);
+$router->get('/api/admin/banners/data', [AdminHeroBannerController::class, 'data'], [AuthMiddleware::class]);
+$router->get('/api/admin/banners/{id}', [AdminHeroBannerController::class, 'show'], [AuthMiddleware::class]);
+$router->post('/api/admin/banners', [AdminHeroBannerController::class, 'store'], [AuthMiddleware::class]);
+$router->post('/api/admin/banners/{id}', [AdminHeroBannerController::class, 'update'], [AuthMiddleware::class]);
+$router->put('/api/admin/banners/{id}', [AdminHeroBannerController::class, 'update'], [AuthMiddleware::class]);
+$router->delete('/api/admin/banners/{id}', [AdminHeroBannerController::class, 'delete'], [AuthMiddleware::class]);
+$router->post('/api/admin/banners/{id}/delete', [AdminHeroBannerController::class, 'delete'], [AuthMiddleware::class]);
+$router->post('/api/admin/banners/{id}/toggle-status', [AdminHeroBannerController::class, 'toggleStatus'], [AuthMiddleware::class]);
 
 // Super Admin Dedicated Seller Agreement Management
 $router->get('/admin/seller-agreement', [AdminSettingsController::class, 'sellerAgreement'], [AuthMiddleware::class]);

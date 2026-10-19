@@ -5,6 +5,7 @@ namespace App\Controllers;
 
 use App\Core\Controller;
 use App\Models\Category;
+use App\Models\HeroBanner;
 use App\Models\Product;
 
 class HomeController extends Controller
@@ -14,6 +15,7 @@ class HomeController extends Controller
         $categories = Category::allActive();
         $homepageCategories = Category::getHomepageCategories();
         $featuredProducts = Product::featuredProducts(20);
+        $heroBanners = HeroBanner::allActive();
 
         $this->render('frontend/home', [
             'pageTitle'          => 'Sports Junction — India\'s Sports Manufacturing Marketplace | Factory-Direct B2B Sourcing',
@@ -21,6 +23,7 @@ class HomeController extends Controller
             'categories'         => $categories,
             'homepageCategories' => $homepageCategories,
             'featuredProducts'   => $featuredProducts,
+            'heroBanners'        => $heroBanners,
         ], 'frontend');
     }
 }

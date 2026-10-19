@@ -5,53 +5,163 @@ $baseUrl = Response::baseUrl();
 <!-- 1. HERO / SEARCH SECTION -->
 <section class="relative bg-surface py-6">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <!-- High-Conversion B2B Hero Banner (Full Width) -->
-        <div class="w-full relative rounded-2xl overflow-hidden bg-slate-900 min-h-[380px] sm:min-h-[420px] lg:min-h-[450px] flex items-center shadow-lg">
-            <img alt="Sports manufacturing warehouse" class="absolute inset-0 w-full h-full object-cover opacity-35" src="https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&w=1600&q=80">
-            <div class="absolute inset-0 bg-gradient-to-r from-blue-950/95 via-blue-950/70 to-transparent"></div>
+        <!-- Dynamic Hero Banners Carousel -->
+        <?php 
+        $banners = !empty($heroBanners) ? $heroBanners : [
+            [
+                'badge_text'           => 'Factory Direct Sourcing Hub',
+                'title'                => 'Direct From Verified Indian Sports & Fitness Manufacturers',
+                'subtitle'             => 'Factory-Direct Wholesale Pricing • Guaranteed MOQs • ISO 9001 & BSCI Audited Production Facilities in Meerut & Jalandhar with Fast Sample Turnaround.',
+                'image'                => 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&w=1600&q=80',
+                'cta_text'             => 'Source Catalog',
+                'cta_url'              => '/products',
+                'secondary_cta_text'   => 'Request Quotation',
+                'secondary_cta_url'    => 'rfq_modal',
+                'display_order'        => 1,
+            ]
+        ];
+        $totalBanners = count($banners);
+        ?>
+        <div id="heroBannerCarousel" class="w-full relative rounded-2xl overflow-hidden bg-slate-900 min-h-[380px] sm:min-h-[420px] lg:min-h-[450px] flex items-center shadow-lg group">
+            <?php foreach ($banners as $idx => $b): 
+                $imgSrc = Response::formatImageUrl($b['image']);
+                $ctaUrl = !empty($b['cta_url']) ? (str_starts_with($b['cta_url'], 'http') ? $b['cta_url'] : $baseUrl . '/' . ltrim($b['cta_url'], '/')) : $baseUrl . '/products';
+                $secUrl = $b['secondary_cta_url'] ?? 'rfq_modal';
+                $isActive = ($idx === 0);
+            ?>
+            <div class="hero-slide absolute inset-0 w-full h-full flex items-center transition-opacity duration-700 ease-in-out <?= $isActive ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none' ?>" data-slide-index="<?= $idx ?>">
+                <img alt="<?= htmlspecialchars($b['title']) ?>" class="absolute inset-0 w-full h-full object-cover opacity-35" src="<?= htmlspecialchars($imgSrc) ?>" onerror="this.onerror=null;this.src='https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&w=1600&q=80';">
+                <div class="absolute inset-0 bg-gradient-to-r from-blue-950/95 via-blue-950/70 to-transparent"></div>
 
-            <div class="relative z-10 max-w-2xl p-6 sm:p-10 lg:p-12 text-white flex flex-col justify-between h-full">
-                <div class="space-y-4">
-                    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-500/20 backdrop-blur-md text-teal-300 text-xs font-bold uppercase tracking-wider border border-teal-500/30">
-                        <span class="w-2 h-2 rounded-full bg-teal-400 animate-pulse"></span>
-                        <span>Factory Direct Sourcing Hub</span>
+                <div class="relative z-10 max-w-2xl p-6 sm:p-10 lg:p-12 text-white flex flex-col justify-between h-full w-full">
+                    <div class="space-y-4">
+                        <?php if (!empty($b['badge_text'])): ?>
+                        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-500/20 backdrop-blur-md text-teal-300 text-xs font-bold uppercase tracking-wider border border-teal-500/30">
+                            <span class="w-2 h-2 rounded-full bg-teal-400 animate-pulse"></span>
+                            <span><?= htmlspecialchars($b['badge_text']) ?></span>
+                        </div>
+                        <?php endif; ?>
+
+                        <h1 class="font-headline text-3xl sm:text-4xl lg:text-5xl font-extrabold leading-tight tracking-tight text-white">
+                            <?= htmlspecialchars($b['title']) ?>
+                        </h1>
+
+                        <?php if (!empty($b['subtitle'])): ?>
+                        <p class="text-sm sm:text-base text-gray-200 leading-relaxed max-w-xl">
+                            <?= htmlspecialchars($b['subtitle']) ?>
+                        </p>
+                        <?php endif; ?>
+
+                        <div class="flex flex-wrap items-center gap-3 pt-3">
+                            <?php if (!empty($b['cta_text'])): ?>
+                            <a href="<?= htmlspecialchars($ctaUrl) ?>" class="px-6 py-3.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-headline font-bold text-sm shadow-lg hover:shadow-xl transition-all flex items-center gap-2">
+                                <span><?= htmlspecialchars($b['cta_text']) ?></span>
+                                <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+                            </a>
+                            <?php endif; ?>
+
+                            <?php if (!empty($b['secondary_cta_text'])): ?>
+                                <?php if ($secUrl === 'rfq_modal' || empty($secUrl)): ?>
+                                <button type="button" onclick="openRfqModal()" class="px-6 py-3.5 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/20 backdrop-blur-md font-headline font-bold text-sm transition-all flex items-center gap-2 cursor-pointer">
+                                    <span class="material-symbols-outlined text-[18px]">description</span>
+                                    <span><?= htmlspecialchars($b['secondary_cta_text']) ?></span>
+                                </button>
+                                <?php else: ?>
+                                <a href="<?= htmlspecialchars(str_starts_with($secUrl, 'http') ? $secUrl : $baseUrl . '/' . ltrim($secUrl, '/')) ?>" class="px-6 py-3.5 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/20 backdrop-blur-md font-headline font-bold text-sm transition-all flex items-center gap-2">
+                                    <span class="material-symbols-outlined text-[18px]">description</span>
+                                    <span><?= htmlspecialchars($b['secondary_cta_text']) ?></span>
+                                </a>
+                                <?php endif; ?>
+                            <?php endif; ?>
+                        </div>
                     </div>
 
-                    <h1 class="font-headline text-3xl sm:text-4xl lg:text-5xl font-extrabold leading-tight tracking-tight text-white">
-                        Direct From Verified Indian Sports & Fitness Manufacturers
-                    </h1>
-
-                    <p class="text-sm sm:text-base text-gray-200 leading-relaxed max-w-xl">
-                        Factory-Direct Wholesale Pricing • Guaranteed MOQs • ISO 9001 & BSCI Audited Production Facilities in Meerut & Jalandhar with Fast Sample Turnaround.
-                    </p>
-
-                    <div class="flex flex-wrap items-center gap-3 pt-3">
-                        <a href="<?= htmlspecialchars($baseUrl) ?>/products" class="px-6 py-3.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-headline font-bold text-sm shadow-lg hover:shadow-xl transition-all flex items-center gap-2">
-                            <span>Source Catalog</span>
-                            <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
-                        </a>
-                        <button type="button" onclick="openRfqModal()" class="px-6 py-3.5 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/20 backdrop-blur-md font-headline font-bold text-sm transition-all flex items-center gap-2 cursor-pointer">
-                            <span class="material-symbols-outlined text-[18px]">description</span>
-                            <span>Request Quotation</span>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Bottom Trust Indicators -->
-                <div class="mt-8 pt-4 border-t border-white/10 flex items-center justify-between text-xs text-gray-300">
-                    <div class="flex items-center gap-2">
-                        <span class="w-8 h-1.5 rounded-full bg-blue-500"></span>
-                        <span class="w-3 h-1.5 rounded-full bg-white/30"></span>
-                        <span class="w-3 h-1.5 rounded-full bg-white/30"></span>
-                        <span class="ml-2 font-mono font-semibold text-white">01 / 03</span>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <span class="material-symbols-outlined text-[16px] text-teal-400">local_shipping</span>
-                        <span>Global Port Dispatch: Nhava Sheva & Mundra</span>
+                    <!-- Bottom Indicators -->
+                    <div class="mt-8 pt-4 border-t border-white/10 flex items-center justify-between text-xs text-gray-300">
+                        <div class="flex items-center gap-2">
+                            <?php if ($totalBanners > 1): ?>
+                                <?php for ($d = 0; $d < $totalBanners; $d++): ?>
+                                    <button type="button" class="hero-dot transition-all <?= ($d === $idx) ? 'w-8 h-1.5 rounded-full bg-blue-500' : 'w-3 h-1.5 rounded-full bg-white/30 hover:bg-white/50' ?>" data-dot-index="<?= $d ?>" aria-label="Slide <?= $d + 1 ?>"></button>
+                                <?php endfor; ?>
+                                <span class="ml-2 font-mono font-semibold text-white"><?= sprintf('%02d / %02d', $idx + 1, $totalBanners) ?></span>
+                            <?php else: ?>
+                                <span class="w-8 h-1.5 rounded-full bg-blue-500"></span>
+                                <span class="ml-2 font-mono font-semibold text-white">01 / 01</span>
+                            <?php endif; ?>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="material-symbols-outlined text-[16px] text-teal-400">local_shipping</span>
+                            <span>Global Port Dispatch: Nhava Sheva &amp; Mundra</span>
+                        </div>
                     </div>
                 </div>
             </div>
+            <?php endforeach; ?>
+
+            <?php if ($totalBanners > 1): ?>
+            <!-- Prev / Next Controls on hover -->
+            <button type="button" id="heroPrevBtn" class="absolute left-3 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-black/30 hover:bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm cursor-pointer border border-white/10" aria-label="Previous Slide">
+                <span class="material-symbols-outlined text-[20px]">chevron_left</span>
+            </button>
+            <button type="button" id="heroNextBtn" class="absolute right-3 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-black/30 hover:bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm cursor-pointer border border-white/10" aria-label="Next Slide">
+                <span class="material-symbols-outlined text-[20px]">chevron_right</span>
+            </button>
+            <?php endif; ?>
         </div>
+
+        <?php if ($totalBanners > 1): ?>
+        <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const carousel = document.getElementById('heroBannerCarousel');
+            if (!carousel) return;
+            const slides = carousel.querySelectorAll('.hero-slide');
+            const total = slides.length;
+            if (total <= 1) return;
+
+            let current = 0;
+            let autoTimer = null;
+
+            function goToSlide(index) {
+                slides[current].classList.remove('opacity-100', 'z-10');
+                slides[current].classList.add('opacity-0', 'z-0', 'pointer-events-none');
+
+                current = (index + total) % total;
+
+                slides[current].classList.remove('opacity-0', 'z-0', 'pointer-events-none');
+                slides[current].classList.add('opacity-100', 'z-10');
+            }
+
+            function nextSlide() { goToSlide(current + 1); }
+            function prevSlide() { goToSlide(current - 1); }
+
+            function startTimer() {
+                stopTimer();
+                autoTimer = setInterval(nextSlide, 6000);
+            }
+            function stopTimer() {
+                if (autoTimer) clearInterval(autoTimer);
+            }
+
+            carousel.addEventListener('mouseenter', stopTimer);
+            carousel.addEventListener('mouseleave', startTimer);
+
+            const prevBtn = document.getElementById('heroPrevBtn');
+            const nextBtn = document.getElementById('heroNextBtn');
+            if (prevBtn) prevBtn.addEventListener('click', function(e) { e.preventDefault(); prevSlide(); });
+            if (nextBtn) nextBtn.addEventListener('click', function(e) { e.preventDefault(); nextSlide(); });
+
+            carousel.querySelectorAll('.hero-dot').forEach(dot => {
+                dot.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    const targetIdx = parseInt(this.getAttribute('data-dot-index'));
+                    if (!isNaN(targetIdx)) goToSlide(targetIdx);
+                });
+            });
+
+            startTimer();
+        });
+        </script>
+        <?php endif; ?>
 
         <!-- Sourcing Highlights Strip -->
         <div class="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3">

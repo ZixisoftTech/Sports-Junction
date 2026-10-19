@@ -161,6 +161,10 @@ $activeMenu = $activeMenu ?? 'dashboard';
             <i class="bi bi-gear-fill"></i>
             <span>Website Settings</span>
         </a>
+        <a href="<?= htmlspecialchars($baseUrl) ?>/admin/banners" class="sj-nav-item <?= ($activeMenu === 'hero_banners') ? 'active' : '' ?>">
+            <i class="bi bi-images"></i>
+            <span>Hero Banners</span>
+        </a>
         <a href="<?= htmlspecialchars($baseUrl) ?>/admin/pages" class="sj-nav-item <?= ($activeMenu === 'cms_pages') ? 'active' : '' ?>">
             <i class="bi bi-file-earmark-richtext"></i>
             <span>Footer &amp; CMS Pages</span>
