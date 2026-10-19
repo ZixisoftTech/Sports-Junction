@@ -168,6 +168,18 @@ class SitePopup extends Model
         return true;
     }
 
+    public static function toggleStatus(int $id): string
+    {
+        self::ensureSchema();
+        $popup = self::findById($id);
+        if (!$popup) {
+            throw new \RuntimeException("Site popup #{$id} not found.");
+        }
+        $newStatus = ($popup['status'] === 'ACTIVE') ? 'INACTIVE' : 'ACTIVE';
+        self::setStatus($id, $newStatus);
+        return $newStatus;
+    }
+
     public static function getDataTable(array $params): array
     {
         self::ensureSchema();
