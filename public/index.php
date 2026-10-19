@@ -306,6 +306,7 @@ $router->post('/admin/communication/reports/{id}/resolve', [AdminCommunicationCo
 $router->get('/admin/settings', [AdminSettingsController::class, 'index'], [AuthMiddleware::class]);
 $router->post('/admin/settings', [AdminSettingsController::class, 'updateGeneral'], [AuthMiddleware::class]);
 $router->post('/admin/settings/general', [AdminSettingsController::class, 'updateGeneral'], [AuthMiddleware::class]);
+$router->post('/admin/settings/homepage-categories', [AdminSettingsController::class, 'updateHomepageCategories'], [AuthMiddleware::class]);
 $router->get('/admin/pages', [AdminSettingsController::class, 'pages'], [AuthMiddleware::class]);
 $router->post('/admin/pages', [AdminSettingsController::class, 'storePage'], [AuthMiddleware::class]);
 $router->post('/admin/pages/create', [AdminSettingsController::class, 'storePage'], [AuthMiddleware::class]);

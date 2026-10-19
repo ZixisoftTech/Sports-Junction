@@ -530,6 +530,8 @@ if ($authUser && ($authUser['role'] ?? '') === 'BUYER') {
                                 </li>
                             <?php endforeach; ?>
                         <?php else: ?>
+                            <li><a href="<?= $baseUrl ?>/page/terms-and-conditions" class="hover:text-white transition-colors block leading-relaxed">Terms and Conditions</a></li>
+                            <li><a href="<?= $baseUrl ?>/page/privacy-policy" class="hover:text-white transition-colors block leading-relaxed">Privacy Policy</a></li>
                             <li><a href="<?= $baseUrl ?>/page/terms-manufacturing-sla" class="hover:text-white transition-colors block leading-relaxed">Terms &amp; Manufacturing SLA</a></li>
                             <li><a href="<?= $baseUrl ?>/page/seller-agreement" class="hover:text-white transition-colors block leading-relaxed">Seller &amp; Manufacturer Agreement</a></li>
                         <?php endif; ?>

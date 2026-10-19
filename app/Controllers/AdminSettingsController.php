@@ -7,6 +7,7 @@ use App\Core\Controller;
 use App\Helpers\Session;
 use App\Models\SiteSetting;
 use App\Models\CmsPage;
+use App\Models\Category;
 use Throwable;
 
 class AdminSettingsController extends Controller
@@ -30,6 +31,7 @@ class AdminSettingsController extends Controller
         $admin = $this->requireAdmin();
         $settings = SiteSetting::getAllKeyed();
         $pages = CmsPage::all(false);
+        $allCategories = Category::allActive();
 
         $this->render('admin/settings', [
             'pageTitle' => 'Website Settings & Branding — Super Admin',
@@ -37,7 +39,11 @@ class AdminSettingsController extends Controller
             'admin' => $admin,
             'settings' => $settings,
             'pages' => $pages,
-            'categories' => CmsPage::CATEGORIES
+            'categories' => CmsPage::CATEGORIES,
+            'allCategories' => $allCategories,
+            'homepageCategoriesEnabled' => SiteSetting::get('homepage_categories_enabled', '1'),
+            'homepageCategoriesMax' => (int) SiteSetting::get('homepage_categories_max', '8'),
+            'homepageCategoriesSelected' => SiteSetting::get('homepage_categories_selected', ''),
         ], 'admin');
     }
 
@@ -435,5 +441,51 @@ class AdminSettingsController extends Controller
                 'message' => 'Exception during test delivery: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * POST /admin/settings/homepage-categories
+     * Update Homepage Category Display Configuration
+     */
+    public function updateHomepageCategories(): void
+    {
+        $admin = $this->requireAdmin();
+
+        $action = trim((string)$this->request->post('action', 'save'));
+
+        if ($action === 'reset') {
+            SiteSetting::set('homepage_categories_enabled', '1', 'homepage');
+            SiteSetting::set('homepage_categories_max', '8', 'homepage');
+            SiteSetting::set('homepage_categories_selected', '', 'homepage');
+
+            Session::flash('success', 'Homepage category display configuration reset to default.');
+            $this->redirect('/admin/settings#homepage-categories-card');
+            return;
+        }
+
+        $enabled = $this->request->post('homepage_categories_enabled') ? '1' : '0';
+        $max = max(1, min(50, (int)$this->request->post('homepage_categories_max', 8)));
+        $selected = (array)$this->request->post('selected_categories', []);
+        $orders = (array)$this->request->post('category_order', []);
+
+        // Sort selected category IDs by specified order
+        $validSelected = [];
+        foreach ($selected as $cid) {
+            $cid = (int)$cid;
+            if ($cid > 0) {
+                $orderVal = isset($orders[$cid]) ? (int)$orders[$cid] : 999;
+                $validSelected[$cid] = $orderVal;
+            }
+        }
+        asort($validSelected);
+        $selectedIds = array_keys($validSelected);
+        $selectedStr = implode(',', $selectedIds);
+
+        SiteSetting::set('homepage_categories_enabled', $enabled, 'homepage');
+        SiteSetting::set('homepage_categories_max', (string)$max, 'homepage');
+        SiteSetting::set('homepage_categories_selected', $selectedStr, 'homepage');
+
+        Session::flash('success', 'Homepage category display configuration updated successfully.');
+        $this->redirect('/admin/settings#homepage-categories-card');
     }
 }

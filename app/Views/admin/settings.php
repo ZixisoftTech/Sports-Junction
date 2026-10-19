@@ -218,6 +218,171 @@ $logoUrl = \App\Models\SiteSetting::getLogoUrl();
         </div>
     </form>
 
+    <!-- HOMEPAGE CATEGORY DISPLAY CONFIGURATION -->
+    <?php
+    $selectedIdsList = [];
+    if (!empty($homepageCategoriesSelected)) {
+        $selectedIdsList = array_filter(array_map('intval', explode(',', (string)$homepageCategoriesSelected)));
+    }
+    $hasExplicitSelection = !empty($selectedIdsList);
+    $selectedLookup = array_flip($selectedIdsList);
+
+    // Prepare sorted categories
+    $sortedCategories = $allCategories ?? [];
+    usort($sortedCategories, function($a, $b) use ($selectedLookup, $hasExplicitSelection) {
+        $idA = (int)$a['id'];
+        $idB = (int)$b['id'];
+        if ($hasExplicitSelection) {
+            $inA = isset($selectedLookup[$idA]);
+            $inB = isset($selectedLookup[$idB]);
+            if ($inA && $inB) {
+                return $selectedLookup[$idA] <=> $selectedLookup[$idB];
+            }
+            if ($inA) return -1;
+            if ($inB) return 1;
+        }
+        return ((int)($a['display_order'] ?? 0)) <=> ((int)($b['display_order'] ?? 0));
+    });
+
+    $maxDisplay = !empty($homepageCategoriesMax) ? (int)$homepageCategoriesMax : 8;
+    ?>
+    <div class="mt-4 card border-0 shadow-sm rounded-3" id="homepage-categories-card">
+        <div class="card-header bg-white py-3 border-bottom d-flex flex-wrap align-items-center justify-content-between gap-2">
+            <div>
+                <h6 class="fw-bold mb-0 text-slate-900 d-flex align-items-center gap-2">
+                    <i class="bi bi-grid-3x3-gap-fill text-primary"></i>
+                    Homepage Category Display Configuration
+                </h6>
+                <div class="text-muted small">Manage which categories appear in the "Popular Sports Sourcing Categories" grid on the homepage, along with display limits and custom ordering.</div>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <a href="<?= $baseUrl ?>/#categories" target="_blank" class="btn btn-sm btn-outline-primary fw-bold">
+                    <i class="bi bi-box-arrow-up-right me-1"></i> Preview On Homepage
+                </a>
+            </div>
+        </div>
+        <div class="card-body p-4">
+            <form method="POST" action="<?= $baseUrl ?>/admin/settings/homepage-categories">
+                <!-- Top Controls: Enable Switch & Max Limit -->
+                <div class="row g-4 mb-4 pb-3 border-bottom align-items-center">
+                    <div class="col-md-6">
+                        <div class="form-check form-switch ps-0 d-flex align-items-center gap-3">
+                            <input class="form-check-input ms-0 fs-4" type="checkbox" role="switch" id="homepage_categories_enabled" name="homepage_categories_enabled" value="1" <?= ($homepageCategoriesEnabled !== '0') ? 'checked' : '' ?>>
+                            <div>
+                                <label class="form-check-label fw-bold text-slate-900 d-block cursor-pointer" for="homepage_categories_enabled">
+                                    Enable Homepage Categories Section
+                                </label>
+                                <span class="text-muted small">When turned OFF, the sourcing categories section is completely and cleanly hidden from the public homepage.</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-center justify-content-md-end gap-3">
+                            <label class="form-label fw-bold small text-slate-800 mb-0 whitespace-nowrap">
+                                Max Categories to Display:
+                            </label>
+                            <input type="number" name="homepage_categories_max" min="1" max="50" value="<?= $maxDisplay ?>" class="form-control form-control-sm text-center" style="width: 80px;" required>
+                            <span class="text-muted small">(Default: 8)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Category Selection & Ordering Table -->
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="fw-bold small text-slate-800">Select & Reorder Categories:</span>
+                        <div class="btn-group btn-group-sm">
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="selectAllCategories(true)">Select All</button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="selectAllCategories(false)">Deselect All</button>
+                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="selectTopN(8)">Select Top 8</button>
+                        </div>
+                    </div>
+                    <div style="max-width: 250px;" class="w-100">
+                        <input type="text" id="categoryFilterInput" placeholder="Quick search category..." class="form-control form-control-sm" onkeyup="filterCategoryTable(this.value)">
+                    </div>
+                </div>
+
+                <div class="table-responsive border rounded-3 mb-4" style="max-height: 480px; overflow-y: auto;">
+                    <table class="table table-hover align-middle mb-0 text-sm" id="homepageCategoriesTable">
+                        <thead class="table-light text-uppercase small text-muted sticky-top">
+                            <tr>
+                                <th style="width: 48px;" class="text-center">Select</th>
+                                <th style="width: 90px;" class="text-center">Order</th>
+                                <th>Category Name & Slug</th>
+                                <th style="width: 140px;" class="text-center">Active Products</th>
+                                <th style="width: 110px;" class="text-center">Reorder</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php if (empty($sortedCategories)): ?>
+                                <tr>
+                                    <td colspan="5" class="text-center py-4 text-muted">No active categories found in database.</td>
+                                </tr>
+                            <?php else: ?>
+                                <?php 
+                                foreach ($sortedCategories as $idx => $cat): 
+                                    $cid = (int)$cat['id'];
+                                    $isSelected = $hasExplicitSelection 
+                                        ? isset($selectedLookup[$cid]) 
+                                        : ($idx < $maxDisplay);
+                                    $orderValue = $hasExplicitSelection && isset($selectedLookup[$cid]) 
+                                        ? ($selectedLookup[$cid] + 1) 
+                                        : ($idx + 1);
+                                ?>
+                                    <tr class="category-row <?= $isSelected ? 'table-active-subtle' : '' ?>" data-id="<?= $cid ?>">
+                                        <td class="text-center">
+                                            <input type="checkbox" name="selected_categories[]" value="<?= $cid ?>" class="form-check-input cat-checkbox" <?= $isSelected ? 'checked' : '' ?>>
+                                        </td>
+                                        <td class="text-center">
+                                            <input type="number" name="category_order[<?= $cid ?>]" value="<?= $orderValue ?>" min="1" max="999" class="form-control form-control-sm text-center cat-order-input px-1" style="width: 65px; margin: 0 auto;">
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center gap-2">
+                                                <div class="rounded bg-light border p-1 text-center" style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">
+                                                    <span class="material-symbols-outlined text-primary fs-6"><?= htmlspecialchars($cat['icon'] ?? 'sports_tennis') ?></span>
+                                                </div>
+                                                <div>
+                                                    <div class="fw-bold text-slate-900 cat-name"><?= htmlspecialchars($cat['name']) ?></div>
+                                                    <div class="text-muted small" style="font-size: 11px;">/category/<?= htmlspecialchars($cat['slug']) ?></div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="text-center">
+                                            <?php $pCount = (int)($cat['product_count'] ?? 0); ?>
+                                            <span class="badge <?= $pCount > 0 ? 'bg-primary-subtle text-primary border border-primary-subtle' : 'bg-light text-muted border' ?>">
+                                                <?= $pCount ?> product<?= $pCount === 1 ? '' : 's' ?>
+                                            </span>
+                                        </td>
+                                        <td class="text-center">
+                                            <div class="btn-group btn-group-sm">
+                                                <button type="button" class="btn btn-light border py-0 px-2" title="Move Up" onclick="moveCategoryRow(this, -1)">
+                                                    <i class="bi bi-arrow-up"></i>
+                                                </button>
+                                                <button type="button" class="btn btn-light border py-0 px-2" title="Move Down" onclick="moveCategoryRow(this, 1)">
+                                                    <i class="bi bi-arrow-down"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Action Buttons: Save & Reset -->
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 pt-2">
+                    <button type="submit" name="action" value="reset" class="btn btn-outline-danger fw-bold btn-sm" onclick="return confirm('Are you sure you want to reset homepage categories to system defaults?');">
+                        <i class="bi bi-arrow-counterclockwise me-1"></i> Reset to Default Order
+                    </button>
+                    <button type="submit" name="action" value="save" class="btn btn-primary fw-bold px-4 shadow-xs">
+                        <i class="bi bi-check-lg me-1"></i> Save Homepage Category Configuration
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- FOOTER CMS PAGES QUICK REFERENCE -->
     <div class="mt-4 card border-0 shadow-sm rounded-3">
         <div class="card-header bg-white py-3 border-bottom d-flex align-items-center justify-content-between">
@@ -303,5 +468,49 @@ function previewLogo(input) {
         };
         reader.readAsDataURL(input.files[0]);
     }
+}
+
+function moveCategoryRow(btn, direction) {
+    const row = btn.closest('tr');
+    const tbody = row.parentElement;
+    if (direction === -1 && row.previousElementSibling) {
+        tbody.insertBefore(row, row.previousElementSibling);
+    } else if (direction === 1 && row.nextElementSibling) {
+        tbody.insertBefore(row.nextElementSibling, row);
+    }
+    renumberCategoryOrders();
+}
+
+function renumberCategoryOrders() {
+    const rows = document.querySelectorAll('#homepageCategoriesTable tbody tr.category-row');
+    rows.forEach((r, idx) => {
+        const orderInput = r.querySelector('.cat-order-input');
+        if (orderInput) {
+            orderInput.value = idx + 1;
+        }
+    });
+}
+
+function selectAllCategories(status) {
+    document.querySelectorAll('#homepageCategoriesTable .cat-checkbox').forEach(cb => {
+        cb.checked = status;
+    });
+}
+
+function selectTopN(n) {
+    const checkboxes = document.querySelectorAll('#homepageCategoriesTable .cat-checkbox');
+    checkboxes.forEach((cb, idx) => {
+        cb.checked = (idx < n);
+    });
+}
+
+function filterCategoryTable(query) {
+    const term = query.toLowerCase().trim();
+    const rows = document.querySelectorAll('#homepageCategoriesTable tbody tr.category-row');
+    rows.forEach(r => {
+        const nameEl = r.querySelector('.cat-name');
+        const text = nameEl ? nameEl.textContent.toLowerCase() : '';
+        r.style.display = text.includes(term) ? '' : 'none';
+    });
 }
 </script>

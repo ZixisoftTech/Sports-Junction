@@ -91,8 +91,16 @@ $old = Session::flash('old_input') ?? [];
             </div>
         </form>
 
+        <!-- Terms & Privacy Footnote -->
+        <div class="mt-4 text-center text-[11px] text-slate-500 leading-relaxed">
+            By signing in, you agree to the 
+            <a href="<?= htmlspecialchars($baseUrl) ?>/page/terms-and-conditions" target="_blank" class="text-blue-900 font-semibold hover:underline">Terms &amp; Conditions</a>
+            and
+            <a href="<?= htmlspecialchars($baseUrl) ?>/page/privacy-policy" target="_blank" class="text-blue-900 font-semibold hover:underline">Privacy Policy</a>.
+        </div>
+
         <!-- Card Footer -->
-        <div class="mt-6 pt-6 border-t border-slate-100 text-center text-xs text-slate-600">
+        <div class="mt-5 pt-5 border-t border-slate-100 text-center text-xs text-slate-600">
             Don't have an account? 
             <a href="<?= htmlspecialchars($baseUrl) ?>/register" class="font-bold text-blue-900 hover:underline">Create Buyer Account</a>
         </div>

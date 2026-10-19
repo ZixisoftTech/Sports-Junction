@@ -52,6 +52,55 @@ class Category extends Model
         return $categories;
     }
 
+    /**
+     * Get categories configured for the public Homepage 'Popular Sports Sourcing Categories' section
+     */
+    public static function getHomepageCategories(): array
+    {
+        // 1. Check if section is enabled (default enabled)
+        $enabled = SiteSetting::get('homepage_categories_enabled', '1');
+        if ($enabled === '0' || strtolower((string)$enabled) === 'false') {
+            return [];
+        }
+
+        // 2. Get maximum count (default 8)
+        $maxCount = (int) SiteSetting::get('homepage_categories_max', '8');
+        if ($maxCount <= 0) {
+            $maxCount = 8;
+        }
+
+        // 3. Fetch all active categories with verified product count
+        $all = self::allActive();
+        if (empty($all)) {
+            return [];
+        }
+
+        $allById = [];
+        foreach ($all as $c) {
+            $allById[(int)$c['id']] = $c;
+        }
+
+        // 4. Check custom selected categories
+        $selectedRaw = SiteSetting::get('homepage_categories_selected', '');
+        if (!empty($selectedRaw)) {
+            $selectedIds = array_filter(array_map('intval', explode(',', $selectedRaw)));
+            if (!empty($selectedIds)) {
+                $ordered = [];
+                foreach ($selectedIds as $cid) {
+                    if (isset($allById[$cid])) {
+                        $ordered[] = $allById[$cid];
+                    }
+                }
+                if (!empty($ordered)) {
+                    return array_slice($ordered, 0, $maxCount);
+                }
+            }
+        }
+
+        // Fallback: Default top categories ordered by display_order
+        return array_slice($all, 0, $maxCount);
+    }
+
     public static function create(array $data): int
     {
         $name = trim($data['name']);

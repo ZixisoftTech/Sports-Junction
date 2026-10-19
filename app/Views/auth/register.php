@@ -167,7 +167,7 @@ $old = Session::flash('old_input') ?? [];
                 <label class="flex items-start gap-2.5 cursor-pointer select-none">
                     <input type="checkbox" name="terms" value="1" required class="mt-1 h-4 w-4 rounded border-slate-300 text-blue-900 focus:ring-blue-800">
                     <span class="text-xs text-slate-600 leading-relaxed">
-                        I agree to the <a href="#" class="font-semibold text-blue-900 hover:underline">Terms &amp; Conditions</a> and <a href="#" class="font-semibold text-blue-900 hover:underline">Privacy Policy</a> governing enterprise sourcing transactions.
+                        I agree to the <a href="<?= htmlspecialchars($baseUrl) ?>/page/terms-and-conditions" target="_blank" class="font-semibold text-blue-900 hover:underline">Terms &amp; Conditions</a> and <a href="<?= htmlspecialchars($baseUrl) ?>/page/privacy-policy" target="_blank" class="font-semibold text-blue-900 hover:underline">Privacy Policy</a> governing enterprise sourcing transactions.
                     </span>
                 </label>
             </div>

@@ -88,6 +88,7 @@ $baseUrl = Response::baseUrl();
 </section>
 
 <!-- 2. POPULAR B2B SOURCING CATEGORIES -->
+<?php if (!empty($homepageCategories)): ?>
 <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 w-full">
     <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
         <div>
@@ -102,32 +103,31 @@ $baseUrl = Response::baseUrl();
 
     <!-- Category Cards Grid -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <?php if (!empty($categories)): ?>
-            <?php foreach (array_slice($categories, 0, 8) as $cat): ?>
-                <a href="<?= htmlspecialchars($baseUrl) ?>/category/<?= htmlspecialchars($cat['slug']) ?>" class="group p-4 rounded-2xl bg-white border border-slate-200/90 shadow-2xs hover:shadow-md hover:border-blue-300 transition-all flex items-center gap-3.5 relative overflow-hidden">
-                    <div class="w-12 h-12 rounded-xl bg-blue-50/80 group-hover:bg-blue-600 flex items-center justify-center text-blue-900 group-hover:text-white transition-colors shrink-0 p-2.5">
-                        <?php 
-                        $catIcon = trim($cat['icon'] ?? 'sports_tennis');
-                        $isImg = (str_starts_with($catIcon, '/') || str_starts_with($catIcon, 'http') || str_contains($catIcon, '.'));
-                        if ($isImg): ?>
-                            <img src="<?= htmlspecialchars(\App\Core\Response::formatImageUrl($catIcon)) ?>" class="w-full h-full object-contain" alt="">
-                        <?php else: ?>
-                            <span class="material-symbols-outlined text-[24px]"><?= htmlspecialchars($catIcon) ?></span>
-                        <?php endif; ?>
-                    </div>
-                    <div class="min-w-0 flex-1">
-                        <h3 class="font-headline font-bold text-sm text-slate-900 group-hover:text-blue-700 transition-colors line-clamp-2 leading-snug">
-                            <?= htmlspecialchars($cat['name']) ?>
-                        </h3>
-                        <p class="text-xs text-slate-500 mt-0.5 font-normal">
-                            <?= (int) ($cat['product_count'] ?? 0) ?> active products
-                        </p>
-                    </div>
-                </a>
-            <?php endforeach; ?>
-        <?php endif; ?>
+        <?php foreach ($homepageCategories as $cat): ?>
+            <a href="<?= htmlspecialchars($baseUrl) ?>/category/<?= htmlspecialchars($cat['slug']) ?>" class="group p-4 rounded-2xl bg-white border border-slate-200/90 shadow-2xs hover:shadow-md hover:border-blue-300 transition-all flex items-center gap-3.5 relative overflow-hidden">
+                <div class="w-12 h-12 rounded-xl bg-blue-50/80 group-hover:bg-blue-600 flex items-center justify-center text-blue-900 group-hover:text-white transition-colors shrink-0 p-2.5">
+                    <?php 
+                    $catIcon = trim($cat['icon'] ?? 'sports_tennis');
+                    $isImg = (str_starts_with($catIcon, '/') || str_starts_with($catIcon, 'http') || str_contains($catIcon, '.'));
+                    if ($isImg): ?>
+                        <img src="<?= htmlspecialchars(\App\Core\Response::formatImageUrl($catIcon)) ?>" class="w-full h-full object-contain" alt="<?= htmlspecialchars($cat['name']) ?>" onerror="this.onerror=null;this.parentElement.innerHTML='<span class=\'material-symbols-outlined text-[24px]\'>sports_tennis</span>';">
+                    <?php else: ?>
+                        <span class="material-symbols-outlined text-[24px]"><?= htmlspecialchars($catIcon) ?></span>
+                    <?php endif; ?>
+                </div>
+                <div class="min-w-0 flex-1">
+                    <h3 class="font-headline font-bold text-sm text-slate-900 group-hover:text-blue-700 transition-colors line-clamp-2 leading-snug">
+                        <?= htmlspecialchars($cat['name']) ?>
+                    </h3>
+                    <p class="text-xs text-slate-500 mt-0.5 font-normal">
+                        <?= (int) ($cat['product_count'] ?? 0) ?> active products
+                    </p>
+                </div>
+            </a>
+        <?php endforeach; ?>
     </div>
 </section>
+<?php endif; ?>
 
 <!-- 3. FEATURED PRODUCTS HIGHLIGHTS -->
 <section class="bg-surface-container-low/60 py-14 border-y border-surface-container">
