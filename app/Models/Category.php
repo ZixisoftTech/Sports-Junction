@@ -31,9 +31,13 @@ class Category extends Model
                    (
                        SELECT COUNT(DISTINCT p.id) 
                        FROM products p 
+                       JOIN suppliers sp ON p.supplier_id = sp.id
                        LEFT JOIN product_category_assignments pca ON pca.product_id = p.id
                        WHERE (p.category_id = c.id OR pca.category_id = c.id) 
                          AND p.status IN ('PUBLISHED', 'ACTIVE')
+                         AND p.approval_status = 'APPROVED'
+                         AND sp.status = 'ACTIVE'
+                         AND sp.approval_status = 'APPROVED'
                    ) as product_count
             FROM categories c 
             WHERE c.status = 'ACTIVE' 

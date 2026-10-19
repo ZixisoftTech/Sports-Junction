@@ -74,8 +74,6 @@ class BuyerFavourite extends Model
               AND p.status IN ('PUBLISHED', 'ACTIVE')
               AND p.approval_status = 'APPROVED'
               AND (sp.approval_status = 'APPROVED' AND sp.status = 'ACTIVE')
-              AND c.status = 'ACTIVE'
-              AND (p.subcategory_id IS NULL OR s.status = 'ACTIVE')
             ORDER BY bf.created_at DESC
         ", [':user_id' => $userId]);
     }

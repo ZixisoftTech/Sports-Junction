@@ -62,8 +62,6 @@ class BuyerRecentlyViewed extends Model
               AND p.status IN ('PUBLISHED', 'ACTIVE')
               AND p.approval_status = 'APPROVED'
               AND (sp.approval_status = 'APPROVED' AND sp.status = 'ACTIVE')
-              AND c.status = 'ACTIVE'
-              AND (p.subcategory_id IS NULL OR s.status = 'ACTIVE')
             ORDER BY brv.viewed_at DESC
             LIMIT :lim
         ", [

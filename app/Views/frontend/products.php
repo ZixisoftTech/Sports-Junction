@@ -58,7 +58,7 @@ $sort = $filters['sort'] ?? 'featured';
                     <div class="space-y-1 max-h-72 overflow-y-auto pr-1">
                         <a href="<?= htmlspecialchars($baseUrl) ?>/products" class="flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-semibold <?= empty($selectedCatSlug) ? 'bg-primary text-white' : 'text-on-surface hover:bg-surface-container-low' ?>">
                             <span>All Categories</span>
-                            <span class="text-[10px]"><?= $total ?></span>
+                            <span class="text-[10px]"><?= (int)($totalVerifiedCount ?? $total) ?></span>
                         </a>
 
                         <?php foreach ($categories as $cat): ?>

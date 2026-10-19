@@ -95,8 +95,6 @@ class Product extends Model
               AND p.status IN ('PUBLISHED', 'ACTIVE')
               AND p.approval_status = 'APPROVED'
               AND (sp.approval_status = 'APPROVED' AND sp.status = 'ACTIVE')
-              AND (c.status = 'ACTIVE' OR EXISTS (SELECT 1 FROM product_category_assignments pca JOIN categories c2 ON pca.category_id = c2.id WHERE pca.product_id = p.id AND c2.status = 'ACTIVE'))
-              AND (p.subcategory_id IS NULL OR s.status = 'ACTIVE' OR EXISTS (SELECT 1 FROM product_subcategory_assignments psa JOIN subcategories s2 ON psa.subcategory_id = s2.id WHERE psa.product_id = p.id AND s2.status = 'ACTIVE'))
             LIMIT 1
         ", [':slug' => $slug]);
 
@@ -265,8 +263,6 @@ class Product extends Model
               AND p.approval_status = 'APPROVED'
               AND p.is_featured = 1
               AND (sp.approval_status = 'APPROVED' AND sp.status = 'ACTIVE')
-              AND (c.status = 'ACTIVE' OR EXISTS (SELECT 1 FROM product_category_assignments pca JOIN categories c2 ON pca.category_id = c2.id WHERE pca.product_id = p.id AND c2.status = 'ACTIVE'))
-              AND (p.subcategory_id IS NULL OR s.status = 'ACTIVE' OR EXISTS (SELECT 1 FROM product_subcategory_assignments psa JOIN subcategories s2 ON psa.subcategory_id = s2.id WHERE psa.product_id = p.id AND s2.status = 'ACTIVE'))
             ORDER BY p.featured_order ASC, p.id DESC
             LIMIT :lim
         ", [':lim' => $limit]);
@@ -301,8 +297,6 @@ class Product extends Model
               AND p.status IN ('PUBLISHED', 'ACTIVE')
               AND p.approval_status = 'APPROVED'
               AND (sp.approval_status = 'APPROVED' AND sp.status = 'ACTIVE')
-              AND (c.status = 'ACTIVE' OR EXISTS (SELECT 1 FROM product_category_assignments pca2 JOIN categories c2 ON pca2.category_id = c2.id WHERE pca2.product_id = p.id AND c2.status = 'ACTIVE'))
-              AND (p.subcategory_id IS NULL OR s.status = 'ACTIVE' OR EXISTS (SELECT 1 FROM product_subcategory_assignments psa JOIN subcategories s2 ON psa.subcategory_id = s2.id WHERE psa.product_id = p.id AND s2.status = 'ACTIVE'))
             ORDER BY p.is_featured DESC, p.id DESC
             LIMIT :lim
         ", [':id' => $productId, ':cat_id' => $categoryId, ':cat_id_pca' => $categoryId, ':lim' => $limit]);
@@ -348,9 +342,7 @@ class Product extends Model
         $where = [
             "p.status IN ('PUBLISHED', 'ACTIVE')",
             "p.approval_status = 'APPROVED'",
-            "(sp.approval_status = 'APPROVED' AND sp.status = 'ACTIVE')",
-            "(c.status = 'ACTIVE' OR EXISTS (SELECT 1 FROM product_category_assignments pca_act JOIN categories c_act ON pca_act.category_id = c_act.id WHERE pca_act.product_id = p.id AND c_act.status = 'ACTIVE'))",
-            "(p.subcategory_id IS NULL OR s.status = 'ACTIVE' OR EXISTS (SELECT 1 FROM product_subcategory_assignments psa_act JOIN subcategories s_act ON psa_act.subcategory_id = s_act.id WHERE psa_act.product_id = p.id AND s_act.status = 'ACTIVE'))"
+            "(sp.approval_status = 'APPROVED' AND sp.status = 'ACTIVE')"
         ];
         $bindings = [];
 
@@ -1276,6 +1268,20 @@ class Product extends Model
             ORDER BY p.is_featured DESC, p.id DESC
         ", [':supplier_id' => $supplierId]);
     }
+
+    public static function getTotalVerifiedCount(): int
+    {
+        return (int) self::fetchColumn("
+            SELECT COUNT(DISTINCT p.id)
+            FROM products p
+            JOIN suppliers sp ON p.supplier_id = sp.id
+            WHERE p.status IN ('PUBLISHED', 'ACTIVE')
+              AND p.approval_status = 'APPROVED'
+              AND sp.status = 'ACTIVE'
+              AND sp.approval_status = 'APPROVED'
+        ");
+    }
 }
+
 
 

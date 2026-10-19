@@ -68,9 +68,13 @@ class Subcategory extends Model
                    (
                        SELECT COUNT(DISTINCT p.id) 
                        FROM products p 
+                       JOIN suppliers sp ON p.supplier_id = sp.id
                        LEFT JOIN product_subcategory_assignments psa ON psa.product_id = p.id
                        WHERE (p.subcategory_id = s.id OR psa.subcategory_id = s.id) 
                          AND p.status IN ('PUBLISHED', 'ACTIVE')
+                         AND p.approval_status = 'APPROVED'
+                         AND sp.status = 'ACTIVE'
+                         AND sp.approval_status = 'APPROVED'
                    ) as product_count
             FROM subcategories s
             WHERE s.category_id = :cat_id AND s.status = 'ACTIVE'
