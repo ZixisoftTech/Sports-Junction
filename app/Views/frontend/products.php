@@ -153,7 +153,11 @@ $sort = $filters['sort'] ?? 'featured';
                         <?php endif; ?>
                     </h1>
                     <p class="text-xs text-outline mt-0.5">
-                        Showing <?= $from ?> to <?= $to ?> of <?= $total ?> verified products
+                        <?php if ($total > 0): ?>
+                            Showing <?= $from ?>–<?= $to ?> of <?= $total ?> products
+                        <?php else: ?>
+                            Showing 0 of 0 products
+                        <?php endif; ?>
                     </p>
                 </div>
 
@@ -172,7 +176,7 @@ $sort = $filters['sort'] ?? 'featured';
 
             <!-- Products Grid -->
             <?php if (!empty($products)): ?>
-                <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                     <?php foreach ($products as $prod): ?>
                         <?php 
                             $prodUrl = htmlspecialchars($baseUrl) . '/product/' . htmlspecialchars($prod['slug'] ?? (string)$prod['id']);
@@ -281,21 +285,44 @@ $sort = $filters['sort'] ?? 'featured';
 
                 <!-- Pagination -->
                 <?php if ($lastPage > 1): ?>
-                    <div class="mt-12 flex items-center justify-center gap-2 text-xs font-semibold">
+                    <?php 
+                    $cleanFilters = array_filter($filters, fn($v) => $v !== '' && $v !== null);
+                    $startPage = max(1, $currentPage - 2);
+                    $endPage = min($lastPage, $currentPage + 2);
+                    ?>
+                    <div class="mt-12 flex flex-wrap items-center justify-center gap-2 text-xs font-semibold">
                         <?php if ($currentPage > 1): ?>
-                            <a href="?<?= http_build_query(array_merge($filters, ['page' => $currentPage - 1])) ?>" class="px-3.5 py-2 rounded-xl border border-surface-container bg-white hover:bg-surface-container-low text-on-surface">
+                            <a href="?<?= http_build_query(array_merge($cleanFilters, ['page' => $currentPage - 1])) ?>" class="px-3.5 py-2 rounded-xl border border-surface-container bg-white hover:bg-surface-container-low text-on-surface">
                                 &larr; Previous
                             </a>
                         <?php endif; ?>
 
-                        <?php for ($p = 1; $p <= $lastPage; $p++): ?>
-                            <a href="?<?= http_build_query(array_merge($filters, ['page' => $p])) ?>" class="px-3.5 py-2 rounded-xl <?= $p === $currentPage ? 'bg-primary text-white font-bold' : 'border border-surface-container bg-white hover:bg-surface-container-low text-on-surface' ?>">
+                        <?php if ($startPage > 1): ?>
+                            <a href="?<?= http_build_query(array_merge($cleanFilters, ['page' => 1])) ?>" class="px-3.5 py-2 rounded-xl border border-surface-container bg-white hover:bg-surface-container-low text-on-surface">
+                                1
+                            </a>
+                            <?php if ($startPage > 2): ?>
+                                <span class="px-2 py-2 text-outline">...</span>
+                            <?php endif; ?>
+                        <?php endif; ?>
+
+                        <?php for ($p = $startPage; $p <= $endPage; $p++): ?>
+                            <a href="?<?= http_build_query(array_merge($cleanFilters, ['page' => $p])) ?>" class="px-3.5 py-2 rounded-xl <?= $p === $currentPage ? 'bg-primary text-white font-bold' : 'border border-surface-container bg-white hover:bg-surface-container-low text-on-surface' ?>">
                                 <?= $p ?>
                             </a>
                         <?php endfor; ?>
 
+                        <?php if ($endPage < $lastPage): ?>
+                            <?php if ($endPage < $lastPage - 1): ?>
+                                <span class="px-2 py-2 text-outline">...</span>
+                            <?php endif; ?>
+                            <a href="?<?= http_build_query(array_merge($cleanFilters, ['page' => $lastPage])) ?>" class="px-3.5 py-2 rounded-xl border border-surface-container bg-white hover:bg-surface-container-low text-on-surface">
+                                <?= $lastPage ?>
+                            </a>
+                        <?php endif; ?>
+
                         <?php if ($currentPage < $lastPage): ?>
-                            <a href="?<?= http_build_query(array_merge($filters, ['page' => $currentPage + 1])) ?>" class="px-3.5 py-2 rounded-xl border border-surface-container bg-white hover:bg-surface-container-low text-on-surface">
+                            <a href="?<?= http_build_query(array_merge($cleanFilters, ['page' => $currentPage + 1])) ?>" class="px-3.5 py-2 rounded-xl border border-surface-container bg-white hover:bg-surface-container-low text-on-surface">
                                 Next &rarr;
                             </a>
                         <?php endif; ?>

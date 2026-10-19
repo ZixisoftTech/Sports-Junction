@@ -336,7 +336,7 @@ class Product extends Model
     public static function getFilteredProducts(array $filters): array
     {
         $page = max(1, (int) ($filters['page'] ?? 1));
-        $perPage = max(1, min(48, (int) ($filters['per_page'] ?? 12)));
+        $perPage = max(1, min(100, (int) ($filters['per_page'] ?? 27)));
         $offset = ($page - 1) * $perPage;
 
         $where = [
