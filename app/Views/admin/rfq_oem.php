@@ -277,6 +277,7 @@ $(document).ready(function() {
         responsive: true,
         searching: true,
         ordering: true,
+        stateSave: true,
         order: [[10, 'desc']], // Order by Date
         pageLength: 15,
         lengthMenu: [10, 15, 25, 50, 100],

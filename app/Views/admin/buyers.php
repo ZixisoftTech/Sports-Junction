@@ -470,6 +470,7 @@ $(document).ready(function() {
     buyersTable = $('#buyersTable').DataTable({
         processing: true,
         serverSide: true,
+        stateSave: true,
         pageLength: 10,
         order: [[8, 'desc']],
         ajax: {

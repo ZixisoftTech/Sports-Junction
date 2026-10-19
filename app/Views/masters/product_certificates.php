@@ -226,6 +226,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             }
         ],
+        stateSave: true,
         order: [[0, 'desc']]
     });
 

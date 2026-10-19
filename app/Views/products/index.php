@@ -397,6 +397,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             }
         ],
+        stateSave: true,
         order: [[0, 'desc']],
         drawCallback: function () {
             bindProductActions();
@@ -574,7 +575,12 @@ document.addEventListener('DOMContentLoaded', function () {
                 .then(data => {
                     if (data.success) {
                         showToast(data.message);
-                        productsDataTable.ajax.reload();
+                        productsDataTable.ajax.reload(function () {
+                            const info = productsDataTable.page.info();
+                            if (info && info.pages > 0 && info.page >= info.pages) {
+                                productsDataTable.page(Math.max(0, info.pages - 1)).draw('page');
+                            }
+                        }, false);
                     } else {
                         showToast(data.message || 'Failed to delete product', 'danger');
                     }
@@ -924,7 +930,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         const modalEl = document.getElementById('bulkUploadProductModal');
                         const modalInstance = bootstrap.Modal.getInstance(modalEl);
                         if (window.productsDataTable) {
-                            window.productsDataTable.ajax.reload();
+                            window.productsDataTable.ajax.reload(null, false);
                         } else {
                             setTimeout(() => location.reload(), 500);
                         }

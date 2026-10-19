@@ -877,6 +877,7 @@ class Product extends Model
         } else {
             $orderCol = 'p.id';
         }
+        $orderBy = ($orderCol === 'p.id') ? "p.id {$orderDir}" : "{$orderCol} {$orderDir}, p.id DESC";
 
         $where = [];
         $bindings = [];
@@ -932,7 +933,7 @@ class Product extends Model
                 LEFT JOIN moq_units mu ON p.moq_unit_id = mu.id
                 LEFT JOIN suppliers sp ON p.supplier_id = sp.id
                 {$whereClause} 
-                ORDER BY {$orderCol} {$orderDir} 
+                ORDER BY {$orderBy} 
                 {$limitClause}";
 
         $data = self::fetchAll($sql, $bindings);

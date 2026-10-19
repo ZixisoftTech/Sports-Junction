@@ -40,11 +40,23 @@ const MasterModule = (function () {
         const baseUrl = window.SportsJunction?.baseUrl || window.baseUrl || '';
         const entity = config.entity;
 
+        // Calculate default order prioritizing display_order/sort_order if not provided
+        let defaultOrder = config.order;
+        if (!defaultOrder && Array.isArray(config.columns)) {
+            const displayOrderIdx = config.columns.findIndex(c => c && (c.data === 'display_order' || c.data === 'sort_order'));
+            if (displayOrderIdx !== -1) {
+                defaultOrder = [[displayOrderIdx, 'asc']];
+            } else {
+                defaultOrder = [[0, 'desc']];
+            }
+        }
+
         // 1. Initialize DataTable
         dtTable = $(config.tableSelector).DataTable({
             processing: true,
             serverSide: true,
             responsive: true,
+            stateSave: true,
             ajax: {
                 url: `${baseUrl}/api/masters/${entity}/data`,
                 type: 'GET',
@@ -60,7 +72,7 @@ const MasterModule = (function () {
                 }
             },
             columns: config.columns,
-            order: config.order || [[0, 'desc']],
+            order: defaultOrder || [[0, 'desc']],
             pageLength: 10,
             lengthMenu: [[10, 25, 50, 100], [10, 25, 50, 100]],
             language: {
@@ -519,7 +531,12 @@ const MasterModule = (function () {
                     showToast(res.message, 'success');
                     const modal = bootstrap.Modal.getInstance(document.getElementById('deleteConfirmModal'));
                     if (modal) modal.hide();
-                    dtTable.ajax.reload(null, false);
+                    dtTable.ajax.reload(function () {
+                        const info = dtTable.page.info();
+                        if (info && info.pages > 0 && info.page >= info.pages) {
+                            dtTable.page(Math.max(0, info.pages - 1)).draw('page');
+                        }
+                    }, false);
                 } else {
                     showToast(res.message || 'Permanent deletion failed', 'danger');
                 }

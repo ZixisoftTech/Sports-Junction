@@ -281,6 +281,7 @@ $(document).ready(function() {
     enquiriesTable = $('#enquiriesTable').DataTable({
         processing: true,
         serverSide: true,
+        stateSave: true,
         pageLength: 15,
         order: [[11, 'desc']],
         ajax: {

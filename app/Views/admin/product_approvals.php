@@ -227,6 +227,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (proc) proc.style.display = 'none';
             }
         },
+        stateSave: true,
         order: [[0, 'desc']],
         columns: [
             {
@@ -570,7 +571,7 @@ function approveProduct(id) {
     .then(res => {
         if (res.success) {
             alert(res.message);
-            productAppDt.ajax.reload();
+            productAppDt.ajax.reload(null, false);
             if ($('#productReviewModal').hasClass('show')) {
                 bootstrap.Modal.getInstance(document.getElementById('productReviewModal')).hide();
             }
@@ -608,7 +609,7 @@ function submitProductReject(e) {
                 bootstrap.Modal.getInstance(document.getElementById('productReviewModal')).hide();
             }
             alert(res.message);
-            productAppDt.ajax.reload();
+            productAppDt.ajax.reload(null, false);
         } else {
             alert(res.message || 'Error rejecting product.');
         }

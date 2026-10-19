@@ -338,9 +338,10 @@ class Category extends Model
             7 => 'c.status',
             8 => 'c.created_at',
         ];
-        $orderColIdx = (int)($params['order'][0]['column'] ?? 4);
+        $orderColIdx = isset($params['order'][0]['column']) ? (int)$params['order'][0]['column'] : 4;
         $orderDir = strtoupper((string)($params['order'][0]['dir'] ?? 'ASC')) === 'DESC' ? 'DESC' : 'ASC';
         $orderCol = $columnMap[$orderColIdx] ?? 'c.display_order';
+        $orderBy = ($orderCol === 'c.id') ? "c.id {$orderDir}" : "{$orderCol} {$orderDir}, c.id ASC";
 
         $where = [];
         $bindings = [];
@@ -368,7 +369,7 @@ class Category extends Model
                        (SELECT COUNT(*) FROM products p WHERE p.category_id = c.id) as products_count
                 FROM categories c 
                 {$whereClause} 
-                ORDER BY {$orderCol} {$orderDir} 
+                ORDER BY {$orderBy} 
                 {$limitClause}";
 
         $data = self::fetchAll($sql, $bindings);

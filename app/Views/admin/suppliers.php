@@ -445,6 +445,7 @@ document.addEventListener('DOMContentLoaded', function() {
     suppliersDt = $('#suppliersTable').DataTable({
         processing: true,
         serverSide: true,
+        stateSave: true,
         ajax: {
             url: `${baseUrl}/api/admin/suppliers/data`,
             data: function(d) {
@@ -719,7 +720,7 @@ function submitSupplierForm(e) {
         if (res.success) {
             bootstrap.Modal.getInstance(document.getElementById('supplierFormModal')).hide();
             alert(res.message);
-            suppliersDt.ajax.reload();
+            suppliersDt.ajax.reload(null, false);
         } else {
             $('#supplierFormAlert').removeClass('d-none').text(res.message || 'Submission error');
         }
@@ -748,7 +749,7 @@ function toggleSupplierStatus(id, targetStatus, companyName) {
     .then(res => {
         if (res.success) {
             alert(res.message);
-            suppliersDt.ajax.reload();
+            suppliersDt.ajax.reload(null, false);
         } else {
             alert(res.message || 'Error updating supplier status.');
         }
@@ -833,7 +834,7 @@ function approveSupplier(id) {
     .then(res => {
         if (res.success) {
             alert(res.message);
-            suppliersDt.ajax.reload();
+            suppliersDt.ajax.reload(null, false);
         } else {
             alert(res.message || 'Error approving supplier.');
         }
@@ -865,7 +866,7 @@ function submitReject(e) {
         if (res.success) {
             bootstrap.Modal.getInstance(document.getElementById('rejectModal')).hide();
             alert(res.message);
-            suppliersDt.ajax.reload();
+            suppliersDt.ajax.reload(null, false);
         } else {
             alert(res.message || 'Error rejecting supplier.');
         }
@@ -888,7 +889,7 @@ function suspendSupplier(id) {
     .then(res => {
         if (res.success) {
             alert(res.message);
-            suppliersDt.ajax.reload();
+            suppliersDt.ajax.reload(null, false);
         } else {
             alert(res.message || 'Error suspending supplier.');
         }
@@ -909,7 +910,7 @@ function reactivateSupplier(id) {
     .then(res => {
         if (res.success) {
             alert(res.message);
-            suppliersDt.ajax.reload();
+            suppliersDt.ajax.reload(null, false);
         } else {
             alert(res.message || 'Error reactivating supplier.');
         }
@@ -932,7 +933,12 @@ function deleteSupplier(id, companyName) {
     .then(res => {
         if (res.success) {
             alert(res.message);
-            suppliersDt.ajax.reload();
+            suppliersDt.ajax.reload(function () {
+                const info = suppliersDt.page.info();
+                if (info && info.pages > 0 && info.page >= info.pages) {
+                    suppliersDt.page(Math.max(0, info.pages - 1)).draw('page');
+                }
+            }, false);
         } else {
             alert(res.message || 'Error deleting supplier.');
         }
@@ -1059,7 +1065,7 @@ function approveProfileRequest(requestId) {
                 if (res.success) {
                     Swal.fire('Approved!', res.message || 'Profile changes published live.', 'success');
                     bootstrap.Modal.getInstance(document.getElementById('profileReviewModal')).hide();
-                    suppliersDt.ajax.reload();
+                    suppliersDt.ajax.reload(null, false);
                 } else {
                     Swal.fire('Error', res.message || 'Approval failed.', 'error');
                 }
@@ -1103,7 +1109,7 @@ function rejectProfileRequest(requestId) {
                 if (res.success) {
                     Swal.fire('Rejected', res.message || 'Profile revision rejected.', 'info');
                     bootstrap.Modal.getInstance(document.getElementById('profileReviewModal')).hide();
-                    suppliersDt.ajax.reload();
+                    suppliersDt.ajax.reload(null, false);
                 } else {
                     Swal.fire('Error', res.message || 'Rejection failed.', 'error');
                 }

@@ -263,9 +263,10 @@ class Subcategory extends Model
             7 => 's.status',
             8 => 's.created_at',
         ];
-        $orderColIdx = (int)($params['order'][0]['column'] ?? 0);
+        $orderColIdx = isset($params['order'][0]['column']) ? (int)$params['order'][0]['column'] : 5;
         $orderDir = strtoupper((string)($params['order'][0]['dir'] ?? 'ASC')) === 'DESC' ? 'DESC' : 'ASC';
-        $orderCol = $columnMap[$orderColIdx] ?? 's.id';
+        $orderCol = $columnMap[$orderColIdx] ?? 's.display_order';
+        $orderBy = ($orderCol === 's.id') ? "s.id {$orderDir}" : "{$orderCol} {$orderDir}, s.id ASC";
 
         $where = [];
         $bindings = [];
@@ -303,7 +304,7 @@ class Subcategory extends Model
                 FROM subcategories s 
                 LEFT JOIN categories c ON s.category_id = c.id
                 {$whereClause} 
-                ORDER BY {$orderCol} {$orderDir} 
+                ORDER BY {$orderBy} 
                 {$limitClause}";
 
         $data = self::fetchAll($sql, $bindings);
