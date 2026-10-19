@@ -927,6 +927,7 @@ if ($authUser && ($authUser['role'] ?? '') === 'BUYER') {
             });
         }
     </script>
+    <?php require_once dirname(__DIR__) . '/components/autoload_popup.php'; ?>
     <?php require_once dirname(__DIR__) . '/components/chat_popup.php'; ?>
 </body>
 </html>

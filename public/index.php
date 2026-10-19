@@ -123,6 +123,7 @@ use App\Controllers\AdminCommunicationController;
 use App\Controllers\ChatApiController;
 use App\Controllers\AdminSettingsController;
 use App\Controllers\AdminHeroBannerController;
+use App\Controllers\AdminPopupController;
 use App\Controllers\AdminProfileChangeController;
 use App\Controllers\CmsPageController;
 use App\Controllers\ProductCertificateController;
@@ -329,6 +330,17 @@ $router->put('/api/admin/banners/{id}', [AdminHeroBannerController::class, 'upda
 $router->delete('/api/admin/banners/{id}', [AdminHeroBannerController::class, 'delete'], [AuthMiddleware::class]);
 $router->post('/api/admin/banners/{id}/delete', [AdminHeroBannerController::class, 'delete'], [AuthMiddleware::class]);
 $router->post('/api/admin/banners/{id}/toggle-status', [AdminHeroBannerController::class, 'toggleStatus'], [AuthMiddleware::class]);
+
+// Super Admin Autoload Popup Management
+$router->get('/admin/popups', [AdminPopupController::class, 'index'], [AuthMiddleware::class]);
+$router->get('/api/admin/popups/data', [AdminPopupController::class, 'data'], [AuthMiddleware::class]);
+$router->get('/api/admin/popups/{id}', [AdminPopupController::class, 'show'], [AuthMiddleware::class]);
+$router->post('/api/admin/popups', [AdminPopupController::class, 'store'], [AuthMiddleware::class]);
+$router->post('/api/admin/popups/{id}', [AdminPopupController::class, 'update'], [AuthMiddleware::class]);
+$router->put('/api/admin/popups/{id}', [AdminPopupController::class, 'update'], [AuthMiddleware::class]);
+$router->delete('/api/admin/popups/{id}', [AdminPopupController::class, 'delete'], [AuthMiddleware::class]);
+$router->post('/api/admin/popups/{id}/delete', [AdminPopupController::class, 'delete'], [AuthMiddleware::class]);
+$router->post('/api/admin/popups/{id}/toggle-status', [AdminPopupController::class, 'toggleStatus'], [AuthMiddleware::class]);
 
 // Super Admin Dedicated Seller Agreement Management
 $router->get('/admin/seller-agreement', [AdminSettingsController::class, 'sellerAgreement'], [AuthMiddleware::class]);
