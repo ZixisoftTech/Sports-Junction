@@ -13,7 +13,7 @@ class HomeController extends Controller
     {
         $categories = Category::allActive();
         $homepageCategories = Category::getHomepageCategories();
-        $featuredProducts = Product::featuredProducts(8);
+        $featuredProducts = Product::featuredProducts(20);
 
         $this->render('frontend/home', [
             'pageTitle'          => 'Sports Junction — India\'s Sports Manufacturing Marketplace | Factory-Direct B2B Sourcing',

@@ -191,9 +191,15 @@ $baseUrl = Response::baseUrl();
                                 <div class="text-[11px] text-outline font-semibold uppercase tracking-wider mb-1">
                                     <?= htmlspecialchars($prod['all_category_names'] ?? $prod['category_name'] ?? 'Sports Gear') ?>
                                 </div>
-                                <h3 class="font-headline font-bold text-sm text-on-surface line-clamp-2 mb-2 group-hover:text-blue-700 transition-colors">
+                                <h3 class="font-headline font-bold text-sm text-on-surface line-clamp-2 mb-1.5 group-hover:text-blue-700 transition-colors">
                                     <a href="<?= $prodUrl ?>"><?= htmlspecialchars($prod['name']) ?></a>
                                 </h3>
+
+                                <!-- Factory / Supplier Name -->
+                                <div class="flex items-center gap-1.5 text-xs text-slate-600 font-medium mb-2">
+                                    <span class="material-symbols-outlined text-[15px] text-blue-600 shrink-0">factory</span>
+                                    <span class="truncate"><?= htmlspecialchars($prod['supplier_name'] ?? 'Verified Factory') ?></span>
+                                </div>
 
                                 <!-- Price Matrix -->
                                 <div class="mt-2 mb-3">
@@ -242,7 +248,7 @@ $baseUrl = Response::baseUrl();
                                         'max_price' => (float)($prod['max_price'] ?? 0),
                                         'moq_quantity' => (int)($prod['moq_quantity'] ?? 1),
                                         'supplier_name' => $prod['supplier_name'] ?? 'Verified Factory'
-                                    ])) ?>)" class="p-2 rounded-xl bg-blue-700 hover:bg-blue-800 text-white transition-colors shrink-0 flex items-center justify-center cursor-pointer" title="Chat with Factory about this Product" aria-label="Chat with Factory">
+                                    ])) ?>)" class="p-2 rounded-xl bg-blue-700 hover:bg-blue-800 text-white transition-colors shrink-0 flex items-center justify-center cursor-pointer" title="Chat with Supplier about this Product" aria-label="Chat with Supplier">
                                         <span class="material-symbols-outlined text-[18px]">send</span>
                                     </button>
                                 <?php endif; ?>
@@ -251,6 +257,14 @@ $baseUrl = Response::baseUrl();
                     </div>
                 <?php endforeach; ?>
             <?php endif; ?>
+        </div>
+
+        <!-- View All Products CTA Button at bottom of section -->
+        <div class="mt-12 text-center">
+            <a href="<?= htmlspecialchars($baseUrl) ?>/products" class="inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl bg-blue-700 hover:bg-blue-800 text-white font-headline font-bold text-sm shadow-md transition-all">
+                <span>View All Products</span>
+                <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+            </a>
         </div>
     </div>
 </section>

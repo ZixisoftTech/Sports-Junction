@@ -238,7 +238,7 @@ class Product extends Model
         return $rows;
     }
 
-    public static function featuredProducts(int $limit = 8): array
+    public static function featuredProducts(int $limit = 20): array
     {
         $products = self::fetchAll("
             SELECT p.*,
@@ -261,9 +261,8 @@ class Product extends Model
             LEFT JOIN countries co ON p.country_id = co.id
             WHERE p.status IN ('PUBLISHED', 'ACTIVE') 
               AND p.approval_status = 'APPROVED'
-              AND p.is_featured = 1
               AND (sp.approval_status = 'APPROVED' AND sp.status = 'ACTIVE')
-            ORDER BY p.featured_order ASC, p.id DESC
+            ORDER BY p.is_featured DESC, p.featured_order ASC, p.id DESC
             LIMIT :lim
         ", [':lim' => $limit]);
 
