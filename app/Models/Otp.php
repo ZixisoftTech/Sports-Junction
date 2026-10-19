@@ -220,29 +220,12 @@ class Otp extends Model
      */
     public static function isStaticOtpEnabled(): bool
     {
-        // 1. Explicit environment toggle: USE_STATIC_OTP
+        // Explicit environment override only (default is always FALSE = dynamic cryptographically random OTP)
         $useStaticEnv = \App\Helpers\Env::get('USE_STATIC_OTP', null);
         if ($useStaticEnv !== null) {
             return filter_var($useStaticEnv, FILTER_VALIDATE_BOOLEAN);
         }
 
-        // 2. Explicit environment flag: SMTP_CONFIGURED=true disables static OTP
-        $smtpConfiguredEnv = \App\Helpers\Env::get('SMTP_CONFIGURED', null);
-        if ($smtpConfiguredEnv !== null) {
-            return !filter_var($smtpConfiguredEnv, FILTER_VALIDATE_BOOLEAN);
-        }
-
-        // 3. Database site_setting: use_static_otp
-        try {
-            $dbSetting = \App\Models\SiteSetting::get('use_static_otp', null);
-            if ($dbSetting !== null) {
-                return (string)$dbSetting === '1' || strtolower((string)$dbSetting) === 'true';
-            }
-        } catch (\Throwable $e) {
-            // In case DB is not yet available
-        }
-
-        // 4. Default: Dynamic OTP is standard; static OTP is false unless explicitly forced via env/db
         return false;
     }
 

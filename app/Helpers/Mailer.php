@@ -573,7 +573,7 @@ class Mailer
                                 <tr>
                                     <td valign="middle">
                                         <a href="{$appUrl}" target="_blank" style="text-decoration:none;display:inline-block;">
-                                            <img src="{$logoUrl}" alt="Sports Junction" width="180" style="display:block;width:180px;max-width:180px;height:auto;border:0;outline:none;text-decoration:none;" />
+                                            <img src="{$logoUrl}" alt="Sports Junction" width="180" height="53" border="0" style="display:block;width:180px;max-width:180px;height:auto;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:18px;font-weight:800;color:#00288e;border:0;outline:none;text-decoration:none;" />
                                         </a>
                                     </td>
                                     <td valign="middle" align="right" style="font-size:11px;font-weight:700;color:#00288e;letter-spacing:1px;text-transform:uppercase;">
