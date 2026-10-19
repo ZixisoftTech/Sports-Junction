@@ -208,7 +208,7 @@ class Category extends Model
         $icon = !empty($data['icon']) ? trim($data['icon']) : ($existing['icon'] ?? 'sports_tennis');
 
         $showOnHomepage = isset($data['show_on_homepage'])
-            ? (!empty($data['show_on_homepage']) && ($data['show_on_homepage'] === 1 || $data['show_on_homepage'] === '1' || $data['show_on_homepage'] === true || $data['show_on_homepage'] === 'on') ? 1 : 0)
+            ? (($data['show_on_homepage'] === 1 || $data['show_on_homepage'] === '1' || $data['show_on_homepage'] === true || $data['show_on_homepage'] === 'on') ? 1 : 0)
             : (int)($existing['show_on_homepage'] ?? 0);
 
         self::execute("

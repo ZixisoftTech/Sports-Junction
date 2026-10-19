@@ -260,7 +260,8 @@ class MasterApiController extends Controller
         }
 
         if (strtolower($entity) === 'categories') {
-            $input['show_on_homepage'] = !empty($input['show_on_homepage']) && ($input['show_on_homepage'] === 1 || $input['show_on_homepage'] === '1' || $input['show_on_homepage'] === true || $input['show_on_homepage'] === 'on') ? 1 : 0;
+            $val = $input['show_on_homepage'] ?? null;
+            $input['show_on_homepage'] = ($val === 1 || $val === '1' || $val === true || $val === 'on') ? 1 : 0;
         }
 
         try {
@@ -445,7 +446,8 @@ class MasterApiController extends Controller
         }
 
         if (strtolower($entity) === 'categories') {
-            $input['show_on_homepage'] = !empty($input['show_on_homepage']) && ($input['show_on_homepage'] === 1 || $input['show_on_homepage'] === '1' || $input['show_on_homepage'] === true || $input['show_on_homepage'] === 'on') ? 1 : 0;
+            $val = $input['show_on_homepage'] ?? null;
+            $input['show_on_homepage'] = ($val === 1 || $val === '1' || $val === true || $val === 'on') ? 1 : 0;
         }
 
         try {

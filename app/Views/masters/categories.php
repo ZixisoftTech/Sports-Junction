@@ -110,7 +110,6 @@ $baseUrl = Response::baseUrl();
                         <div class="col-md-4">
                             <label class="form-label fw-semibold small d-block">Show on Homepage</label>
                             <div class="form-check form-switch pt-1">
-                                <input type="hidden" name="show_on_homepage" value="0">
                                 <input class="form-check-input fs-5" type="checkbox" role="switch" id="catShowOnHomepage" name="show_on_homepage" value="1">
                                 <label class="form-check-label small fw-semibold text-muted ms-1" for="catShowOnHomepage" id="catShowOnHomepageLabel">
                                     OFF: Hidden from the homepage

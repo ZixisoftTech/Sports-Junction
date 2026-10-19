@@ -198,7 +198,11 @@ const MasterModule = (function () {
                 for (const key in data) {
                     const input = form.querySelector(`[name="${key}"]`);
                     if (input) {
-                        input.value = data[key] !== null ? data[key] : '';
+                        if (input.type === 'checkbox') {
+                            input.checked = (data[key] == 1 || data[key] === true || data[key] === '1');
+                        } else if (input.type !== 'file') {
+                            input.value = data[key] !== null ? data[key] : '';
+                        }
                     }
                 }
 
@@ -223,6 +227,13 @@ const MasterModule = (function () {
         const submitBtn = form.querySelector('button[type="submit"]');
 
         const formData = new FormData(form);
+        // Explicitly set all checkboxes so unchecked checkboxes submit '0' and checked submit '1'
+        form.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+            if (cb.name) {
+                formData.set(cb.name, cb.checked ? '1' : '0');
+            }
+        });
+
         const payload = {};
         formData.forEach((val, key) => payload[key] = val);
 
