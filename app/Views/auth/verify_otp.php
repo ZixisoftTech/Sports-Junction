@@ -10,6 +10,7 @@ $email = $email ?? Session::get('otp_email') ?? '';
 $purpose = $purpose ?? Session::get('otp_purpose') ?? 'REGISTRATION';
 $error = Session::flash('error');
 $success = Session::flash('success');
+$warning = Session::flash('warning');
 ?>
 
 <div class="w-full max-w-xl mx-auto">
@@ -52,6 +53,13 @@ $success = Session::flash('success');
             <div class="mt-6 p-4 rounded-xl bg-red-50 border border-red-200 text-red-800 text-xs sm:text-sm text-left flex items-start gap-3">
                 <span class="material-symbols-outlined text-red-600 text-[20px] shrink-0 mt-0.5">error</span>
                 <div><?= htmlspecialchars($error) ?></div>
+            </div>
+        <?php endif; ?>
+
+        <?php if ($warning): ?>
+            <div class="mt-6 p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs sm:text-sm text-left flex items-start gap-3">
+                <span class="material-symbols-outlined text-amber-600 text-[20px] shrink-0 mt-0.5">warning</span>
+                <div><?= htmlspecialchars($warning) ?></div>
             </div>
         <?php endif; ?>
 

@@ -9,6 +9,18 @@ use Throwable;
 class Mailer
 {
     /**
+     * In-memory cache of last dispatched OTPs for test suites and dev verification (never persisted to disk)
+     */
+    private static array $lastOtpSent = [];
+
+    public static function recordSentOtp(string $email, string $otp): void
+    {
+        if (trim($otp) !== '') {
+            self::$lastOtpSent[strtolower(trim($email))] = trim($otp);
+        }
+    }
+
+    /**
      * Send an email via configured SMTP with fallback to secure simulation log
      */
     public static function send(
@@ -20,6 +32,21 @@ class Mailer
         ?string $replyToEmail = null,
         ?string $replyToName = null
     ): bool {
+        // 1. Check if mail delivery is globally enabled
+        $mailEnabled = filter_var(Env::get('MAIL_ENABLED', true), FILTER_VALIDATE_BOOLEAN);
+        if (!$mailEnabled) {
+            self::logDiagnostic($toEmail, $subject, 'SKIPPED', 'Email delivery disabled (MAIL_ENABLED=false)');
+            return false;
+        }
+
+        // 2. Validate recipient email address
+        $toEmail = trim($toEmail);
+        if (!filter_var($toEmail, FILTER_VALIDATE_EMAIL)) {
+            self::logDiagnostic($toEmail, $subject, 'FAILED', 'Invalid recipient email address format');
+            return false;
+        }
+
+        // 3. Load & sanitize SMTP configuration exclusively from environment
         $host = trim((string) Env::get('MAIL_HOST', 'smtp.gmail.com'));
         if ($host === '') {
             $host = 'smtp.gmail.com';
@@ -29,19 +56,13 @@ class Mailer
             $port = 587;
         }
         $user = trim((string) Env::get('MAIL_USERNAME', 'noreply@sportsjunction.in'));
-        if ($user === '') {
-            $user = 'noreply@sportsjunction.in';
-        }
         $pass = trim((string) Env::get('MAIL_PASSWORD', ''));
-        if ($pass === '') {
-            $pass = 'ftpw unqo ifzj ntxh';
-        }
         $encryption = strtolower((string) Env::get('MAIL_ENCRYPTION', 'tls'));
         if ($encryption === '') {
             $encryption = 'tls';
         }
-        $fromEmail = trim((string) Env::get('MAIL_FROM_ADDRESS', 'noreply@sportsjunction.in'));
-        if ($fromEmail === '') {
+        $fromEmail = trim((string) Env::get('MAIL_FROM_ADDRESS', 'noreply@sportsjunction.in'), '<> ');
+        if ($fromEmail === '' || !filter_var($fromEmail, FILTER_VALIDATE_EMAIL)) {
             $fromEmail = 'noreply@sportsjunction.in';
         }
         $fromName = trim((string) Env::get('MAIL_FROM_NAME', 'Sports Junction'));
@@ -58,8 +79,19 @@ class Mailer
         }
 
         if ($driver === 'log' || $mode === 'simulation') {
-            self::logEmail($toEmail, $subject, $textContent, "Simulated delivery (driver={$driver}, mode={$mode})");
+            self::logDiagnostic($toEmail, $subject, 'SIMULATED', "Simulated delivery (driver={$driver}, mode={$mode})");
             return true;
+        }
+
+        // 4. Validate credentials before initiating connection
+        if (empty($pass)) {
+            self::logDiagnostic($toEmail, $subject, 'FAILED', 'MAIL_PASSWORD is blank or not configured in .env');
+            return false;
+        }
+
+        if (empty($user)) {
+            self::logDiagnostic($toEmail, $subject, 'FAILED', 'MAIL_USERNAME is blank or not configured in .env');
+            return false;
         }
 
         try {
@@ -83,7 +115,7 @@ class Mailer
             );
 
             if (!$socket) {
-                self::logEmail($toEmail, $subject, $textContent, "SMTP Connection Failed to {$remoteSocket}: {$errstr} ({$errno})");
+                self::logDiagnostic($toEmail, $subject, 'FAILED', "Connection failed to {$remoteSocket}: {$errstr} ({$errno})");
                 return false;
             }
 
@@ -93,7 +125,7 @@ class Mailer
             $resp = self::readResponse($socket);
             if ($resp['code'] !== 220) {
                 fclose($socket);
-                self::logEmail($toEmail, $subject, $textContent, "SMTP Banner Failed: " . $resp['message']);
+                self::logDiagnostic($toEmail, $subject, 'FAILED', 'SMTP Banner Failed: ' . $resp['message']);
                 return false;
             }
 
@@ -102,7 +134,7 @@ class Mailer
             $resp = self::sendCommand($socket, "EHLO " . $hostname);
             if ($resp['code'] !== 250) {
                 fclose($socket);
-                self::logEmail($toEmail, $subject, $textContent, "SMTP EHLO Failed: " . $resp['message']);
+                self::logDiagnostic($toEmail, $subject, 'FAILED', 'SMTP EHLO Failed: ' . $resp['message']);
                 return false;
             }
 
@@ -111,20 +143,20 @@ class Mailer
                 $resp = self::sendCommand($socket, "STARTTLS");
                 if ($resp['code'] !== 220) {
                     fclose($socket);
-                    self::logEmail($toEmail, $subject, $textContent, "SMTP STARTTLS Failed: " . $resp['message']);
+                    self::logDiagnostic($toEmail, $subject, 'FAILED', 'SMTP STARTTLS Failed: ' . $resp['message']);
                     return false;
                 }
 
                 if (!stream_socket_enable_crypto($socket, true, STREAM_CRYPTO_METHOD_TLS_CLIENT)) {
                     fclose($socket);
-                    self::logEmail($toEmail, $subject, $textContent, "SMTP TLS Crypto Handshake Failed");
+                    self::logDiagnostic($toEmail, $subject, 'FAILED', 'SMTP TLS Crypto Handshake Failed');
                     return false;
                 }
 
                 $resp = self::sendCommand($socket, "EHLO " . $hostname);
                 if ($resp['code'] !== 250) {
                     fclose($socket);
-                    self::logEmail($toEmail, $subject, $textContent, "SMTP Post-TLS EHLO Failed: " . $resp['message']);
+                    self::logDiagnostic($toEmail, $subject, 'FAILED', 'SMTP Post-TLS EHLO Failed: ' . $resp['message']);
                     return false;
                 }
             }
@@ -133,36 +165,39 @@ class Mailer
             $resp = self::sendCommand($socket, "AUTH LOGIN");
             if ($resp['code'] !== 334) {
                 fclose($socket);
-                self::logEmail($toEmail, $subject, $textContent, "SMTP AUTH LOGIN Rejected: " . $resp['message']);
+                self::logDiagnostic($toEmail, $subject, 'FAILED', 'SMTP AUTH LOGIN Rejected: ' . $resp['message']);
                 return false;
             }
 
             $resp = self::sendCommand($socket, base64_encode($user));
             if ($resp['code'] !== 334) {
                 fclose($socket);
-                self::logEmail($toEmail, $subject, $textContent, "SMTP Username Rejected: " . $resp['message']);
+                self::logDiagnostic($toEmail, $subject, 'FAILED', 'SMTP Username Rejected: ' . $resp['message']);
                 return false;
             }
 
             $resp = self::sendCommand($socket, base64_encode($pass));
             if ($resp['code'] !== 235) {
                 fclose($socket);
-                self::logEmail($toEmail, $subject, $textContent, "SMTP Authentication Failed: " . $resp['message']);
+                self::logDiagnostic($toEmail, $subject, 'FAILED', 'SMTP Authentication Rejected: ' . $resp['message']);
                 return false;
             }
 
-            // 5. MAIL FROM & RCPT TO
-            $resp = self::sendCommand($socket, "MAIL FROM:<{$fromEmail}>");
+            // 5. Envelope
+            $cleanFrom = trim($fromEmail, '<> ');
+            $cleanTo = trim($toEmail, '<> ');
+
+            $resp = self::sendCommand($socket, "MAIL FROM:<{$cleanFrom}>");
             if ($resp['code'] !== 250) {
                 fclose($socket);
-                self::logEmail($toEmail, $subject, $textContent, "SMTP MAIL FROM Rejected: " . $resp['message']);
+                self::logDiagnostic($toEmail, $subject, 'FAILED', 'SMTP MAIL FROM Rejected: ' . $resp['message']);
                 return false;
             }
 
-            $resp = self::sendCommand($socket, "RCPT TO:<{$toEmail}>");
+            $resp = self::sendCommand($socket, "RCPT TO:<{$cleanTo}>");
             if ($resp['code'] !== 250 && $resp['code'] !== 251) {
                 fclose($socket);
-                self::logEmail($toEmail, $subject, $textContent, "SMTP RCPT TO Rejected: " . $resp['message']);
+                self::logDiagnostic($toEmail, $subject, 'FAILED', 'SMTP RCPT TO Rejected: ' . $resp['message']);
                 return false;
             }
 
@@ -170,26 +205,33 @@ class Mailer
             $resp = self::sendCommand($socket, "DATA");
             if ($resp['code'] !== 354) {
                 fclose($socket);
-                self::logEmail($toEmail, $subject, $textContent, "SMTP DATA Command Rejected: " . $resp['message']);
+                self::logDiagnostic($toEmail, $subject, 'FAILED', 'SMTP DATA Command Rejected: ' . $resp['message']);
                 return false;
             }
 
-            $boundary = "----=_Part_" . md5(uniqid((string)mt_rand(), true));
-            $headers  = "From: =?UTF-8?B?" . base64_encode($fromName) . "?= <{$fromEmail}>\r\n";
-            $headers .= "To: =?UTF-8?B?" . base64_encode($toName) . "?= <{$toEmail}>\r\n";
+            // 7. Message assembly & RFC compliant headers
+            $boundary = "----=_Part_" . bin2hex(random_bytes(16));
+            $domain = parse_url((string)Env::get('APP_URL', 'https://sportsjunction.in'), PHP_URL_HOST) ?: 'sportsjunction.in';
+            $messageId = sprintf("<%s.%s@%s>", bin2hex(random_bytes(8)), (string)time(), $domain);
 
-            // Reply-To header support
-            if (!empty($replyToEmail)) {
+            $headers  = "From: =?UTF-8?B?" . base64_encode($fromName) . "?= <{$cleanFrom}>\r\n";
+            $headers .= "To: =?UTF-8?B?" . base64_encode($toName) . "?= <{$cleanTo}>\r\n";
+
+            if (!empty($replyToEmail) && filter_var($replyToEmail, FILTER_VALIDATE_EMAIL)) {
                 $rName = $replyToName ?? $replyToEmail;
-                $headers .= "Reply-To: =?UTF-8?B?" . base64_encode($rName) . "?= <{$replyToEmail}>\r\n";
-            } elseif (!empty($defaultReplyTo = Env::get('MAIL_REPLY_TO'))) {
-                $headers .= "Reply-To: <{$defaultReplyTo}>\r\n";
+                $headers .= "Reply-To: =?UTF-8?B?" . base64_encode($rName) . "?= <" . trim($replyToEmail, '<> ') . ">\r\n";
+            } elseif (!empty($defaultReplyTo = trim((string)Env::get('MAIL_REPLY_TO', ''), '<> '))) {
+                if (filter_var($defaultReplyTo, FILTER_VALIDATE_EMAIL)) {
+                    $headers .= "Reply-To: <{$defaultReplyTo}>\r\n";
+                }
             }
 
             $headers .= "Subject: =?UTF-8?B?" . base64_encode($subject) . "?=\r\n";
+            $headers .= "Date: " . date('r') . "\r\n";
+            $headers .= "Message-ID: {$messageId}\r\n";
             $headers .= "MIME-Version: 1.0\r\n";
             $headers .= "Content-Type: multipart/alternative; boundary=\"{$boundary}\"\r\n";
-            $headers .= "Date: " . date('r') . "\r\n";
+            $headers .= "X-Mailer: SportsJunction Mailer\r\n";
 
             $body  = "--{$boundary}\r\n";
             $body .= "Content-Type: text/plain; charset=UTF-8\r\n";
@@ -205,22 +247,29 @@ class Mailer
 
             // Dot-stuffing for RFC 5321 compliance
             $payload = $headers . "\r\n" . $body;
-            $payload = preg_replace('/^\./m', '..', $payload) . "\r\n.";
+            $payload = preg_replace('/^\./m', '..', $payload) . "\r\n.\r\n";
 
-            $resp = self::sendCommand($socket, $payload);
+            // Ensure complete transmission across TLS socket buffer
+            if (!self::writeAll($socket, $payload)) {
+                fclose($socket);
+                self::logDiagnostic($toEmail, $subject, 'FAILED', 'Socket write failure during payload transmission');
+                return false;
+            }
+
+            $resp = self::readResponse($socket);
             if ($resp['code'] !== 250) {
                 fclose($socket);
-                self::logEmail($toEmail, $subject, $textContent, "SMTP Message Body Rejected: " . $resp['message']);
+                self::logDiagnostic($toEmail, $subject, 'FAILED', 'SMTP Message Body Rejected: ' . $resp['message']);
                 return false;
             }
 
             self::sendCommand($socket, "QUIT");
             fclose($socket);
 
-            self::logEmail($toEmail, $subject, $textContent, "SUCCESS: Live SMTP delivered via {$host}:{$port}");
+            self::logDiagnostic($toEmail, $subject, 'SUCCESS', "Live SMTP delivered via {$host}:{$port}");
             return true;
         } catch (\Throwable $e) {
-            self::logEmail($toEmail, $subject, $textContent, "SMTP Exception: " . $e->getMessage());
+            self::logDiagnostic($toEmail, $subject, 'EXCEPTION', $e->getMessage());
             return false;
         }
     }
@@ -243,14 +292,23 @@ class Mailer
             $user = 'noreply@sportsjunction.in';
         }
         $pass = trim((string) Env::get('MAIL_PASSWORD', ''));
-        if ($pass === '') {
-            $pass = 'ftpw unqo ifzj ntxh';
-        }
         $encryption = strtolower((string) Env::get('MAIL_ENCRYPTION', 'tls'));
         if ($encryption === '') {
             $encryption = 'tls';
         }
         $logFile = dirname(__DIR__, 2) . '/storage/logs/mail.log';
+
+        if (empty($pass)) {
+            return [
+                'status' => 'NOT_CONFIGURED',
+                'configured' => false,
+                'host' => $host,
+                'port' => $port,
+                'user' => $user,
+                'message' => 'MAIL_PASSWORD is blank or not configured in .env. Please configure your Google App Password to enable live email delivery.',
+                'log_file' => $logFile,
+            ];
+        }
 
         try {
             $context = stream_context_create([
@@ -333,7 +391,7 @@ class Mailer
                 'user' => $user,
                 'code' => $passResp['code'],
                 'server_response' => $passResp['message'],
-                'message' => 'SMTP credentials rejected by host.',
+                'message' => 'SMTP credentials rejected by host. Please verify your Google App Password.',
                 'log_file' => $logFile
             ];
         } catch (\Throwable $e) {
@@ -347,47 +405,46 @@ class Mailer
     }
 
     /**
-     * Retrieve the latest logged OTP passcode for testing / dev convenience
+     * Retrieve the latest session OTP for local testing / development
      */
     public static function getLastSentOtp(string $email = ''): ?string
     {
-        $logFile = dirname(__DIR__, 2) . '/storage/logs/mail.log';
-        if (!file_exists($logFile)) {
+        $key = strtolower(trim($email));
+        if ($key !== '' && isset(self::$lastOtpSent[$key])) {
+            return self::$lastOtpSent[$key];
+        }
+        if ($key === '' && !empty(self::$lastOtpSent)) {
+            return end(self::$lastOtpSent);
+        }
+        if (!Env::get('APP_DEBUG', false)) {
             return null;
         }
-        $content = @file_get_contents($logFile);
-        if (!$content) {
-            return null;
+        if ($email !== '' && Session::get("dev_otp_{$email}")) {
+            return (string) Session::get("dev_otp_{$email}");
         }
+        return Session::get('dev_latest_otp') ? (string) Session::get('dev_latest_otp') : null;
+    }
 
-        $blocks = array_reverse(explode(str_repeat('-', 60), $content));
-
-        foreach ($blocks as $block) {
-            $block = trim($block);
-            if (empty($block)) {
-                continue;
+    /**
+     * Write complete payload to socket buffer
+     */
+    private static function writeAll($socket, string $data): bool
+    {
+        $length = strlen($data);
+        $written = 0;
+        while ($written < $length) {
+            $bytes = fwrite($socket, substr($data, $written));
+            if ($bytes === false || $bytes === 0) {
+                return false;
             }
-
-            if ($email !== '') {
-                if (stripos($block, "TO: {$email}") === false && stripos($block, "TO: " . trim($email)) === false) {
-                    continue;
-                }
-            }
-
-            if (preg_match('/\[PASSCODE:\s*(\d{6})\]/', $block, $m)) {
-                return $m[1];
-            }
-            if (preg_match('/(?:Passcode|Code|OTP|passcode)[\s\:\*\#]+(\d{6})/i', $block, $m)) {
-                return $m[1];
-            }
+            $written += $bytes;
         }
-
-        return null;
+        return true;
     }
 
     private static function sendCommand($socket, string $command): array
     {
-        fwrite($socket, $command . "\r\n");
+        self::writeAll($socket, $command . "\r\n");
         return self::readResponse($socket);
     }
 
@@ -395,7 +452,7 @@ class Mailer
     {
         $lines = [];
         $lastCode = 0;
-        while ($line = fgets($socket, 1024)) {
+        while (($line = fgets($socket, 1024)) !== false) {
             $trimmed = trim($line);
             $lines[] = $trimmed;
             if (strlen($trimmed) >= 3 && is_numeric(substr($trimmed, 0, 3))) {
@@ -414,7 +471,10 @@ class Mailer
         ];
     }
 
-    private static function logEmail(string $to, string $subject, string $body, ?string $note = null): void
+    /**
+     * Secure diagnostic logger — records metadata only without exposing credentials or OTP passcodes
+     */
+    private static function logDiagnostic(string $toEmail, string $subject, string $status, ?string $diagnostic = null): void
     {
         $logDir = dirname(__DIR__, 2) . '/storage/logs';
         if (!is_dir($logDir)) {
@@ -422,20 +482,30 @@ class Mailer
         }
         $logFile = $logDir . '/mail.log';
 
-        preg_match('/(?:Passcode|Code|OTP|passcode)[\s\:\*\#]+(\d{6})/i', $subject . "\n" . $body, $otpMatch);
-        $otpStr = isset($otpMatch[1]) ? " [PASSCODE: {$otpMatch[1]}]" : "";
+        // Redact any potential credentials/passwords from diagnostic text
+        $cleanDiag = $diagnostic ? preg_replace('/(pass|password|pwd|token|otp)[\s\:\=\'\"]+[^\s\,\;]+/i', '$1=***', $diagnostic) : '';
 
         $entry = sprintf(
-            "[%s] TO: %s | SUBJECT: %s%s %s\nBODY:\n%s\n%s\n",
+            "[%s] [Sports Junction Mailer] STATUS: %s | TO: %s | SUBJECT: %s%s\n",
             date('Y-m-d H:i:s'),
-            $to,
+            $status,
+            $toEmail,
             $subject,
-            $otpStr,
-            $note ? "($note)" : "[LOGGED/SIMULATED]",
-            $body,
-            str_repeat('-', 60)
+            $cleanDiag !== '' ? " | DETAILS: {$cleanDiag}" : ""
         );
         @file_put_contents($logFile, $entry, FILE_APPEND);
+
+        if (filter_var(Env::get('MAIL_DEBUG', false), FILTER_VALIDATE_BOOLEAN)) {
+            @error_log("[Mailer DEBUG] " . trim($entry));
+        }
+    }
+
+    /**
+     * Backward-compatible alias for logEmail
+     */
+    public static function logEmail(string $to, string $subject, string $body, ?string $note = null): void
+    {
+        self::logDiagnostic($to, $subject, 'INFO', $note);
     }
 
     /**
@@ -585,6 +655,7 @@ HTML;
     // -------------------------------------------------------------------------
     public static function sendBuyerSignupOtp(string $email, string $name, string $otp): bool
     {
+        self::recordSentOtp($email, $otp);
         $name = trim($name) !== '' ? $name : 'Valued Buyer';
         $subject = "Verify Your Email Address — Sports Junction";
         $content = "
@@ -602,6 +673,7 @@ HTML;
     // -------------------------------------------------------------------------
     public static function sendSupplierSignupOtp(string $email, string $companyName, string $otp): bool
     {
+        self::recordSentOtp($email, $otp);
         $companyName = trim($companyName) !== '' ? $companyName : 'Manufacturing Facility';
         $subject = "Verify Your Manufacturer Account — Sports Junction";
         $content = "
@@ -619,6 +691,7 @@ HTML;
     // -------------------------------------------------------------------------
     public static function sendOtpResend(string $email, string $recipientName, string $otp, bool $isSupplier = false): bool
     {
+        self::recordSentOtp($email, $otp);
         $name = trim($recipientName) !== '' ? $recipientName : ($isSupplier ? 'Manufacturer' : 'Valued Buyer');
         $subject = "Your New Verification Code — Sports Junction";
         $portal = $isSupplier ? "manufacturer onboarding" : "buyer account";
@@ -742,6 +815,7 @@ HTML;
     // -------------------------------------------------------------------------
     public static function sendBuyerPasswordResetOtp(string $email, string $name, string $otp): bool
     {
+        self::recordSentOtp($email, $otp);
         $name = trim($name) !== '' ? $name : 'Valued Buyer';
         $subject = "Password Reset Verification — Sports Junction";
         $content = "
@@ -759,6 +833,7 @@ HTML;
     // -------------------------------------------------------------------------
     public static function sendSupplierPasswordResetOtp(string $email, string $companyName, string $otp): bool
     {
+        self::recordSentOtp($email, $otp);
         $companyName = trim($companyName) !== '' ? $companyName : 'Valued Manufacturer';
         $subject = "Password Reset Verification — Sports Junction";
         $content = "
@@ -1306,6 +1381,7 @@ HTML;
 
     public static function sendProfileEmailChangeOtp(string $email, string $name = 'User', string $otp = ''): bool
     {
+        self::recordSentOtp($email, $otp);
         $name = trim($name) !== '' ? $name : 'User';
         $content = "
             <h2 style='margin:0 0 14px 0;color:#0f172a;font-size:22px;font-weight:700;'>Verify Your New Email Address</h2>

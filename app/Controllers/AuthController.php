@@ -388,14 +388,18 @@ class AuthController extends Controller
             $otp = Otp::generate($email, 'REGISTRATION', $this->request->getIp());
 
             // Send transactional email
-            Mailer::sendBuyerOtp($email, (string)$input['name'], $otp);
+            $sent = Mailer::sendBuyerOtp($email, (string)$input['name'], $otp);
 
             // Set session for OTP verification
             Session::set('otp_email', $email);
             Session::set('otp_purpose', 'REGISTRATION');
             Session::set('otp_user_id', $userId);
 
-            Session::flash('success', "A 6-digit verification code has been dispatched to {$email}.");
+            if ($sent) {
+                Session::flash('success', "A 6-digit verification code has been dispatched to {$email}.");
+            } else {
+                Session::flash('warning', "Account created, but we could not deliver the verification email to {$email}. Please verify your email or click Resend OTP.");
+            }
             $this->redirect('/verify-email');
         } catch (\Throwable $e) {
             Session::flash('error', 'Registration error: ' . $e->getMessage());
@@ -592,17 +596,26 @@ class AuthController extends Controller
 
         $otp = Otp::generate($email, $purpose, $this->request->getIp());
 
+        $sent = false;
         if ($purpose === 'SUPPLIER_REGISTRATION') {
-            Mailer::sendOtpResend($email, $name, $otp, true);
+            $sent = Mailer::sendOtpResend($email, $name, $otp, true);
         } elseif ($purpose === 'PASSWORD_RESET') {
             $isSupplier = ($user && ($user['role'] ?? '') === 'SUPPLIER');
             if ($isSupplier) {
-                Mailer::sendSupplierPasswordResetOtp($email, $name, $otp);
+                $sent = Mailer::sendSupplierPasswordResetOtp($email, $name, $otp);
             } else {
-                Mailer::sendBuyerPasswordResetOtp($email, $name, $otp);
+                $sent = Mailer::sendBuyerPasswordResetOtp($email, $name, $otp);
             }
         } else {
-            Mailer::sendOtpResend($email, $name, $otp, false);
+            $sent = Mailer::sendOtpResend($email, $name, $otp, false);
+        }
+
+        if (!$sent) {
+            $this->json([
+                'success' => false,
+                'message' => 'Unable to deliver the verification passcode at this time. Please check your email configuration.',
+            ], 500);
+            return;
         }
 
         $this->json([
@@ -669,10 +682,18 @@ class AuthController extends Controller
 
         $otp = Otp::generate($email, 'PASSWORD_RESET', $this->request->getIp());
         if (($user['role'] ?? '') === 'SUPPLIER') {
-            Mailer::sendSupplierPasswordResetOtp($email, $user['name'] ?? 'Manufacturer', $otp);
+            $sent = Mailer::sendSupplierPasswordResetOtp($email, $user['name'] ?? 'Manufacturer', $otp);
         } else {
-            Mailer::sendBuyerPasswordResetOtp($email, $user['name'] ?? 'Valued Buyer', $otp);
+            $sent = Mailer::sendBuyerPasswordResetOtp($email, $user['name'] ?? 'Valued Buyer', $otp);
         }
+
+        if (!$sent) {
+            Session::remove('reset_email');
+            Session::flash('error', 'Unable to deliver the password recovery email at this time. Please check your email or contact support.');
+            $this->redirect('/forgot-password');
+            return;
+        }
+
         Session::set('reset_email', $email);
         Session::flash('success', "A 6-digit recovery passcode has been dispatched to {$email}.");
         $this->redirect('/reset-password');
@@ -922,14 +943,18 @@ class AuthController extends Controller
 
             // 3. Generate & Dispatch OTP
             $otp = Otp::generate($email, 'SUPPLIER_REGISTRATION', $this->request->getIp());
-            Mailer::sendSupplierOtp($email, (string)$input['company_name'], $otp);
+            $sent = Mailer::sendSupplierOtp($email, (string)$input['company_name'], $otp);
 
             Session::set('otp_email', $email);
             Session::set('otp_purpose', 'SUPPLIER_REGISTRATION');
             Session::set('otp_user_id', $userId);
             Session::set('otp_supplier_id', $supplierId);
 
-            Session::flash('success', "A 6-digit verification code has been dispatched to {$email}.");
+            if ($sent) {
+                Session::flash('success', "A 6-digit verification code has been dispatched to {$email}.");
+            } else {
+                Session::flash('warning', "Account created, but we could not deliver the verification email to {$email}. Please verify your email or click Resend OTP.");
+            }
             $this->redirect('/verify-email');
         } catch (\Throwable $e) {
             Session::flash('error', 'Supplier registration error: ' . $e->getMessage());
