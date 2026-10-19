@@ -18,7 +18,7 @@ $currentSupplierId = \App\Models\Supplier::currentSupplierId();
     <!-- MINIMIZED LAUNCHER BUTTON -->
     <button type="button" id="chatLauncherBtn" onclick="toggleFloatingChat()" class="px-4 py-3 rounded-full bg-blue-900 hover:bg-blue-950 text-white font-headline font-bold text-xs shadow-2xl flex items-center gap-2.5 transition-all transform hover:scale-105 border-2 border-white/20">
         <span class="material-symbols-outlined text-[20px]">chat</span>
-        <span id="chatLauncherLabel"><?= ($isLoggedIn && $userRole === 'BUYER') ? 'Supplier Messages' : 'Chat with Factory' ?></span>
+        <span id="chatLauncherLabel"><?= ($isLoggedIn && $userRole === 'BUYER') ? 'Supplier Messages' : 'Chat with Supplier' ?></span>
         <span id="chatLauncherBadge" class="hidden px-2 py-0.5 rounded-full bg-amber-500 text-slate-900 font-extrabold text-[10px]">0</span>
     </button>
 
@@ -67,7 +67,7 @@ $currentSupplierId = \App\Models\Supplier::currentSupplierId();
                     <div class="w-14 h-14 rounded-full bg-blue-100 text-blue-900 flex items-center justify-center mb-1 shadow-xs">
                         <span class="material-symbols-outlined text-[32px]">lock</span>
                     </div>
-                    <h5 class="font-headline font-bold text-base text-slate-900">Sign In to Chat with Factory</h5>
+                    <h5 class="font-headline font-bold text-base text-slate-900">Sign In to Chat with Supplier</h5>
                     <p class="text-xs text-slate-500 leading-relaxed max-w-sm">
                         Direct B2B negotiation, wholesale pricing inquiries, and official contract sharing are restricted to verified accounts.
                     </p>
@@ -319,7 +319,7 @@ function renderThreadsList(threads) {
             <div class="p-6 text-center text-slate-400 text-xs">
                 <span class="material-symbols-outlined text-[32px] text-slate-300 mb-1">chat_bubble_outline</span>
                 <p class="font-bold text-slate-600">No conversations yet</p>
-                <p class="text-[11px] mt-1">Browse products and click "Chat with Factory" to start direct negotiation.</p>
+                <p class="text-[11px] mt-1">Browse products and click "Chat with Supplier" to start direct negotiation.</p>
             </div>
         `;
         return;

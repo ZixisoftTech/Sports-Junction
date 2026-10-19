@@ -275,7 +275,7 @@ $sort = $filters['sort'] ?? 'featured';
                                             'max_price' => (float)($prod['max_price'] ?? 0),
                                             'moq_quantity' => (int)($prod['moq_quantity'] ?? 1),
                                             'supplier_name' => $prod['supplier_name'] ?? 'Verified Factory'
-                                        ])) ?>)" class="p-2 rounded-xl bg-blue-700 hover:bg-blue-800 text-white transition-colors shrink-0 flex items-center justify-center cursor-pointer" title="Chat with Factory about this Product" aria-label="Chat with Factory">
+                                        ])) ?>)" class="p-2 rounded-xl bg-blue-700 hover:bg-blue-800 text-white transition-colors shrink-0 flex items-center justify-center cursor-pointer" title="Chat with Supplier about this Product" aria-label="Chat with Supplier">
                                             <span class="material-symbols-outlined text-[18px]">send</span>
                                         </button>
                                     <?php endif; ?>

@@ -251,7 +251,7 @@ $supplierCertificationTags = !empty($product['supplier_id']) ? \App\Models\Suppl
                     <!-- Chat & Negotiate Button -->
                     <button type="button" onclick="launchProductChat()" class="w-full py-3 rounded-xl bg-teal-800 hover:bg-teal-900 text-white font-headline font-bold text-xs shadow-sm transition-all flex items-center justify-center gap-2">
                         <span class="material-symbols-outlined text-[18px]">chat</span>
-                        <span>Chat & Negotiate with Factory</span>
+                        <span>CHAT WITH SUPPLIER</span>
                     </button>
                     <?php if ((int)$product['sample_available'] === 1): ?>
                         <button type="button" onclick="openInquiryModal('Sample Request: <?= htmlspecialchars(addslashes($product['name'])) ?>', '<?= htmlspecialchars(addslashes($product['supplier_name'] ?? 'Verified Indian Factory')) ?>', 1, <?= (int)$product['id'] ?>, <?= (int)($product['supplier_id'] ?? 1) ?>)" class="w-full py-2.5 rounded-xl bg-white hover:bg-gray-50 text-blue-900 border border-surface-container font-headline font-bold text-xs transition-colors flex items-center justify-center gap-2">

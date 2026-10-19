@@ -85,7 +85,7 @@ $isOwnSupplier = (\App\Models\Supplier::currentSupplierId() === $supplierId);
                         <?php else: ?>
                             <button type="button" onclick="openProductChat({supplier_id: <?= $supplierId ?>, supplier_name: '<?= htmlspecialchars(addslashes($supplier['company_name'] ?? 'Supplier')) ?>'})" class="px-5 py-2.5 rounded-xl bg-blue-900 hover:bg-blue-950 text-white font-headline font-bold text-xs shadow-md transition-all flex items-center gap-2 transform hover:scale-[1.02]">
                                 <span class="material-symbols-outlined text-[18px]">chat</span>
-                                <span>Chat with Factory</span>
+                                <span>CHAT WITH SUPPLIER</span>
                             </button>
                         <?php endif; ?>
                         <a href="#factoryProducts" class="px-4 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-xs transition-colors shadow-2xs flex items-center gap-1.5">
