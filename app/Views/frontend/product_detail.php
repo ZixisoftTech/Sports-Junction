@@ -533,15 +533,12 @@ $supplierCertificationTags = !empty($product['supplier_id']) ? \App\Models\Suppl
                 <?php foreach ($relatedProducts as $rel): ?>
                     <?php 
                         $relUrl = htmlspecialchars($baseUrl) . '/product/' . htmlspecialchars($rel['slug'] ?? (string)$rel['id']);
-                        $relImg = !empty($rel['primary_image']) ? $rel['primary_image'] : 'https://placehold.co/400x400?text=Sports+Junction';
-                        if (!str_starts_with($relImg, 'http') && !str_starts_with($relImg, '/')) {
-                            $relImg = $baseUrl . $relImg;
-                        }
+                        $relImg = \App\Helpers\Uploader::imageUrl($rel['primary_image'] ?? null);
                     ?>
                     <div class="bg-white rounded-2xl border border-surface-container shadow-sm hover:shadow-md transition-all overflow-hidden flex flex-col justify-between group">
                         <div class="relative w-full h-44 bg-gray-100 overflow-hidden">
                             <a href="<?= $relUrl ?>">
-                                <img src="<?= htmlspecialchars($relImg) ?>" alt="<?= htmlspecialchars($rel['name']) ?>" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                                <img src="<?= htmlspecialchars($relImg) ?>" alt="<?= htmlspecialchars($rel['name']) ?>" onerror="this.onerror=null;this.src='<?= htmlspecialchars($baseUrl) ?>/assets/images/logo.jpg';" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
                             </a>
                             <?php if (!empty($rel['certificates'])): ?>
                                 <div class="absolute top-2 left-2 flex flex-col gap-1 items-start max-w-[85%] pointer-events-none">
@@ -575,10 +572,25 @@ $supplierCertificationTags = !empty($product['supplier_id']) ? \App\Models\Suppl
                                     MOQ: <?= (int)$rel['moq_quantity'] ?> <?= htmlspecialchars($rel['moq_unit_name'] ?? 'units') ?>
                                 </div>
                             </div>
-                            <div class="pt-3 border-t border-surface-container mt-3">
-                                <a href="<?= $relUrl ?>" class="block w-full py-1.5 text-center rounded-lg bg-surface-container-low hover:bg-surface-container-high text-blue-900 text-xs font-bold transition-colors">
-                                    View Specs
+                            <div class="pt-3 border-t border-surface-container mt-3 grid grid-cols-2 gap-2">
+                                <a href="<?= $relUrl ?>" class="w-full py-1.5 text-center rounded-lg bg-surface-container-low hover:bg-surface-container-high text-blue-900 text-xs font-bold transition-colors inline-flex items-center justify-center">
+                                    Specs & Samples
                                 </a>
+                                <button type="button" onclick="openProductChat(<?= htmlspecialchars(json_encode([
+                                    'id' => (int)$rel['id'],
+                                    'product_id' => (int)$rel['id'],
+                                    'supplier_id' => (int)($rel['supplier_id'] ?? 1),
+                                    'title' => $rel['name'] ?? $rel['title'] ?? '',
+                                    'name' => $rel['name'] ?? $rel['title'] ?? '',
+                                    'primary_image' => $relImg,
+                                    'min_price' => (float)($rel['min_price'] ?? 0),
+                                    'max_price' => (float)($rel['max_price'] ?? 0),
+                                    'moq_quantity' => (int)($rel['moq_quantity'] ?? 1),
+                                    'supplier_name' => $rel['supplier_name'] ?? 'Verified Factory'
+                                ])) ?>)" class="w-full py-1.5 text-center rounded-lg bg-blue-900 hover:bg-blue-950 text-white text-xs font-bold transition-colors inline-flex items-center justify-center gap-1.5 cursor-pointer shadow-xs">
+                                    <span class="material-symbols-outlined text-[15px]">chat</span>
+                                    <span>Chat</span>
+                                </button>
                             </div>
                         </div>
                     </div>
