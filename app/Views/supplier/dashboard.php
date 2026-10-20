@@ -12,10 +12,16 @@ $baseUrl = Response::baseUrl();
             <h1 class="font-headline font-extrabold text-2xl text-slate-900 tracking-tight">Manufacturer Operations Desk</h1>
             <p class="text-xs sm:text-sm text-slate-500 mt-1">Manage wholesale sports catalog, view audit approvals, and submit equipment specs.</p>
         </div>
-        <a href="<?= htmlspecialchars($baseUrl) ?>/supplier/products/add" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-900 hover:bg-blue-950 text-white font-bold text-xs shadow-md transition-all self-start sm:self-auto">
-            <span class="material-symbols-outlined text-[18px]">add_circle</span>
-            <span>Add New Product</span>
-        </a>
+        <div class="flex items-center gap-2.5 self-start sm:self-auto">
+            <button type="button" id="btnOpenBulkModal" class="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-blue-900/20 text-blue-900 bg-blue-50 hover:bg-blue-100 font-bold text-xs shadow-xs transition-all cursor-pointer">
+                <span class="material-symbols-outlined text-[18px]">upload_file</span>
+                <span>Bulk Upload Products</span>
+            </button>
+            <a href="<?= htmlspecialchars($baseUrl) ?>/supplier/products/add" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-900 hover:bg-blue-950 text-white font-bold text-xs shadow-md transition-all">
+                <span class="material-symbols-outlined text-[18px]">add_circle</span>
+                <span>Add New Product</span>
+            </a>
+        </div>
     </div>
 
     <!-- Metrics Cards (Database-backed counts) -->
@@ -125,3 +131,6 @@ $baseUrl = Response::baseUrl();
         </div>
     </div>
 </div>
+
+<!-- Bulk Product Upload Modal -->
+<?php require __DIR__ . '/bulk_upload_modal.php'; ?>
