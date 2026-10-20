@@ -24,6 +24,7 @@ if ($authUser && ($authUser['role'] ?? '') === 'BUYER') {
         $buyerUnreadCount = 0;
     }
 }
+$footerColumns = CmsPage::getByColumns(true);
 $categories = !empty($categories) ? $categories : Category::allActive();
 $allCountries = !empty($countries) ? $countries : \App\Models\Country::allActive();
 $buyerCountryId = null;
@@ -437,22 +438,155 @@ if ($authUser && ($authUser['role'] ?? '') === 'BUYER') {
         <span id="toast-text" class="text-sm font-semibold">Direct factory RFQ successfully transmitted!</span>
     </div>
 
-    <!-- Global Footer -->
-    <footer class="w-full py-6 border-t border-slate-200/80 bg-white/70 text-center text-xs text-slate-500 mt-auto">
-        <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
-            <div class="flex items-center gap-4 text-[11px] font-medium text-slate-500">
-                <span class="inline-flex items-center gap-1"><span class="material-symbols-outlined text-[14px] text-teal-600">verified</span> ISO 9001:2015 Verified Protocol</span>
-                <span>•</span>
-                <span class="inline-flex items-center gap-1"><span class="material-symbols-outlined text-[14px] text-blue-700">lock</span> 256-Bit SSL Data Security</span>
+    <!-- Footer: Clean Dark Navy / Near-Black Exactly 3 Columns Matching Reference -->
+    <footer class="bg-[#030712] text-slate-300 border-t border-slate-900 mt-20 pt-16 pb-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            
+            <!-- Column Grid: Exactly Three Columns -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-10 md:gap-14 lg:gap-20 pb-12">
+                
+                <!-- Column 1 — TOP SECTORS -->
+                <div>
+                    <h4 class="font-headline font-bold text-xs sm:text-sm text-white mb-5 tracking-wider uppercase">
+                        TOP SECTORS
+                    </h4>
+                    <ul class="space-y-3.5 text-xs text-slate-400">
+                        <?php if (!empty($footerColumns['TOP_SECTORS'])): ?>
+                            <?php foreach ($footerColumns['TOP_SECTORS'] as $p): ?>
+                                <?php $url = !empty($p['external_url']) ? (str_starts_with($p['external_url'], 'http') ? htmlspecialchars($p['external_url']) : htmlspecialchars($baseUrl . $p['external_url'])) : htmlspecialchars($baseUrl . '/page/' . $p['slug']); ?>
+                                <li>
+                                    <a href="<?= $url ?>" class="hover:text-white transition-colors block leading-relaxed">
+                                        <?= htmlspecialchars($p['title']) ?>
+                                    </a>
+                                </li>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <li><a href="<?= $baseUrl ?>/category/cricket-and-field-sports" class="hover:text-white transition-colors block leading-relaxed">Cricket Bats &amp; Pads</a></li>
+                            <li><a href="<?= $baseUrl ?>/category/football-and-inflatables" class="hover:text-white transition-colors block leading-relaxed">Match Footballs</a></li>
+                            <li><a href="<?= $baseUrl ?>/category/agility-and-speed-training" class="hover:text-white transition-colors block leading-relaxed">Agility Hurdles &amp; Ladders</a></li>
+                            <li><a href="<?= $baseUrl ?>/category/sports-and-fitness" class="hover:text-white transition-colors block leading-relaxed">Commercial Gym Equipment</a></li>
+                            <li><a href="<?= $baseUrl ?>/category/apparel-and-accessories" class="hover:text-white transition-colors block leading-relaxed">Sportswear &amp; Uniforms</a></li>
+                        <?php endif; ?>
+                    </ul>
+                </div>
+
+                <!-- Column 2 — SOURCING SOLUTIONS -->
+                <div>
+                    <h4 class="font-headline font-bold text-xs sm:text-sm text-white mb-5 tracking-wider uppercase">
+                        SOURCING SOLUTIONS
+                    </h4>
+                    <ul class="space-y-3.5 text-xs text-slate-400">
+                        <?php if (!empty($footerColumns['SOURCING'])): ?>
+                            <?php foreach ($footerColumns['SOURCING'] as $p): ?>
+                                <?php 
+                                    $rawUrl = $p['external_url'] ?? '';
+                                    if (empty($rawUrl)) {
+                                        $url = htmlspecialchars($baseUrl . '/page/' . $p['slug']);
+                                    } elseif (str_starts_with($rawUrl, 'http')) {
+                                        $url = htmlspecialchars($rawUrl);
+                                    } else {
+                                        $url = htmlspecialchars($baseUrl . $rawUrl);
+                                    }
+                                    $isRfq = stripos($p['title'], 'RFQ') !== false || stripos($p['title'], 'Request for Quotation') !== false;
+                                ?>
+                                <li>
+                                    <?php if ($isRfq): ?>
+                                        <a href="javascript:void(0)" onclick="openRfqModal()" class="hover:text-white transition-colors block leading-relaxed cursor-pointer">
+                                            <?= htmlspecialchars($p['title']) ?>
+                                        </a>
+                                    <?php else: ?>
+                                        <a href="<?= $url ?>" class="hover:text-white transition-colors block leading-relaxed">
+                                            <?= htmlspecialchars($p['title']) ?>
+                                        </a>
+                                    <?php endif; ?>
+                                </li>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <li><a href="<?= $baseUrl ?>/products" class="hover:text-white transition-colors block leading-relaxed">Direct Factory Catalog</a></li>
+                            <li><a href="javascript:void(0)" onclick="openRfqModal()" class="hover:text-white transition-colors block leading-relaxed cursor-pointer">Request for Quotation (RFQ)</a></li>
+                            <li><a href="<?= $baseUrl ?>/contact" class="hover:text-white transition-colors block leading-relaxed">Contact Us &amp; Support</a></li>
+                            <li><a href="<?= $baseUrl ?>/page/container-freight-logistics" class="hover:text-white transition-colors block leading-relaxed">Container Freight Logistics</a></li>
+                            <li><a href="<?= $baseUrl ?>/sitemap.xml" target="_blank" class="hover:text-white transition-colors block leading-relaxed">XML Sitemap</a></li>
+                        <?php endif; ?>
+                    </ul>
+                </div>
+
+                <!-- Column 3 — PLATFORM & POLICIES -->
+                <div>
+                    <h4 class="font-headline font-bold text-xs sm:text-sm text-white mb-5 tracking-wider uppercase">
+                        PLATFORM &amp; POLICIES
+                    </h4>
+                    <ul class="space-y-3.5 text-xs text-slate-400">
+                        <?php if (!empty($footerColumns['PLATFORM_ADMIN'])): ?>
+                            <?php foreach ($footerColumns['PLATFORM_ADMIN'] as $p): ?>
+                                <?php 
+                                    // Skip any administrative or portal links
+                                    if (stripos($p['title'], 'admin') !== false || stripos($p['slug'], 'admin') !== false || (!empty($p['external_url']) && stripos($p['external_url'], 'admin') !== false)) {
+                                        continue;
+                                    }
+                                    $url = !empty($p['external_url']) ? (str_starts_with($p['external_url'], 'http') ? htmlspecialchars($p['external_url']) : htmlspecialchars($baseUrl . $p['external_url'])) : htmlspecialchars($baseUrl . '/page/' . $p['slug']); 
+                                ?>
+                                <li>
+                                    <a href="<?= $url ?>" class="hover:text-white transition-colors block leading-relaxed">
+                                        <?= htmlspecialchars($p['title']) ?>
+                                    </a>
+                                </li>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <li><a href="<?= $baseUrl ?>/page/terms-and-conditions" class="hover:text-white transition-colors block leading-relaxed">Terms and Conditions</a></li>
+                            <li><a href="<?= $baseUrl ?>/page/privacy-policy" class="hover:text-white transition-colors block leading-relaxed">Privacy Policy</a></li>
+                            <li><a href="<?= $baseUrl ?>/page/terms-manufacturing-sla" class="hover:text-white transition-colors block leading-relaxed">Terms &amp; Manufacturing SLA</a></li>
+                            <li><a href="<?= $baseUrl ?>/page/seller-agreement" class="hover:text-white transition-colors block leading-relaxed">Seller &amp; Manufacturer Agreement</a></li>
+                        <?php endif; ?>
+                    </ul>
+                </div>
+
             </div>
-            <div class="flex items-center gap-4 text-xs font-semibold text-slate-600">
-                <a href="<?= htmlspecialchars($baseUrl) ?>/page/terms-and-conditions" class="hover:text-blue-900 transition-colors">Terms &amp; Conditions</a>
-                <span class="text-slate-300">|</span>
-                <a href="<?= htmlspecialchars($baseUrl) ?>/page/privacy-policy" class="hover:text-blue-900 transition-colors">Privacy Policy</a>
-                <span class="text-slate-300">|</span>
-                <a href="<?= htmlspecialchars($baseUrl) ?>/contact" class="hover:text-blue-900 transition-colors">Help Center</a>
+
+            <!-- Bottom Sub-Footer: Legal & Social Media in Dark Theme -->
+            <div class="border-t border-slate-900 pt-8 pb-6 flex flex-col md:flex-row items-center justify-between text-[11px] text-slate-400 gap-4">
+                <div>
+                    <span>&copy; <?= date('Y') ?> Sports Junction | All rights reserved.</span>
+                </div>
+
+                <!-- Right: Stay Connected -->
+                <?php 
+                    $hasFacebook = !empty(trim($siteSettings['social_facebook'] ?? ''));
+                    $hasTwitter = !empty(trim($siteSettings['social_twitter'] ?? ''));
+                    $hasInstagram = !empty(trim($siteSettings['social_instagram'] ?? ''));
+                    $hasAnySocial = $hasFacebook || $hasTwitter || $hasInstagram;
+                ?>
+                <?php if ($hasAnySocial): ?>
+                <div class="flex items-center gap-3 shrink-0">
+                    <span class="font-headline font-bold text-xs text-white tracking-tight">Stay Connected</span>
+                    <div class="flex items-center gap-2">
+                        
+                        <!-- Facebook -->
+                        <?php if ($hasFacebook): ?>
+                            <a href="<?= htmlspecialchars(trim($siteSettings['social_facebook'])) ?>" target="_blank" rel="noopener noreferrer" class="w-7 h-7 rounded-full bg-slate-900 hover:bg-blue-600 hover:text-white text-slate-400 border border-slate-800 flex items-center justify-center transition-all" title="Facebook" aria-label="Facebook">
+                                <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+                            </a>
+                        <?php endif; ?>
+
+                        <!-- Twitter / X -->
+                        <?php if ($hasTwitter): ?>
+                            <a href="<?= htmlspecialchars(trim($siteSettings['social_twitter'])) ?>" target="_blank" rel="noopener noreferrer" class="w-7 h-7 rounded-full bg-slate-900 hover:bg-white hover:text-black text-slate-400 border border-slate-800 flex items-center justify-center transition-all" title="X" aria-label="X">
+                                <svg class="w-3 h-3 fill-current" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                            </a>
+                        <?php endif; ?>
+
+                        <!-- Instagram -->
+                        <?php if ($hasInstagram): ?>
+                            <a href="<?= htmlspecialchars(trim($siteSettings['social_instagram'])) ?>" target="_blank" rel="noopener noreferrer" class="w-7 h-7 rounded-full bg-slate-900 hover:bg-pink-600 hover:text-white text-slate-400 border border-slate-800 flex items-center justify-center transition-all" title="Instagram" aria-label="Instagram">
+                                <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
+                            </a>
+                        <?php endif; ?>
+
+                    </div>
+                </div>
+                <?php endif; ?>
             </div>
-            <p>&copy; <?= date('Y') ?> <?= htmlspecialchars($siteName) ?> B2B Marketplace. Direct Factory Wholesale Network.</p>
+
         </div>
     </footer>
 

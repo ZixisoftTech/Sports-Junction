@@ -9,6 +9,7 @@ $baseUrl = Response::baseUrl();
 $error = Session::flash('error');
 $success = Session::flash('success');
 $old = Session::flash('old_input') ?? [];
+$countries = !empty($countries) ? $countries : \App\Models\Country::allActive();
 ?>
 
 <div class="w-full max-w-2xl mx-auto">
@@ -194,12 +195,6 @@ $old = Session::flash('old_input') ?? [];
         </div>
     </div>
 
-    <!-- Bottom Feature Badges -->
-    <div class="mt-8 flex flex-wrap items-center justify-center gap-6 text-xs text-slate-500">
-        <span class="inline-flex items-center gap-1.5"><span class="material-symbols-outlined text-[16px] text-blue-800">description</span> Factory Audits on Demand</span>
-        <span class="inline-flex items-center gap-1.5"><span class="material-symbols-outlined text-[16px] text-teal-600">currency_exchange</span> Direct Currency Settlements</span>
-        <span class="inline-flex items-center gap-1.5"><span class="material-symbols-outlined text-[16px] text-indigo-700">verified_user</span> Trade Assurance Guarantee</span>
-    </div>
 </div>
 
 <script src="<?= htmlspecialchars($baseUrl) ?>/assets/js/country-picker.js"></script>
