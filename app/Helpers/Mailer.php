@@ -520,28 +520,26 @@ class Mailer
         string $badgeColor = '#00288e',
         string $badgeBg = '#e0e7ff'
     ): string {
-        $appUrl = rtrim((string) Env::get('APP_URL', 'https://sportsjunction.in'), '/');
-        // Always provide a guaranteed public HTTPS logo URL reachable by external mail clients (Gmail, Outlook)
-        $logoUrl = 'https://sportsjunction.in/assets/images/logo.png';
-        try {
-            $configuredLogo = SiteSetting::get('site_logo', '');
-            if (!empty($configuredLogo)) {
-                $configuredLogo = trim($configuredLogo);
-                if (str_starts_with($configuredLogo, 'http://') || str_starts_with($configuredLogo, 'https://')) {
-                    if (!str_contains($configuredLogo, 'localhost') && !str_contains($configuredLogo, '127.0.0.1')) {
-                        $logoUrl = $configuredLogo;
-                    }
-                } elseif (!str_contains($appUrl, 'localhost') && !str_contains($appUrl, '127.0.0.1')) {
-                    $logoUrl = $appUrl . '/' . ltrim($configuredLogo, '/');
-                }
+        // Resolve the public HTTPS base URL for links in outbound emails
+        $publicAppUrl = 'https://sportsjunction.in';
+        $rawAppUrl = trim((string) Env::get('APP_URL', ''));
+        if (!empty($rawAppUrl) && !str_contains($rawAppUrl, 'localhost') && !str_contains($rawAppUrl, '127.0.0.1')) {
+            $publicAppUrl = rtrim($rawAppUrl, '/');
+            if (str_starts_with($publicAppUrl, 'http://')) {
+                $publicAppUrl = 'https://' . substr($publicAppUrl, 7);
             }
-        } catch (\Throwable $e) {
-            $logoUrl = 'https://sportsjunction.in/assets/images/logo.png';
+        } elseif (!empty($_SERVER['HTTP_HOST']) && !str_contains($_SERVER['HTTP_HOST'], 'localhost') && !str_contains($_SERVER['HTTP_HOST'], '127.0.0.1')) {
+            $publicAppUrl = 'https://' . preg_replace('/:[0-9]+$/', '', $_SERVER['HTTP_HOST']);
         }
+
+        // Always dynamically resolve the active site logo from SiteSetting
+        $logoUrl = SiteSetting::getEmailLogoUrl();
 
         $ctaHtml = '';
         if (!empty($ctaUrl) && !empty($ctaText)) {
-            $ctaFullUrl = (str_starts_with($ctaUrl, 'http://') || str_starts_with($ctaUrl, 'https://')) ? $ctaUrl : ($appUrl . '/' . ltrim($ctaUrl, '/'));
+            $ctaFullUrl = (str_starts_with($ctaUrl, 'http://') || str_starts_with($ctaUrl, 'https://')) 
+                ? $ctaUrl 
+                : ($publicAppUrl . '/' . ltrim($ctaUrl, '/'));
             $ctaHtml = "
             <table border='0' cellpadding='0' cellspacing='0' style='margin: 28px 0;'>
                 <tr>
@@ -572,8 +570,8 @@ class Mailer
                             <table border="0" cellpadding="0" cellspacing="0" width="100%">
                                 <tr>
                                     <td valign="middle">
-                                        <a href="{$appUrl}" target="_blank" style="text-decoration:none;display:inline-block;">
-                                            <img src="{$logoUrl}" alt="Sports Junction" width="180" height="53" border="0" style="display:block;width:180px;max-width:180px;height:auto;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:18px;font-weight:800;color:#00288e;border:0;outline:none;text-decoration:none;" />
+                                        <a href="{$publicAppUrl}" target="_blank" style="text-decoration:none;display:inline-block;">
+                                            <img src="{$logoUrl}" alt="Sports Junction" width="180" border="0" style="display:block;width:180px;max-width:180px;height:auto;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:18px;font-weight:800;color:#00288e;border:0;outline:none;text-decoration:none;" />
                                         </a>
                                     </td>
                                     <td valign="middle" align="right" style="font-size:11px;font-weight:700;color:#00288e;letter-spacing:1px;text-transform:uppercase;">

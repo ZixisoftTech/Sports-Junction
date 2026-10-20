@@ -61,7 +61,7 @@ class SiteSetting extends Model
     }
 
     /**
-     * Resolves the site logo URL safely.
+     * Resolves the site logo URL safely for browser and web rendering.
      * If the configured logo is empty or the referenced file is physically missing on disk,
      * it falls back to the guaranteed default brand asset (/assets/images/logo.png).
      */
@@ -82,10 +82,20 @@ class SiteSetting extends Model
         }
 
         $cleanPath = '/' . ltrim($trimmed, '/');
-        // Check physical file existence in public directory
+        
+        // Multi-root physical file existence check (supports standard public/ and public_html setups)
         $publicDir = dirname(__DIR__, 2) . '/public';
         $filePath = $publicDir . $cleanPath;
-        if (!file_exists($filePath)) {
+        $docRoot = !empty($_SERVER['DOCUMENT_ROOT']) ? rtrim((string)$_SERVER['DOCUMENT_ROOT'], '/') : '';
+        $docPath = $docRoot !== '' ? $docRoot . $cleanPath : '';
+        $parentPath = dirname(__DIR__, 2) . $cleanPath;
+
+        $exists = file_exists($filePath) 
+            || ($docPath !== '' && file_exists($docPath)) 
+            || file_exists($parentPath);
+
+        // If file doesn't exist and is not a dynamic upload, fallback to default
+        if (!$exists && !str_starts_with($cleanPath, '/uploads/settings/')) {
             return $defaultLogo;
         }
 
@@ -95,4 +105,61 @@ class SiteSetting extends Model
 
         return $baseUrl . $cleanPath;
     }
+
+    /**
+     * Resolves an absolute, publicly accessible HTTPS logo URL specifically for emails.
+     * Email clients (Gmail, Outlook, iOS Mail) require full HTTPS URLs and cannot access
+     * localhost, relative paths, or private network addresses.
+     * Always dynamically picks from the active 'site_logo' in Site Settings.
+     */
+    public static function getEmailLogoUrl(): string
+    {
+        $publicDomain = 'https://sportsjunction.in';
+        $appUrl = trim((string) \App\Helpers\Env::get('APP_URL', ''));
+
+        if (!empty($appUrl) && !str_contains($appUrl, 'localhost') && !str_contains($appUrl, '127.0.0.1')) {
+            $publicDomain = rtrim($appUrl, '/');
+            if (str_starts_with($publicDomain, 'http://')) {
+                $publicDomain = 'https://' . substr($publicDomain, 7);
+            }
+        } elseif (!empty($_SERVER['HTTP_HOST']) && !str_contains($_SERVER['HTTP_HOST'], 'localhost') && !str_contains($_SERVER['HTTP_HOST'], '127.0.0.1')) {
+            $publicDomain = 'https://' . preg_replace('/:[0-9]+$/', '', $_SERVER['HTTP_HOST']);
+        }
+
+        $defaultLogo = $publicDomain . '/assets/images/logo.png';
+
+        try {
+            $all = self::getAllKeyed();
+            $stored = trim((string)($all['site_logo'] ?? ''));
+
+            if (empty($stored)) {
+                return $defaultLogo . '?v=2';
+            }
+
+            $cacheBuster = 'v=' . substr(md5($stored), 0, 8);
+
+            // If stored as a full URL
+            if (str_starts_with($stored, 'http://') || str_starts_with($stored, 'https://')) {
+                $url = $stored;
+                // If it points to localhost/127.0.0.1, swap out the domain
+                if (str_contains($url, 'localhost') || str_contains($url, '127.0.0.1')) {
+                    $path = parse_url($url, PHP_URL_PATH) ?? '';
+                    $url = $publicDomain . '/' . ltrim($path, '/');
+                }
+                // Enforce HTTPS for email clients (Gmail blocks mixed HTTP content)
+                if (str_starts_with($url, 'http://')) {
+                    $url = 'https://' . substr($url, 7);
+                }
+                return str_contains($url, '?') ? $url : ($url . '?' . $cacheBuster);
+            }
+
+            // Relative path (e.g. /uploads/settings/logo_xxx.png or /assets/images/logo.png)
+            $cleanPath = '/' . ltrim($stored, '/');
+            $fullUrl = $publicDomain . $cleanPath;
+            return str_contains($fullUrl, '?') ? $fullUrl : ($fullUrl . '?' . $cacheBuster);
+        } catch (\Throwable $e) {
+            return $defaultLogo . '?v=2';
+        }
+    }
 }
+

@@ -72,9 +72,13 @@ $logoUrl = \App\Models\SiteSetting::getLogoUrl();
                                 </div>
                             </div>
                             <div class="col-sm-8">
-                                <label class="form-label fw-bold small text-slate-800">Change Website Logo</label>
+                                <label class="form-label fw-bold small text-slate-800">Change Website Logo (Upload File)</label>
                                 <input type="file" name="site_logo" id="siteLogoInput" accept="image/png,image/jpeg,image/webp,image/svg+xml" class="form-control form-control-sm mb-1" onchange="previewLogo(this)">
-                                <div class="form-text small" style="font-size: 11px;">Recommended: 240×60px (4:1 horizontal ratio), Transparent PNG, SVG, JPG, or WEBP &bull; Max size: 5MB.</div>
+                                <div class="form-text small mb-2" style="font-size: 11px;">Recommended: 240×60px (4:1 horizontal ratio), Transparent PNG, SVG, JPG, or WEBP &bull; Max size: 5MB.</div>
+                                
+                                <label class="form-label fw-bold small text-slate-800 mt-2">Active Logo Path / URL</label>
+                                <input type="text" name="site_logo_url" value="<?= htmlspecialchars($settings['site_logo'] ?? '/assets/images/logo.png') ?>" placeholder="e.g. /assets/images/logo.png or https://..." class="form-control form-control-sm">
+                                <div class="form-text small" style="font-size: 11px;">Enter an absolute HTTPS image URL or local path. Uploading a file above will automatically update this setting.</div>
                             </div>
                         </div>
 

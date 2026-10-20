@@ -113,6 +113,11 @@ class AdminSettingsController extends Controller
             if (move_uploaded_file($file['tmp_name'], $destPath)) {
                 SiteSetting::set('site_logo', '/uploads/settings/' . $newFileName, 'branding');
             }
+        } elseif (isset($_POST['site_logo_url'])) {
+            $logoUrlInput = trim((string)$_POST['site_logo_url']);
+            if ($logoUrlInput !== '') {
+                SiteSetting::set('site_logo', $logoUrlInput, 'branding');
+            }
         }
 
         // Save settings

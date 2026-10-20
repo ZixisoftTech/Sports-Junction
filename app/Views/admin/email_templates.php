@@ -280,7 +280,7 @@ document.addEventListener('DOMContentLoaded', function () {
             <body>
                 <div style="max-width:600px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;border:1px solid #e2e8f0;box-shadow:0 4px 14px rgba(0,0,0,0.06);">
                     <div style="padding:24px 32px;border-bottom:3px solid #00288e;display:flex;justify-content:space-between;align-items:center;">
-                        <img src="<?= htmlspecialchars(\App\Models\SiteSetting::getLogoUrl()) ?>" alt="Sports Junction" style="max-height:40px;max-width:200px;" onerror="this.outerHTML='<span style=\\'font-size:20px;font-weight:800;color:#00288e;letter-spacing:-0.5px;\\'>SPORTS JUNCTION</span>';" />
+                        <img src="<?= htmlspecialchars(\App\Models\SiteSetting::getEmailLogoUrl()) ?>" alt="Sports Junction" style="max-height:40px;max-width:200px;object-fit:contain;" onerror="this.outerHTML='<span style=\\'font-size:20px;font-weight:800;color:#00288e;letter-spacing:-0.5px;\\'>SPORTS JUNCTION</span>';" />
                         <span style="font-size:11px;font-weight:700;color:#00288e;text-transform:uppercase;letter-spacing:1px;">B2B Marketplace</span>
                     </div>
                     <div style="padding:20px 32px 0 32px;">
