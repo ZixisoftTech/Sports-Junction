@@ -216,8 +216,8 @@ $router->get('/admin', function (Request $req, Response $res) {
         $res->redirect('/admin/login');
     }
 });
-$router->get('/admin/login', [AuthController::class, 'showLogin']);
-$router->post('/admin/login', [AuthController::class, 'login']);
+$router->get('/admin/login', [AuthController::class, 'showAdminLogin']);
+$router->post('/admin/login', [AuthController::class, 'adminLogin']);
 $router->get('/admin/logout', [AuthController::class, 'logout']);
 
 // -------------------------------------------------------------

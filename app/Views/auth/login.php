@@ -9,6 +9,9 @@ $baseUrl = Response::baseUrl();
 $error = Session::flash('error');
 $success = Session::flash('success');
 $old = Session::flash('old_input') ?? [];
+$currentPath = parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH) ?? '';
+$isAdminLogin = !empty($isAdminView) || str_contains($currentPath, '/admin/login');
+$formAction = $isAdminLogin ? ($baseUrl . '/admin/login') : ($baseUrl . '/login');
 ?>
 
 <div class="w-full max-w-md mx-auto">
@@ -18,7 +21,7 @@ $old = Session::flash('old_input') ?? [];
         <div class="flex items-center justify-between mb-5">
             <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 border border-blue-200/60 text-blue-900 text-[11px] font-bold uppercase tracking-wider">
                 <span class="w-1.5 h-1.5 rounded-full bg-blue-700"></span>
-                <span>B2B Portal</span>
+                <span><?= $isAdminLogin ? 'Super Admin Portal' : 'B2B Portal' ?></span>
             </span>
             <span class="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-500">
                 <span class="material-symbols-outlined text-[14px] text-teal-600">verified</span>
@@ -28,8 +31,8 @@ $old = Session::flash('old_input') ?? [];
 
         <!-- Heading -->
         <div class="mb-6">
-            <h1 class="font-headline font-extrabold text-2xl sm:text-3xl text-slate-900 tracking-tight">Welcome Back</h1>
-            <p class="text-xs sm:text-sm text-slate-500 mt-1.5">Sign in to connect with manufacturers and manage your inquiries.</p>
+            <h1 class="font-headline font-extrabold text-2xl sm:text-3xl text-slate-900 tracking-tight"><?= $isAdminLogin ? 'Super Admin Sign In' : 'Welcome Back' ?></h1>
+            <p class="text-xs sm:text-sm text-slate-500 mt-1.5"><?= $isAdminLogin ? 'Sign in with your administrative credentials to manage the platform.' : 'Sign in to connect with manufacturers and manage your inquiries.' ?></p>
         </div>
 
         <!-- Alerts -->
@@ -48,7 +51,7 @@ $old = Session::flash('old_input') ?? [];
         <?php endif; ?>
 
         <!-- Login Form -->
-        <form action="<?= htmlspecialchars($baseUrl) ?>/login" method="POST" class="space-y-4" id="loginForm">
+        <form action="<?= htmlspecialchars($formAction) ?>" method="POST" class="space-y-4" id="loginForm">
             <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(CSRF::token()) ?>">
             <?php $redirectParam = (string)($_GET['redirect'] ?? Session::get('auth_redirect') ?? ''); ?>
             <?php if (!empty($redirectParam) && str_starts_with($redirectParam, '/') && !str_starts_with($redirectParam, '//')): ?>

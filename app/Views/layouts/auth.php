@@ -17,11 +17,14 @@ $siteName = $siteSettings['site_name'] ?? 'Sports Junction';
 $authUser = \App\Helpers\Session::get('auth_user');
 $authSupplierId = \App\Models\Supplier::currentSupplierId();
 $buyerUnreadCount = 0;
+$buyerFavCount = 0;
 if ($authUser && ($authUser['role'] ?? '') === 'BUYER') {
     try {
         $buyerUnreadCount = ChatConversation::getTotalUnreadCountForUser((int)$authUser['id'], 'BUYER');
+        $buyerFavCount = \App\Models\BuyerFavourite::countForBuyer((int)$authUser['id']);
     } catch (\Throwable $e) {
         $buyerUnreadCount = 0;
+        $buyerFavCount = 0;
     }
 }
 $footerColumns = CmsPage::getByColumns(true);
@@ -152,14 +155,15 @@ if ($authUser && ($authUser['role'] ?? '') === 'BUYER') {
             </div>
 
             <!-- Right Actions -->
-            <div class="flex items-center gap-3 shrink-0 text-sm font-semibold">
+            <div class="flex items-center gap-2 sm:gap-3 shrink-0 text-sm font-semibold">
                 <?php if ($authUser): ?>
                     <?php if (($authUser['role'] ?? '') === 'BUYER'): ?>
+                        <a href="<?= htmlspecialchars($baseUrl) ?>/buyer/favourites" class="text-on-surface hover:text-rose-600 transition-colors flex items-center gap-1 relative py-1 px-1.5 rounded-lg hover:bg-rose-50/60" title="Saved Favourites">
+                            <span class="material-symbols-outlined text-[20px] text-rose-600 fill-1">favorite</span>
+                            <span class="hidden lg:inline text-xs font-bold text-slate-800">Favourites</span>
+                            <span id="topNavFavouritesBadge" class="<?= ($buyerFavCount > 0 ? '' : 'hidden') ?> inline-flex items-center justify-center px-1.5 py-0.5 rounded-full bg-rose-600 text-white font-black text-[10px] leading-tight ml-0.5 shadow-xs"><?= $buyerFavCount > 99 ? '99+' : $buyerFavCount ?></span>
+                        </a>
                         <div class="hidden sm:flex items-center gap-3">
-                            <a href="<?= htmlspecialchars($baseUrl) ?>/buyer/favourites" class="text-on-surface hover:text-rose-600 transition-colors flex items-center gap-1" title="Saved Favourites">
-                                <span class="material-symbols-outlined text-[18px]">favorite</span>
-                                <span class="hidden lg:inline text-xs font-bold">Favourites</span>
-                            </a>
                             <a href="<?= htmlspecialchars($baseUrl) ?>/buyer/enquiries" class="text-on-surface hover:text-primary transition-colors flex items-center gap-1" title="My Enquiries">
                                 <span class="material-symbols-outlined text-[18px]">request_quote</span>
                                 <span class="hidden lg:inline text-xs font-bold">Enquiries</span>
@@ -183,6 +187,10 @@ if ($authUser && ($authUser['role'] ?? '') === 'BUYER') {
                         <a href="<?= htmlspecialchars($baseUrl) ?>/logout" class="text-xs font-bold text-rose-600 hover:underline px-2">Logout</a>
                     <?php endif; ?>
                 <?php else: ?>
+                    <a href="<?= htmlspecialchars($baseUrl) ?>/login?redirect=/buyer/favourites" class="text-on-surface hover:text-rose-600 transition-colors flex items-center gap-1 py-1 px-1.5 rounded-lg hover:bg-slate-100" title="Saved Favourites">
+                        <span class="material-symbols-outlined text-[20px] text-slate-500 hover:text-rose-600 transition-colors">favorite</span>
+                        <span class="hidden lg:inline text-xs font-bold">Favourites</span>
+                    </a>
                     <div class="hidden sm:flex items-center gap-2">
                         <a href="<?= htmlspecialchars($baseUrl) ?>/login" class="text-on-surface hover:text-primary transition-colors py-1 px-2">Login</a>
                         <span class="text-outline-variant">|</span>

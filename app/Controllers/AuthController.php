@@ -32,7 +32,8 @@ class AuthController extends Controller
         }
 
         $this->render('auth/login', [
-            'pageTitle' => 'Super Admin Login — Sports Junction',
+            'pageTitle'   => 'Super Admin Login — Sports Junction',
+            'isAdminView' => true,
         ], 'auth');
     }
 
@@ -47,8 +48,20 @@ class AuthController extends Controller
 
     public function showLogin(): void
     {
+        $redirectParam = (string)$this->request->get('redirect', '');
+        if (!empty($redirectParam) && str_starts_with($redirectParam, '/') && !str_starts_with($redirectParam, '//')) {
+            Session::set('auth_redirect', $redirectParam);
+        }
+
         $user = $this->authUser();
         if ($user) {
+            $redirectTarget = (string)($this->request->get('redirect') ?? Session::get('auth_redirect') ?? '');
+            Session::remove('auth_redirect');
+            if (!empty($redirectTarget) && str_starts_with($redirectTarget, '/') && !str_starts_with($redirectTarget, '//')) {
+                $this->redirect($redirectTarget);
+                return;
+            }
+
             $role = $user['role'] ?? '';
             if ($role === 'SUPER_ADMIN') {
                 $this->redirect('/admin/dashboard');
@@ -213,13 +226,16 @@ class AuthController extends Controller
             }
         }
 
-        // If supplier, check supplier approval status & suspension
-        $supplierRecord = Supplier::findByUserId((int)$user['id']);
-        if ($supplierRecord) {
-            if (($supplierRecord['approval_status'] ?? '') === 'SUSPENDED' || ($supplierRecord['status'] ?? '') === 'INACTIVE') {
-                Session::flash('error', 'Your manufacturer facility account has been suspended or disabled. Please contact administration.');
-                $this->redirect($redirectBack);
-                return;
+        // If supplier, check supplier approval status & suspension (Strictly scoped to SUPPLIER role)
+        $supplierRecord = null;
+        if (($user['role'] ?? '') === 'SUPPLIER') {
+            $supplierRecord = Supplier::findByUserId((int)$user['id']);
+            if ($supplierRecord) {
+                if (($supplierRecord['approval_status'] ?? '') === 'SUSPENDED' || ($supplierRecord['status'] ?? '') === 'INACTIVE') {
+                    Session::flash('error', 'Your manufacturer facility account has been suspended or disabled. Please contact administration.');
+                    $this->redirect($redirectBack);
+                    return;
+                }
             }
         }
 
@@ -243,7 +259,7 @@ class AuthController extends Controller
             'status' => $user['status'] ?? 'ACTIVE',
         ]);
 
-        if ($supplierRecord) {
+        if ($supplierRecord && ($user['role'] ?? '') === 'SUPPLIER') {
             Session::set('auth_supplier', $supplierRecord);
         }
 
