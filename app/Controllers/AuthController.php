@@ -283,6 +283,12 @@ class AuthController extends Controller
             }
         } else {
             Session::flash('success', "Welcome back, {$user['name']}!");
+            $redirectTarget = (string)($this->request->get('redirect') ?? $this->request->post('redirect') ?? Session::get('auth_redirect') ?? '');
+            Session::remove('auth_redirect');
+            if (!empty($redirectTarget) && str_starts_with($redirectTarget, '/') && !str_starts_with($redirectTarget, '//')) {
+                $this->redirect($redirectTarget);
+                return;
+            }
             $this->redirect('/buyer/dashboard');
         }
     }

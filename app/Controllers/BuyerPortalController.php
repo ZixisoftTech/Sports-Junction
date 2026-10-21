@@ -33,11 +33,13 @@ class BuyerPortalController extends Controller
     {
         $buyer = $this->getBuyer();
         $enquiries = ProductInquiry::getBuyerEnquiries((int)$buyer['id'], $buyer['email']);
+        $sampleEnquiries = ProductInquiry::getBuyerSampleEnquiries((int)$buyer['id'], $buyer['email']);
         $favourites = BuyerFavourite::getBuyerFavourites((int)$buyer['id']);
         $recentViews = BuyerRecentlyViewed::getRecent((int)$buyer['id'], 6);
 
         $counts = [
             'enquiries'  => count($enquiries),
+            'samples'    => count($sampleEnquiries),
             'favourites' => count($favourites),
             'recent'     => count($recentViews),
         ];
@@ -61,6 +63,18 @@ class BuyerPortalController extends Controller
             'pageTitle' => 'My Product Inquiries — Sports Junction',
             'buyer'     => $buyer,
             'enquiries' => $enquiries,
+        ], 'frontend');
+    }
+
+    public function sampleEnquiries(): void
+    {
+        $buyer = $this->getBuyer();
+        $sampleEnquiries = ProductInquiry::getBuyerSampleEnquiries((int)$buyer['id'], $buyer['email']);
+
+        $this->render('buyer/sample_enquiries', [
+            'pageTitle'       => 'My Prototype Sample Orders — Sports Junction',
+            'buyer'           => $buyer,
+            'sampleEnquiries' => $sampleEnquiries,
         ], 'frontend');
     }
 
@@ -158,11 +172,13 @@ class BuyerPortalController extends Controller
         $isFav = BuyerFavourite::isFavourite((int)$buyer['id'], $productId);
         if ($isFav) {
             BuyerFavourite::remove((int)$buyer['id'], $productId);
-            $this->json(['success' => true, 'favourited' => false, 'message' => 'Removed from favourites.']);
+            $count = BuyerFavourite::countForBuyer((int)$buyer['id']);
+            $this->json(['success' => true, 'favourited' => false, 'count' => $count, 'message' => 'Removed from favourites.']);
         } else {
             $ok = BuyerFavourite::add((int)$buyer['id'], $productId);
             if ($ok) {
-                $this->json(['success' => true, 'favourited' => true, 'message' => 'Added to favourites!']);
+                $count = BuyerFavourite::countForBuyer((int)$buyer['id']);
+                $this->json(['success' => true, 'favourited' => true, 'count' => $count, 'message' => 'Added to favourites!']);
             } else {
                 $this->json(['success' => false, 'message' => 'This product is currently unavailable.'], 400);
             }
@@ -177,9 +193,10 @@ class BuyerPortalController extends Controller
 
         $productId = (int)($params['id'] ?? 0);
         BuyerFavourite::remove((int)$buyer['id'], $productId);
+        $count = BuyerFavourite::countForBuyer((int)$buyer['id']);
 
         if ($this->request->isAjax()) {
-            $this->json(['success' => true, 'message' => 'Removed from favourites.']);
+            $this->json(['success' => true, 'count' => $count, 'message' => 'Removed from favourites.']);
         } else {
             Session::flash('success', 'Product removed from your saved favourites.');
             $this->redirect('/buyer/favourites');

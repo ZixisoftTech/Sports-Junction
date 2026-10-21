@@ -14,8 +14,12 @@ class ProductInquiry extends Model
         'VIEWED',
         'RESPONDED',
         'IN_DISCUSSION',
+        'IN_PRODUCTION',
+        'SAMPLE_SHIPPED',
+        'DELIVERED',
         'CLOSED',
         'RESOLVED',
+        'REJECTED',
     ];
 
     public const VALID_SOURCES = [
@@ -24,6 +28,7 @@ class ProductInquiry extends Model
         'CONTACT_US',
         'RFQ',
         'FAST_OEM',
+        'SAMPLE',
     ];
 
     public static function create(array $data): int
@@ -272,7 +277,9 @@ class ProductInquiry extends Model
         }
 
         // Enquiry Source Filter
-        if (!empty($params['rfq_oem_only'])) {
+        if (!empty($params['sample_only'])) {
+            $where[] = "i.enquiry_source = 'SAMPLE'";
+        } elseif (!empty($params['rfq_oem_only'])) {
             if (!empty($params['enquiry_source']) && in_array($params['enquiry_source'], ['RFQ', 'FAST_OEM'], true)) {
                 $where[] = "i.enquiry_source = :f_rfq_source";
                 $bindings[':f_rfq_source'] = $params['enquiry_source'];
@@ -381,7 +388,19 @@ class ProductInquiry extends Model
 
         $filteredRecords = (int) (self::fetch("SELECT COUNT(*) AS cnt {$fromJoins} WHERE {$whereSql}", $bindings)['cnt'] ?? 0);
 
-        if (!empty($params['rfq_oem_only'])) {
+        if (!empty($params['sample_only'])) {
+            $columns = [
+                0 => 'i.id',
+                1 => 'i.created_at',
+                2 => 'i.buyer_name',
+                3 => 'p.title',
+                4 => 's.company_name',
+                5 => 'i.target_quantity',
+                6 => 'i.delivery_location',
+                7 => 'i.status',
+            ];
+            $orderColIdx = (int) ($params['order'][0]['column'] ?? 1);
+        } elseif (!empty($params['rfq_oem_only'])) {
             $columns = [
                 0  => 'i.id',
                 1  => 'i.enquiry_source',
@@ -456,6 +475,7 @@ class ProductInquiry extends Model
                     WHEN 'CONTACT_US' THEN 'Contact Us Enquiry'
                     WHEN 'RFQ' THEN 'Request For Quotation (RFQ)'
                     WHEN 'FAST_OEM' THEN 'Fast OEM Customization'
+                    WHEN 'SAMPLE' THEN 'Order Prototype Sample'
                     ELSE i.enquiry_source
                 END AS 'Enquiry Source',
                 i.buyer_name AS 'Buyer Name',
@@ -568,6 +588,106 @@ class ProductInquiry extends Model
             ':notes' => $notes !== null ? trim($notes) : null,
             ':id'    => $id,
         ]);
+        return true;
+    }
+
+    public static function getSampleMetrics(): array
+    {
+        $row = self::fetch("
+            SELECT 
+                COUNT(*) AS total,
+                SUM(CASE WHEN status IN ('PENDING', 'SUBMITTED') THEN 1 ELSE 0 END) AS pending,
+                SUM(CASE WHEN status = 'IN_PRODUCTION' THEN 1 ELSE 0 END) AS in_production,
+                SUM(CASE WHEN status = 'SAMPLE_SHIPPED' THEN 1 ELSE 0 END) AS shipped,
+                SUM(CASE WHEN status = 'DELIVERED' THEN 1 ELSE 0 END) AS delivered,
+                SUM(CASE WHEN status = 'REJECTED' THEN 1 ELSE 0 END) AS rejected
+            FROM product_inquiries
+            WHERE enquiry_source = 'SAMPLE'
+        ");
+
+        return [
+            'total'         => (int) ($row['total'] ?? 0),
+            'pending'       => (int) ($row['pending'] ?? 0),
+            'in_production' => (int) ($row['in_production'] ?? 0),
+            'shipped'       => (int) ($row['shipped'] ?? 0),
+            'delivered'     => (int) ($row['delivered'] ?? 0),
+            'rejected'      => (int) ($row['rejected'] ?? 0),
+        ];
+    }
+
+    public static function getSupplierSampleEnquiries(int $supplierId): array
+    {
+        return self::fetchAll("
+            SELECT i.*,
+                   p.title AS product_name, p.slug AS product_slug, p.primary_image, p.sample_price,
+                   mu.name AS moq_unit_name,
+                   (SELECT COUNT(*) FROM inquiry_replies r WHERE r.inquiry_id = i.id) AS reply_count
+            FROM product_inquiries i
+            LEFT JOIN products p ON i.product_id = p.id
+            LEFT JOIN moq_units mu ON p.moq_unit_id = mu.id
+            WHERE i.enquiry_source = 'SAMPLE'
+              AND (i.supplier_id = :s1 OR p.supplier_id = :s2)
+            ORDER BY i.created_at DESC
+        ", [
+            ':s1' => $supplierId,
+            ':s2' => $supplierId,
+        ]);
+    }
+
+    public static function getBuyerSampleEnquiries(int $buyerUserId, ?string $email = null): array
+    {
+        $where = [
+            "i.enquiry_source = 'SAMPLE'",
+            "(i.buyer_user_id = :uid" . (!empty($email) ? " OR LOWER(i.buyer_email) = :email" : "") . ")"
+        ];
+        $bindings = [':uid' => $buyerUserId];
+        if (!empty($email)) {
+            $bindings[':email'] = strtolower(trim($email));
+        }
+
+        $whereClause = implode(' AND ', $where);
+
+        return self::fetchAll("
+            SELECT i.*,
+                   p.title AS product_name, p.slug AS product_slug, p.primary_image, p.sample_price,
+                   COALESCE(s.company_name, ps.company_name) AS supplier_name,
+                   COALESCE(s.email, ps.email) AS supplier_email,
+                   (SELECT COUNT(*) FROM inquiry_replies r WHERE r.inquiry_id = i.id) AS reply_count
+            FROM product_inquiries i
+            LEFT JOIN products p ON i.product_id = p.id
+            LEFT JOIN suppliers s ON i.supplier_id = s.id
+            LEFT JOIN suppliers ps ON p.supplier_id = ps.id
+            WHERE {$whereClause}
+            ORDER BY i.created_at DESC
+        ", $bindings);
+    }
+
+    public static function updateSampleStatus(int $id, string $status, ?string $notes = null): bool
+    {
+        $status = strtoupper(trim($status));
+        if (!in_array($status, self::VALID_STATUSES, true)) {
+            return false;
+        }
+
+        if ($notes !== null && $notes !== '') {
+            self::execute("
+                UPDATE product_inquiries 
+                SET status = :status, admin_notes = CONCAT(COALESCE(admin_notes, ''), '\n[Status Update: ', :status_note, ' - ', NOW(), ']: ', :notes)
+                WHERE id = :id
+            ", [
+                ':status'      => $status,
+                ':status_note' => $status,
+                ':notes'       => trim($notes),
+                ':id'          => $id,
+            ]);
+        } else {
+            self::execute("
+                UPDATE product_inquiries SET status = :status WHERE id = :id
+            ", [
+                ':status' => $status,
+                ':id'     => $id,
+            ]);
+        }
         return true;
     }
 }

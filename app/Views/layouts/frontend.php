@@ -16,11 +16,14 @@ $siteName = $siteSettings['site_name'] ?? 'Sports Junction';
 $authUser = \App\Helpers\Session::get('auth_user');
 $authSupplierId = \App\Models\Supplier::currentSupplierId();
 $buyerUnreadCount = 0;
+$buyerFavCount = 0;
 if ($authUser && ($authUser['role'] ?? '') === 'BUYER') {
     try {
         $buyerUnreadCount = ChatConversation::getTotalUnreadCountForUser((int)$authUser['id'], 'BUYER');
+        $buyerFavCount = \App\Models\BuyerFavourite::countForBuyer((int)$authUser['id']);
     } catch (\Throwable $e) {
         $buyerUnreadCount = 0;
+        $buyerFavCount = 0;
     }
 }
 $footerColumns = CmsPage::getByColumns(true);
@@ -147,17 +150,22 @@ if ($authUser && ($authUser['role'] ?? '') === 'BUYER') {
 
             <!-- Right Actions -->
             <?php $authUser = \App\Helpers\Session::get('auth_user'); ?>
-            <div class="flex items-center gap-3 shrink-0 text-sm font-semibold">
+            <div class="flex items-center gap-2 sm:gap-3 shrink-0 text-sm font-semibold">
                 <?php if ($authUser): ?>
                     <?php if (($authUser['role'] ?? '') === 'BUYER'): ?>
+                        <a href="<?= htmlspecialchars($baseUrl) ?>/buyer/favourites" class="text-on-surface hover:text-rose-600 transition-colors flex items-center gap-1 relative py-1 px-1.5 rounded-lg hover:bg-rose-50/60" title="Saved Favourites">
+                            <span class="material-symbols-outlined text-[20px] text-rose-600 fill-1">favorite</span>
+                            <span class="hidden lg:inline text-xs font-bold text-slate-800">Favourites</span>
+                            <span id="topNavFavouritesBadge" class="<?= ($buyerFavCount > 0 ? '' : 'hidden') ?> inline-flex items-center justify-center px-1.5 py-0.5 rounded-full bg-rose-600 text-white font-black text-[10px] leading-tight ml-0.5 shadow-xs"><?= $buyerFavCount > 99 ? '99+' : $buyerFavCount ?></span>
+                        </a>
                         <div class="hidden sm:flex items-center gap-3">
-                            <a href="<?= htmlspecialchars($baseUrl) ?>/buyer/favourites" class="text-on-surface hover:text-rose-600 transition-colors flex items-center gap-1" title="Saved Favourites">
-                                <span class="material-symbols-outlined text-[18px]">favorite</span>
-                                <span class="hidden lg:inline text-xs font-bold">Favourites</span>
-                            </a>
                             <a href="<?= htmlspecialchars($baseUrl) ?>/buyer/enquiries" class="text-on-surface hover:text-primary transition-colors flex items-center gap-1" title="My Enquiries">
                                 <span class="material-symbols-outlined text-[18px]">request_quote</span>
                                 <span class="hidden lg:inline text-xs font-bold">Enquiries</span>
+                            </a>
+                            <a href="<?= htmlspecialchars($baseUrl) ?>/buyer/sample-enquiries" class="text-on-surface hover:text-teal-700 transition-colors flex items-center gap-1" title="Prototype Samples">
+                                <span class="material-symbols-outlined text-[18px] text-teal-600">science</span>
+                                <span class="hidden lg:inline text-xs font-bold">Samples</span>
                             </a>
                             <a href="<?= htmlspecialchars($baseUrl) ?>/buyer/messages" class="text-on-surface hover:text-primary transition-colors flex items-center gap-1 relative" title="Messages & Negotiations">
                                 <span class="material-symbols-outlined text-[18px]">chat</span>
@@ -178,6 +186,10 @@ if ($authUser && ($authUser['role'] ?? '') === 'BUYER') {
                         <a href="<?= htmlspecialchars($baseUrl) ?>/logout" class="text-xs font-bold text-rose-600 hover:underline px-2">Logout</a>
                     <?php endif; ?>
                 <?php else: ?>
+                    <a href="<?= htmlspecialchars($baseUrl) ?>/login?redirect=/buyer/favourites" class="text-on-surface hover:text-rose-600 transition-colors flex items-center gap-1 py-1 px-1.5 rounded-lg hover:bg-slate-100" title="Saved Favourites">
+                        <span class="material-symbols-outlined text-[20px] text-slate-500 hover:text-rose-600 transition-colors">favorite</span>
+                        <span class="hidden lg:inline text-xs font-bold">Favourites</span>
+                    </a>
                     <div class="hidden sm:flex items-center gap-2">
                         <a href="<?= htmlspecialchars($baseUrl) ?>/login" class="text-on-surface hover:text-primary transition-colors py-1 px-2">Login</a>
                         <span class="text-outline-variant">|</span>
@@ -418,6 +430,110 @@ if ($authUser && ($authUser['role'] ?? '') === 'BUYER') {
                     <button type="submit" id="modal-submit-btn" class="w-full py-3 bg-blue-700 text-white rounded-xl font-bold hover:bg-blue-800 shadow-md transition-all flex items-center justify-center gap-2">
                         <span class="material-symbols-outlined text-[18px]">send</span>
                         <span>Dispatch Direct Factory Inquiry</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Dedicated Prototype Sample Order Modal -->
+    <div id="sample-order-modal" class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/50 backdrop-blur-sm hidden opacity-0 transition-opacity duration-200">
+        <div id="sample-order-modal-card" class="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] flex flex-col relative transform scale-95 transition-transform duration-200 overflow-hidden">
+            <!-- Modal Header (Fixed) -->
+            <div class="p-5 pb-3 border-b border-slate-100 flex-shrink-0 relative">
+                <button type="button" onclick="closeSampleOrderModal()" class="absolute top-4 right-4 p-1.5 text-gray-400 hover:text-gray-700 rounded-lg bg-gray-100 transition-colors" title="Close">
+                    <span class="material-symbols-outlined text-[20px]">close</span>
+                </button>
+                <div class="flex items-center gap-2 mb-1.5 text-teal-700 font-semibold text-xs uppercase tracking-wider">
+                    <span class="material-symbols-outlined text-[18px] text-teal-600">science</span>
+                    <span>Order Prototype Sample (5-7 Days Dispatch)</span>
+                </div>
+                <h3 id="sample-modal-product-title" class="font-headline font-bold text-lg sm:text-xl text-on-surface line-clamp-1 pr-8">Request Prototype Sample</h3>
+                <div class="flex items-center gap-3 text-xs text-on-surface-variant mt-1">
+                    <span id="sample-modal-supplier-name" class="line-clamp-1 font-semibold text-slate-700">Target: Verified Indian Factory</span>
+                    <span id="sample-modal-price-badge" class="px-2 py-0.5 rounded-full bg-teal-50 text-teal-800 font-bold hidden"></span>
+                </div>
+            </div>
+
+            <!-- Form Wrapper with scrollable body and sticky footer -->
+            <form id="publicSampleOrderForm" class="flex flex-col flex-1 overflow-hidden m-0" onsubmit="handleSampleOrderSubmit(event)">
+                <input type="hidden" name="product_id" id="sample-modal-product-id" value="">
+                <input type="hidden" name="supplier_id" id="sample-modal-supplier-id" value="">
+                <input type="hidden" name="enquiry_source" value="SAMPLE">
+                <input type="hidden" name="subject" id="sample-modal-subject" value="Order Prototype Sample">
+                <input type="hidden" name="target_price" id="sample-modal-target-price" value="">
+
+                <!-- Scrollable Body -->
+                <div class="p-5 overflow-y-auto flex-1 space-y-3.5">
+                    <div class="p-3 bg-teal-50 border border-teal-200 rounded-xl text-xs text-teal-900 flex items-start gap-2">
+                        <span class="material-symbols-outlined text-teal-700 text-[18px] shrink-0 mt-0.5">local_shipping</span>
+                        <div>
+                            <span class="font-bold">Fast-Track Prototype Delivery:</span> Verified Indian manufacturers produce and dispatch physical evaluation samples within 5-7 business days with door-to-door courier tracking.
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-bold text-on-surface-variant mb-1 uppercase tracking-wider">Your Full Name *</label>
+                            <input type="text" name="buyer_name" id="sample-modal-buyer-name" required value="<?= htmlspecialchars($authUser['name'] ?? '') ?>" placeholder="John Doe" class="w-full bg-surface-container-low px-3 py-2 text-on-surface rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-teal-700 outline-none transition-all">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-on-surface-variant mb-1 uppercase tracking-wider">Business Email *</label>
+                            <input type="email" name="buyer_email" id="sample-modal-buyer-email" required value="<?= htmlspecialchars($authUser['email'] ?? '') ?>" placeholder="Enter business email" class="w-full bg-surface-container-low px-3 py-2 text-on-surface rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-teal-700 outline-none transition-all">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-bold text-on-surface-variant mb-1 uppercase tracking-wider">Phone / WhatsApp</label>
+                            <input type="text" name="buyer_phone" id="sample-modal-buyer-phone" value="<?= htmlspecialchars($authUser['phone'] ?? '') ?>" placeholder="Enter contact number" class="w-full bg-surface-container-low px-3 py-2 text-on-surface rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-teal-700 outline-none transition-all">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-on-surface-variant mb-1 uppercase tracking-wider">Company / Brand Name</label>
+                            <input type="text" name="company_name" id="sample-modal-company-name" value="<?= htmlspecialchars($authUser['company_name'] ?? '') ?>" placeholder="Sports Brand LLC" class="w-full bg-surface-container-low px-3 py-2 text-on-surface rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-teal-700 outline-none transition-all">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-bold text-on-surface-variant mb-1 uppercase tracking-wider">Destination Country *</label>
+                            <select name="country_id" id="sample-modal-country-id" required class="w-full bg-surface-container-low px-3 py-2 text-on-surface rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-teal-700 outline-none transition-all">
+                                <option value="">Select Country *</option>
+                                <?php foreach ($allCountries as $c): ?>
+                                    <option value="<?= (int)$c['id'] ?>" data-name="<?= htmlspecialchars($c['name']) ?>" <?= ($buyerCountryId === (int)$c['id'] || (empty($buyerCountryId) && $c['name'] === 'India')) ? 'selected' : '' ?>>
+                                        <?= $c['flag'] ?? '' ?> <?= htmlspecialchars($c['name']) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-on-surface-variant mb-1 uppercase tracking-wider">Sample Quantity (Pcs) *</label>
+                            <input type="number" name="target_quantity" id="sample-modal-qty" required min="1" max="50" value="1" class="w-full bg-surface-container-low px-3 py-2 text-on-surface rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-teal-700 outline-none transition-all">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-on-surface-variant mb-1 uppercase tracking-wider">Delivery Shipping Address *</label>
+                        <input type="text" name="delivery_location" id="sample-modal-delivery-location" required placeholder="Complete delivery address with postal / ZIP code for courier dispatch" class="w-full bg-surface-container-low px-3 py-2 text-on-surface rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-teal-700 outline-none transition-all">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-on-surface-variant mb-1 uppercase tracking-wider">Prototype Testing Requirements / Notes *</label>
+                        <textarea name="specifications" id="sample-modal-specs" required rows="3" placeholder="Describe required sample specs: size, colorways, material weights, testing protocols, custom logo embossing, or packaging requirements..." class="w-full bg-surface-container-low px-3 py-2 text-on-surface rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-teal-700 outline-none transition-all"></textarea>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-on-surface-variant mb-1 uppercase tracking-wider">Artwork / Tech Pack (Optional)</label>
+                        <input type="file" name="attachment" id="sample-modal-attachment" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.webp" class="w-full bg-surface-container-low px-3 py-1.5 text-on-surface rounded-lg text-xs outline-none focus:bg-white focus:ring-2 focus:ring-teal-700 file:mr-3 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-teal-50 file:text-teal-800 hover:file:bg-teal-100 transition-all">
+                        <div class="text-[11px] text-slate-500 mt-1">Accepted: PDF, Word (.doc, .docx), Images (.jpg, .png, .webp) &bull; Max 10MB</div>
+                    </div>
+                </div>
+
+                <!-- Sticky Footer -->
+                <div class="p-4 border-t border-slate-100 bg-slate-50 flex-shrink-0">
+                    <button type="submit" id="sample-modal-submit-btn" class="w-full py-3 bg-teal-800 text-white rounded-xl font-bold hover:bg-teal-900 shadow-md transition-all flex items-center justify-center gap-2">
+                        <span class="material-symbols-outlined text-[18px]">science</span>
+                        <span>Submit Prototype Sample Request</span>
                     </button>
                 </div>
             </form>
@@ -881,6 +997,18 @@ if ($authUser && ($authUser['role'] ?? '') === 'BUYER') {
             });
         }
 
+        function updateFavouritesBadge(count) {
+            const badge = document.getElementById('topNavFavouritesBadge');
+            if (badge) {
+                if (count > 0) {
+                    badge.textContent = count > 99 ? '99+' : count;
+                    badge.classList.remove('hidden');
+                } else {
+                    badge.classList.add('hidden');
+                }
+            }
+        }
+
         function toggleFavouriteProduct(productId, btn) {
             fetch(`${baseUrl}/api/buyer/favourites/toggle`, {
                 method: 'POST',
@@ -896,7 +1024,7 @@ if ($authUser && ($authUser['role'] ?? '') === 'BUYER') {
             })
             .then(res => {
                 if (res.status === 401 || res.status === 403) {
-                    window.location.href = `${baseUrl}/login`;
+                    window.location.href = `${baseUrl}/login?redirect=` + encodeURIComponent(window.location.pathname + window.location.search);
                     return null;
                 }
                 return res.json();
@@ -912,6 +1040,9 @@ if ($authUser && ($authUser['role'] ?? '') === 'BUYER') {
                         btn.classList.remove('text-rose-600', 'border-rose-200', 'bg-rose-50');
                         if (icon) icon.classList.remove('fill-1');
                     }
+                    if (data.count !== undefined) {
+                        updateFavouritesBadge(data.count);
+                    }
                     showNotification(data.message);
                 } else {
                     alert(data.message || 'Unable to update favourite.');
@@ -919,6 +1050,121 @@ if ($authUser && ($authUser['role'] ?? '') === 'BUYER') {
             })
             .catch(() => {
                 alert('Connection error. Please try again.');
+            });
+        }
+
+        function openSampleOrderModal(productId, productTitle, supplierName, supplierId, samplePrice) {
+            if (sjCurrentUserRole === 'SUPPLIER' && sjCurrentSupplierId > 0 && supplierId) {
+                if (parseInt(supplierId) === sjCurrentSupplierId) {
+                    alert('You cannot request samples from your own supplier store or products.');
+                    return;
+                }
+            }
+            const modal = document.getElementById('sample-order-modal');
+            const card = document.getElementById('sample-order-modal-card');
+            if (!modal || !card) return;
+
+            document.getElementById('sample-modal-product-title').textContent = productTitle ? `Prototype Sample: ${productTitle}` : 'Request Prototype Sample';
+            document.getElementById('sample-modal-supplier-name').textContent = supplierName ? `Target: ${supplierName}` : 'Target: Verified Indian Factory';
+            document.getElementById('sample-modal-product-id').value = productId || '';
+            document.getElementById('sample-modal-supplier-id').value = supplierId || '';
+            document.getElementById('sample-modal-subject').value = productTitle ? `Prototype Sample Order: ${productTitle}` : 'Order Prototype Sample';
+            document.getElementById('sample-modal-target-price').value = samplePrice || '';
+
+            const priceBadge = document.getElementById('sample-modal-price-badge');
+            if (priceBadge) {
+                if (samplePrice && parseFloat(samplePrice) > 0) {
+                    priceBadge.textContent = `Sample Price: $${parseFloat(samplePrice).toFixed(2)}`;
+                    priceBadge.classList.remove('hidden');
+                } else {
+                    priceBadge.classList.add('hidden');
+                }
+            }
+
+            document.body.classList.add('overflow-hidden');
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                card.classList.remove('scale-95');
+            }, 10);
+        }
+
+        function closeSampleOrderModal() {
+            const modal = document.getElementById('sample-order-modal');
+            const card = document.getElementById('sample-order-modal-card');
+            if (!modal || !card) return;
+
+            document.body.classList.remove('overflow-hidden');
+            card.classList.add('scale-95');
+            modal.classList.add('opacity-0');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 200);
+        }
+
+        document.getElementById('sample-order-modal')?.addEventListener('click', function(e) {
+            if (e.target === this) closeSampleOrderModal();
+        });
+
+        function handleSampleOrderSubmit(e) {
+            e.preventDefault();
+            const form = e.target;
+            const submitBtn = document.getElementById('sample-modal-submit-btn');
+            const origText = submitBtn.innerHTML;
+
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="material-symbols-outlined text-[18px] animate-spin">refresh</span> Submitting Sample Order...';
+
+            const formData = new FormData(form);
+            const countrySelect = document.getElementById('sample-modal-country-id');
+            if (countrySelect && countrySelect.selectedIndex >= 0) {
+                const opt = countrySelect.options[countrySelect.selectedIndex];
+                if (opt && opt.dataset.name) {
+                    formData.set('country_name', opt.dataset.name);
+                }
+            }
+
+            fetch(`${baseUrl}/api/inquiries`, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = origText;
+                if (data.success) {
+                    closeSampleOrderModal();
+                    form.reset();
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Sample Request Submitted!',
+                            text: data.message || 'Prototype sample request transmitted! The factory will review and arrange dispatch in 5-7 business days.',
+                            confirmButtonColor: '#0f766e'
+                        });
+                    } else {
+                        alert(data.message || 'Prototype sample request submitted successfully!');
+                    }
+                } else {
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Submission Failed',
+                            text: data.message || 'Failed to submit prototype sample request. Please check inputs and try again.',
+                            confirmButtonColor: '#0f766e'
+                        });
+                    } else {
+                        alert(data.message || 'Failed to submit prototype sample request.');
+                    }
+                }
+            })
+            .catch(() => {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = origText;
+                alert('A network or server error occurred. Please try again.');
             });
         }
     </script>

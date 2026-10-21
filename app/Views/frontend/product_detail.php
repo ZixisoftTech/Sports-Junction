@@ -254,7 +254,7 @@ $supplierCertificationTags = !empty($product['supplier_id']) ? \App\Models\Suppl
                         <span>CHAT WITH SUPPLIER</span>
                     </button>
                     <?php if ((int)$product['sample_available'] === 1): ?>
-                        <button type="button" onclick="openInquiryModal('Sample Request: <?= htmlspecialchars(addslashes($product['name'])) ?>', '<?= htmlspecialchars(addslashes($product['supplier_name'] ?? 'Verified Indian Factory')) ?>', 1, <?= (int)$product['id'] ?>, <?= (int)($product['supplier_id'] ?? 1) ?>)" class="w-full py-2.5 rounded-xl bg-white hover:bg-gray-50 text-blue-900 border border-surface-container font-headline font-bold text-xs transition-colors flex items-center justify-center gap-2">
+                        <button type="button" onclick="openSampleOrderModal(<?= (int)$product['id'] ?>, '<?= htmlspecialchars(addslashes($product['name'])) ?>', '<?= htmlspecialchars(addslashes($product['supplier_name'] ?? 'Verified Indian Factory')) ?>', <?= (int)($product['supplier_id'] ?? 1) ?>, <?= (float)($product['sample_price'] ?? 0) ?>)" class="w-full py-2.5 rounded-xl bg-white hover:bg-teal-50 text-teal-800 border border-teal-200 font-headline font-bold text-xs transition-colors flex items-center justify-center gap-2">
                             <span class="material-symbols-outlined text-[16px] text-teal-600">science</span>
                             <span>Order Prototype Sample (5-7 Days Dispatch)</span>
                         </button>

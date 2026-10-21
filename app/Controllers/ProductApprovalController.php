@@ -96,7 +96,7 @@ class ProductApprovalController extends Controller
             }
 
             AuditLogger::log('APPROVE', 'Product', $id, $product['title'], null, 'Super Admin approved product submission');
-            $this->json(['success' => true, 'message' => "Product '{$product['title']}' approved and published."]);
+            $this->json(['success' => true, 'message' => "Product '{$product['title']}' approved and published.", 'metrics' => Product::getApprovalMetrics()]);
         } else {
             $this->json(['success' => false, 'message' => 'Failed to approve product.'], 500);
         }
@@ -136,7 +136,7 @@ class ProductApprovalController extends Controller
             }
 
             AuditLogger::log('REJECT', 'Product', $id, $product['title'], ['reason' => $reason], 'Super Admin rejected product submission');
-            $this->json(['success' => true, 'message' => "Product submission rejected with feedback provided to supplier."]);
+            $this->json(['success' => true, 'message' => "Product submission rejected with feedback provided to supplier.", 'metrics' => Product::getApprovalMetrics()]);
         } else {
             $this->json(['success' => false, 'message' => 'Failed to reject product.'], 500);
         }

@@ -395,6 +395,85 @@ class EnquiryManagementController extends Controller
         }
     }
 
+    public function sampleEnquiries(): void
+    {
+        $metrics    = ProductInquiry::getSampleMetrics();
+        $suppliers  = Supplier::allActive();
+        $categories = Category::allActive();
+
+        $this->render('admin/sample_enquiries', [
+            'pageTitle'   => 'Dedicated Prototype Sample Enquiries — Sports Junction Admin',
+            'metrics'     => $metrics,
+            'suppliers'   => $suppliers,
+            'categories'  => $categories,
+            'activeMenu'  => 'sample_enquiries',
+        ], 'admin');
+    }
+
+    public function sampleEnquiriesData(): void
+    {
+        $params = [
+            'draw'           => $this->request->get('draw', 1),
+            'start'          => $this->request->get('start', 0),
+            'length'         => $this->request->get('length', 15),
+            'search'         => $this->request->get('search', []),
+            'order'          => $this->request->get('order', []),
+            'supplier_id'    => $this->request->get('supplier_id', 'ALL'),
+            'status'         => $this->request->get('status', 'ALL'),
+            'category_id'    => $this->request->get('category_id', 'ALL'),
+            'start_date'     => $this->request->get('start_date', ''),
+            'end_date'       => $this->request->get('end_date', ''),
+            'sample_only'    => 1,
+        ];
+
+        $result = ProductInquiry::getAdminDataTable($params);
+        $this->json($result);
+    }
+
+    public function sampleEnquiriesExport(): void
+    {
+        $format = strtolower((string) $this->request->get('format', 'csv'));
+        $params = [
+            'supplier_id'    => $this->request->get('supplier_id', 'ALL'),
+            'status'         => $this->request->get('status', 'ALL'),
+            'category_id'    => $this->request->get('category_id', 'ALL'),
+            'start_date'     => $this->request->get('start_date', ''),
+            'end_date'       => $this->request->get('end_date', ''),
+            'search_query'   => $this->request->get('search', ''),
+            'sample_only'    => 1,
+        ];
+
+        $rows = ProductInquiry::getAdminExportData($params);
+        $headers = [
+            'Enquiry ID',
+            'Enquiry Source',
+            'Buyer Name',
+            'Buyer Company',
+            'Buyer Email',
+            'Buyer Phone',
+            'Product Name / Requirement',
+            'Supplier Name',
+            'Quantity Required',
+            'Country',
+            'Delivery Location',
+            'Enquiry Subject',
+            'Message / Specifications',
+            'Enquiry Status',
+            'Enquiry Date',
+        ];
+
+        AuditLogger::log('EXPORT', 'ProductInquiry', null, "Exported " . count($rows) . " prototype sample enquiries as " . strtoupper($format));
+
+        $filename = 'sports_junction_sample_enquiries_' . date('Ymd_His');
+        if ($format === 'excel' || $format === 'xls') {
+            Exporter::exportExcelXml($filename, $headers, $rows);
+        } elseif ($format === 'pdf') {
+            Exporter::exportPdfView('Sports Junction — Prototype Sample Order Enquiries', $headers, $rows);
+        } else {
+            Exporter::exportCsv($filename, $headers, $rows);
+        }
+    }
+
     /**
      * Secure Attachment Download (Task 13)
      * GET /admin/enquiries/attachment/{id}

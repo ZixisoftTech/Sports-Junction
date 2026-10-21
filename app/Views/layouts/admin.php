@@ -151,6 +151,10 @@ $activeMenu = $activeMenu ?? 'dashboard';
             <i class="bi bi-clipboard2-check"></i>
             <span>RFQ &amp; OEM Enquiries</span>
         </a>
+        <a href="<?= htmlspecialchars($baseUrl) ?>/admin/sample-enquiries" class="sj-nav-item <?= ($activeMenu === 'sample_enquiries' || str_contains($_SERVER['REQUEST_URI'] ?? '', '/admin/sample-enquiries')) ? 'active' : '' ?>">
+            <i class="bi bi-box-seam"></i>
+            <span>Prototype Samples</span>
+        </a>
         <a href="<?= htmlspecialchars($baseUrl) ?>/admin/communication" class="sj-nav-item <?= ($activeMenu === 'communication' || str_contains($_SERVER['REQUEST_URI'] ?? '', '/admin/communication')) ? 'active' : '' ?>">
             <i class="bi bi-chat-dots-fill"></i>
             <span>Communication Center</span>

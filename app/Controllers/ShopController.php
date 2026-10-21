@@ -233,8 +233,9 @@ class ShopController extends Controller
         }
 
         // Auto-resolve supplier_id and source from product if product_id is passed
+        $reqSource = strtoupper(trim((string)($input['enquiry_source'] ?? '')));
         if (!empty($input['product_id'])) {
-            $input['enquiry_source'] = 'PRODUCT_PAGE';
+            $input['enquiry_source'] = ($reqSource === 'SAMPLE') ? 'SAMPLE' : 'PRODUCT_PAGE';
             $prod = Product::findById((int)$input['product_id']);
             if ($prod) {
                 if (empty($input['supplier_id']) && !empty($prod['supplier_id'])) {
@@ -245,17 +246,22 @@ class ShopController extends Controller
                     return;
                 }
                 if (empty($input['subject'])) {
-                    $input['subject'] = 'Product Inquiry: ' . ($prod['title'] ?? $prod['name'] ?? '');
+                    $prefix = ($input['enquiry_source'] === 'SAMPLE') ? 'Prototype Sample Order: ' : 'Product Inquiry: ';
+                    $input['subject'] = $prefix . ($prod['title'] ?? $prod['name'] ?? '');
+                }
+                if ($input['enquiry_source'] === 'SAMPLE' && (!isset($input['target_price']) || $input['target_price'] === '') && !empty($prod['sample_price'])) {
+                    $input['target_price'] = (float)$prod['sample_price'];
                 }
             }
         } else {
-            if (empty($input['enquiry_source']) || !in_array($input['enquiry_source'], ['GENERAL', 'CONTACT_US', 'RFQ', 'FAST_OEM'], true)) {
+            if (empty($input['enquiry_source']) || !in_array($input['enquiry_source'], ['GENERAL', 'CONTACT_US', 'RFQ', 'FAST_OEM', 'SAMPLE'], true)) {
                 $input['enquiry_source'] = 'GENERAL';
             }
             if (empty($input['subject'])) {
                 $input['subject'] = match ($input['enquiry_source']) {
                     'RFQ' => 'Request for Quotation (RFQ)',
                     'FAST_OEM' => 'Fast OEM Customization Inquiry',
+                    'SAMPLE' => 'Order Prototype Sample',
                     default => 'General Bulk Requirement / RFQ'
                 };
             }

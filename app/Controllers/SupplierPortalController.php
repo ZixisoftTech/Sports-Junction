@@ -450,6 +450,52 @@ class SupplierPortalController extends Controller
         ], 'supplier');
     }
 
+    public function sampleEnquiries(): void
+    {
+        $supplier = $this->getSupplier();
+        $sampleEnquiries = \App\Models\ProductInquiry::getSupplierSampleEnquiries((int)$supplier['id']);
+
+        $this->render('supplier/sample_enquiries', [
+            'pageTitle'       => 'Prototype Sample Requests (5-7 Days Dispatch) — Sports Junction',
+            'supplier'        => $supplier,
+            'sampleEnquiries' => $sampleEnquiries,
+        ], 'supplier');
+    }
+
+    public function updateSampleStatus(array $params): void
+    {
+        $supplier = $this->getSupplier();
+        $id = (int)($params['id'] ?? 0);
+        $inquiry = \App\Models\ProductInquiry::findById($id, false);
+
+        $ownsEnquiry = $inquiry && (
+            (int)($inquiry['supplier_id'] ?? 0) === (int)$supplier['id']
+            || (int)($inquiry['product_owner_supplier_id'] ?? 0) === (int)$supplier['id']
+        );
+
+        if (!$ownsEnquiry) {
+            $this->json(['success' => false, 'message' => 'Access denied.'], 403);
+            return;
+        }
+
+        $token = $this->request->input('_csrf') ?? $this->request->input('csrf_token') ?? $this->request->header('X-CSRF-Token');
+        CSRF::validateOrFail($token);
+
+        $status = strtoupper(trim((string)$this->request->input('status', '')));
+        $validStatuses = ['IN_PRODUCTION', 'SAMPLE_SHIPPED', 'DELIVERED', 'REJECTED'];
+        if (!in_array($status, $validStatuses, true)) {
+            $this->json(['success' => false, 'message' => 'Invalid sample status selected.'], 422);
+            return;
+        }
+
+        $trackingNotes = trim((string)$this->request->input('tracking_notes', ''));
+        \App\Models\ProductInquiry::updateSampleStatus($id, $status, $trackingNotes ?: null);
+
+        AuditLogger::log('UPDATE_STATUS', 'ProductInquiry', $id, "Supplier #{$supplier['id']} updated sample order #{$id} status to {$status}");
+
+        $this->json(['success' => true, 'message' => 'Sample order status successfully updated.']);
+    }
+
     public function enquiryDetail(array $params): void
     {
         $supplier = $this->getSupplier();

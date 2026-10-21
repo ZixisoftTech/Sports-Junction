@@ -237,8 +237,14 @@ class Supplier extends Model
         }
 
         if ($statusFilter !== '') {
-            $where[] = "s.approval_status = :status_filter";
-            $bindings[':status_filter'] = $statusFilter;
+            if ($statusFilter === 'INACTIVE') {
+                $where[] = "s.status = 'INACTIVE'";
+            } elseif ($statusFilter === 'ACTIVE') {
+                $where[] = "s.status = 'ACTIVE'";
+            } else {
+                $where[] = "s.approval_status = :status_filter";
+                $bindings[':status_filter'] = $statusFilter;
+            }
         }
 
         $whereSql = !empty($where) ? 'WHERE ' . implode(' AND ', $where) : '';
@@ -288,6 +294,7 @@ class Supplier extends Model
             'total'     => (int) self::fetchColumn("SELECT COUNT(*) FROM suppliers"),
             'pending'   => (int) self::fetchColumn("SELECT COUNT(*) FROM suppliers WHERE approval_status = 'PENDING_APPROVAL'"),
             'approved'  => (int) self::fetchColumn("SELECT COUNT(*) FROM suppliers WHERE approval_status = 'APPROVED'"),
+            'inactive'  => (int) self::fetchColumn("SELECT COUNT(*) FROM suppliers WHERE status = 'INACTIVE'"),
             'rejected'  => (int) self::fetchColumn("SELECT COUNT(*) FROM suppliers WHERE approval_status = 'REJECTED'"),
             'suspended' => (int) self::fetchColumn("SELECT COUNT(*) FROM suppliers WHERE approval_status = 'SUSPENDED'"),
         ];

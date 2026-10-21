@@ -225,6 +225,7 @@ $router->get('/admin/logout', [AuthController::class, 'logout']);
 // -------------------------------------------------------------
 $router->get('/buyer/dashboard', [BuyerPortalController::class, 'dashboard'], [BuyerAuthMiddleware::class]);
 $router->get('/buyer/enquiries', [BuyerPortalController::class, 'enquiries'], [BuyerAuthMiddleware::class]);
+$router->get('/buyer/sample-enquiries', [BuyerPortalController::class, 'sampleEnquiries'], [BuyerAuthMiddleware::class]);
 $router->get('/buyer/enquiries/{id}', [BuyerPortalController::class, 'enquiryDetail'], [BuyerAuthMiddleware::class]);
 $router->post('/buyer/enquiries/{id}/reply', [BuyerPortalController::class, 'replyEnquiry'], [BuyerAuthMiddleware::class]);
 $router->get('/buyer/favourites', [BuyerPortalController::class, 'favourites'], [BuyerAuthMiddleware::class]);
@@ -254,6 +255,8 @@ $router->get('/supplier/products/edit/{id}', [SupplierPortalController::class, '
 $router->post('/supplier/products/edit/{id}', [SupplierPortalController::class, 'updateProduct'], [SupplierAuthMiddleware::class]);
 $router->post('/supplier/products/update/{id}', [SupplierPortalController::class, 'updateProduct'], [SupplierAuthMiddleware::class]);
 $router->get('/supplier/enquiries', [SupplierPortalController::class, 'enquiries'], [SupplierAuthMiddleware::class]);
+$router->get('/supplier/sample-enquiries', [SupplierPortalController::class, 'sampleEnquiries'], [SupplierAuthMiddleware::class]);
+$router->post('/api/supplier/sample-enquiries/{id}/status', [SupplierPortalController::class, 'updateSampleStatus'], [SupplierAuthMiddleware::class]);
 $router->get('/supplier/enquiries/{id}', [SupplierPortalController::class, 'enquiryDetail'], [SupplierAuthMiddleware::class]);
 $router->post('/supplier/enquiries/{id}/reply', [SupplierPortalController::class, 'replyEnquiry'], [SupplierAuthMiddleware::class]);
 $router->get('/supplier/messages', [SupplierMessagesController::class, 'index'], [SupplierAuthMiddleware::class]);
@@ -286,14 +289,18 @@ $router->post('/api/admin/users/{id}/set-password', [AdminImpersonationControlle
 // Super Admin Centralized Enquiry Management
 $router->get('/admin/enquiries', [EnquiryManagementController::class, 'index'], [AuthMiddleware::class]);
 $router->get('/admin/rfq-oem', [EnquiryManagementController::class, 'rfqOem'], [AuthMiddleware::class]);
+$router->get('/admin/sample-enquiries', [EnquiryManagementController::class, 'sampleEnquiries'], [AuthMiddleware::class]);
 $router->get('/admin/enquiries/attachment/{id}', [EnquiryManagementController::class, 'downloadAttachment']);
 $router->get('/admin/rfq-oem/attachment/{id}', [EnquiryManagementController::class, 'downloadAttachment']);
+$router->get('/admin/sample-enquiries/attachment/{id}', [EnquiryManagementController::class, 'downloadAttachment']);
 $router->get('/admin/enquiries/{id}', [EnquiryManagementController::class, 'show'], [AuthMiddleware::class]);
 $router->post('/admin/enquiries/{id}/reply', [EnquiryManagementController::class, 'reply'], [AuthMiddleware::class]);
 $router->get('/api/admin/enquiries/data', [EnquiryManagementController::class, 'data'], [AuthMiddleware::class]);
 $router->get('/api/admin/enquiries/export', [EnquiryManagementController::class, 'export'], [AuthMiddleware::class]);
 $router->get('/api/admin/rfq-oem/data', [EnquiryManagementController::class, 'rfqOemData'], [AuthMiddleware::class]);
 $router->get('/api/admin/rfq-oem/export', [EnquiryManagementController::class, 'rfqOemExport'], [AuthMiddleware::class]);
+$router->get('/api/admin/sample-enquiries/data', [EnquiryManagementController::class, 'sampleEnquiriesData'], [AuthMiddleware::class]);
+$router->get('/api/admin/sample-enquiries/export', [EnquiryManagementController::class, 'sampleEnquiriesExport'], [AuthMiddleware::class]);
 $router->get('/api/admin/enquiries/{id}', [EnquiryManagementController::class, 'show'], [AuthMiddleware::class]);
 $router->post('/api/admin/enquiries/{id}/assign-supplier', [EnquiryManagementController::class, 'assignSupplier'], [AuthMiddleware::class]);
 $router->post('/api/admin/enquiries/{id}/status', [EnquiryManagementController::class, 'updateStatus'], [AuthMiddleware::class]);

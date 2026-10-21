@@ -50,6 +50,10 @@ $old = Session::flash('old_input') ?? [];
         <!-- Login Form -->
         <form action="<?= htmlspecialchars($baseUrl) ?>/login" method="POST" class="space-y-4" id="loginForm">
             <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(CSRF::token()) ?>">
+            <?php $redirectParam = (string)($_GET['redirect'] ?? Session::get('auth_redirect') ?? ''); ?>
+            <?php if (!empty($redirectParam) && str_starts_with($redirectParam, '/') && !str_starts_with($redirectParam, '//')): ?>
+                <input type="hidden" name="redirect" value="<?= htmlspecialchars($redirectParam) ?>">
+            <?php endif; ?>
 
             <!-- Email Field -->
             <div>

@@ -1161,30 +1161,12 @@ class Product extends Model
             return false;
         }
 
-        // If product was already APPROVED and a pending revision was under review:
-        // Retain the existing approved product live, clear the pending revision, and record rejection feedback
-        if ($product['approval_status'] === 'APPROVED') {
-            self::execute("
-                UPDATE products 
-                SET pending_changes = NULL,
-                    rejection_reason = :reason,
-                    reviewed_by = :admin_id,
-                    reviewed_at = NOW(),
-                    updated_at = NOW()
-                WHERE id = :id
-            ", [
-                ':reason'   => trim($reason),
-                ':admin_id' => $adminId,
-                ':id'       => $id
-            ]);
-
-            return true;
-        }
-
-        // Initial submission or non-approved product: mark approval_status as REJECTED
+        // Set approval_status to REJECTED, status to INACTIVE so product is removed from public marketplace,
+        // clear pending revisions, and record mandatory rejection reason and review audit info.
         self::execute("
             UPDATE products 
             SET approval_status = 'REJECTED',
+                status = 'INACTIVE',
                 rejection_reason = :reason,
                 pending_changes = NULL,
                 reviewed_by = :admin_id,

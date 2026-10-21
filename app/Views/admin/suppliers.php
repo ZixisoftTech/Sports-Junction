@@ -23,14 +23,14 @@ $baseUrl = Response::baseUrl();
     </div>
 
     <!-- Stat Metrics Row -->
-    <div class="row g-3 mb-4">
-        <div class="col-sm-6 col-lg-3">
-            <div class="card shadow-sm border-0 border-start border-primary border-4">
+    <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-xl-5 g-3 mb-4">
+        <div class="col">
+            <div class="card shadow-sm border-0 border-start border-primary border-4 h-100 cursor-pointer" style="cursor: pointer;" onclick="setSupplierStatusFilter('')" title="View all suppliers">
                 <div class="card-body p-3">
                     <div class="d-flex align-items-center justify-content-between">
                         <div>
                             <span class="text-muted small fw-bold text-uppercase">Total Vendors</span>
-                            <h3 class="fw-bold m-0 mt-1"><?= (int)($metrics['total'] ?? 0) ?></h3>
+                            <h3 class="fw-bold m-0 mt-1" id="metricTotalVendors"><?= (int)($metrics['total'] ?? 0) ?></h3>
                         </div>
                         <div class="bg-primary-subtle text-primary p-2.5 rounded-3">
                             <i class="bi bi-buildings fs-4"></i>
@@ -40,13 +40,13 @@ $baseUrl = Response::baseUrl();
             </div>
         </div>
 
-        <div class="col-sm-6 col-lg-3">
-            <div class="card shadow-sm border-0 border-start border-warning border-4">
+        <div class="col">
+            <div class="card shadow-sm border-0 border-start border-warning border-4 h-100 cursor-pointer" style="cursor: pointer;" onclick="setSupplierStatusFilter('PENDING_APPROVAL')" title="Filter pending review">
                 <div class="card-body p-3">
                     <div class="d-flex align-items-center justify-content-between">
                         <div>
                             <span class="text-warning small fw-bold text-uppercase">Pending Review</span>
-                            <h3 class="fw-bold m-0 mt-1 text-warning"><?= (int)($metrics['pending'] ?? 0) ?></h3>
+                            <h3 class="fw-bold m-0 mt-1 text-warning" id="metricPendingReview"><?= (int)($metrics['pending'] ?? 0) ?></h3>
                         </div>
                         <div class="bg-warning-subtle text-warning p-2.5 rounded-3">
                             <i class="bi bi-hourglass-top fs-4"></i>
@@ -56,13 +56,13 @@ $baseUrl = Response::baseUrl();
             </div>
         </div>
 
-        <div class="col-sm-6 col-lg-3">
-            <div class="card shadow-sm border-0 border-start border-success border-4">
+        <div class="col">
+            <div class="card shadow-sm border-0 border-start border-success border-4 h-100 cursor-pointer" style="cursor: pointer;" onclick="setSupplierStatusFilter('APPROVED')" title="Filter approved suppliers">
                 <div class="card-body p-3">
                     <div class="d-flex align-items-center justify-content-between">
                         <div>
                             <span class="text-success small fw-bold text-uppercase">Approved Facilities</span>
-                            <h3 class="fw-bold m-0 mt-1 text-success"><?= (int)($metrics['approved'] ?? 0) ?></h3>
+                            <h3 class="fw-bold m-0 mt-1 text-success" id="metricApproved"><?= (int)($metrics['approved'] ?? 0) ?></h3>
                         </div>
                         <div class="bg-success-subtle text-success p-2.5 rounded-3">
                             <i class="bi bi-patch-check-fill fs-4"></i>
@@ -72,13 +72,29 @@ $baseUrl = Response::baseUrl();
             </div>
         </div>
 
-        <div class="col-sm-6 col-lg-3">
-            <div class="card shadow-sm border-0 border-start border-danger border-4">
+        <div class="col">
+            <div class="card shadow-sm border-0 border-start border-secondary border-4 h-100 cursor-pointer" style="cursor: pointer;" onclick="setSupplierStatusFilter('INACTIVE')" title="Filter inactive accounts">
+                <div class="card-body p-3">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <span class="text-secondary small fw-bold text-uppercase">Inactive Accounts</span>
+                            <h3 class="fw-bold m-0 mt-1 text-secondary" id="metricInactive"><?= (int)($metrics['inactive'] ?? 0) ?></h3>
+                        </div>
+                        <div class="bg-secondary-subtle text-secondary p-2.5 rounded-3">
+                            <i class="bi bi-slash-circle fs-4"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col">
+            <div class="card shadow-sm border-0 border-start border-danger border-4 h-100 cursor-pointer" style="cursor: pointer;" onclick="setSupplierStatusFilter('REJECTED')" title="Filter rejected or suspended">
                 <div class="card-body p-3">
                     <div class="d-flex align-items-center justify-content-between">
                         <div>
                             <span class="text-danger small fw-bold text-uppercase">Rejected / Suspended</span>
-                            <h3 class="fw-bold m-0 mt-1 text-danger"><?= (int)(($metrics['rejected'] ?? 0) + ($metrics['suspended'] ?? 0)) ?></h3>
+                            <h3 class="fw-bold m-0 mt-1 text-danger" id="metricRejectedSuspended"><?= (int)(($metrics['rejected'] ?? 0) + ($metrics['suspended'] ?? 0)) ?></h3>
                         </div>
                         <div class="bg-danger-subtle text-danger p-2.5 rounded-3">
                             <i class="bi bi-shield-x fs-4"></i>
@@ -100,10 +116,11 @@ $baseUrl = Response::baseUrl();
             <!-- Status Filter -->
             <div class="d-flex align-items-center gap-2">
                 <label class="small text-muted fw-semibold">Status Filter:</label>
-                <select id="statusFilter" class="form-select form-select-sm" style="width: 180px;">
+                <select id="statusFilter" class="form-select form-select-sm" style="width: 190px;">
                     <option value="">All Statuses</option>
                     <option value="PENDING_APPROVAL">Pending Review</option>
                     <option value="APPROVED">Approved</option>
+                    <option value="INACTIVE">Inactive Accounts</option>
                     <option value="REJECTED">Rejected</option>
                     <option value="SUSPENDED">Suspended</option>
                     <option value="PENDING_VERIFICATION">Pending Verification</option>
@@ -730,6 +747,23 @@ function submitSupplierForm(e) {
     });
 }
 
+function setSupplierStatusFilter(status) {
+    $('#statusFilter').val(status).trigger('change');
+}
+
+function updateSupplierMetrics(metrics) {
+    if (!metrics) return;
+    if (metrics.total !== undefined) $('#metricTotalVendors').text(metrics.total);
+    if (metrics.pending !== undefined) $('#metricPendingReview').text(metrics.pending);
+    if (metrics.approved !== undefined) $('#metricApproved').text(metrics.approved);
+    if (metrics.inactive !== undefined) $('#metricInactive').text(metrics.inactive);
+    if (metrics.rejected !== undefined || metrics.suspended !== undefined) {
+        const rej = parseInt(metrics.rejected || 0, 10);
+        const susp = parseInt(metrics.suspended || 0, 10);
+        $('#metricRejectedSuspended').text(rej + susp);
+    }
+}
+
 function toggleSupplierStatus(id, targetStatus, companyName) {
     const isDeactivating = targetStatus === 'INACTIVE';
     const actionText = isDeactivating ? 'Deactivate' : 'Activate';
@@ -749,6 +783,9 @@ function toggleSupplierStatus(id, targetStatus, companyName) {
     .then(res => {
         if (res.success) {
             alert(res.message);
+            if (res.metrics) {
+                updateSupplierMetrics(res.metrics);
+            }
             suppliersDt.ajax.reload(null, false);
         } else {
             alert(res.message || 'Error updating supplier status.');
@@ -834,6 +871,7 @@ function approveSupplier(id) {
     .then(res => {
         if (res.success) {
             alert(res.message);
+            if (res.metrics) updateSupplierMetrics(res.metrics);
             suppliersDt.ajax.reload(null, false);
         } else {
             alert(res.message || 'Error approving supplier.');
@@ -866,6 +904,7 @@ function submitReject(e) {
         if (res.success) {
             bootstrap.Modal.getInstance(document.getElementById('rejectModal')).hide();
             alert(res.message);
+            if (res.metrics) updateSupplierMetrics(res.metrics);
             suppliersDt.ajax.reload(null, false);
         } else {
             alert(res.message || 'Error rejecting supplier.');
@@ -889,6 +928,7 @@ function suspendSupplier(id) {
     .then(res => {
         if (res.success) {
             alert(res.message);
+            if (res.metrics) updateSupplierMetrics(res.metrics);
             suppliersDt.ajax.reload(null, false);
         } else {
             alert(res.message || 'Error suspending supplier.');
@@ -910,6 +950,7 @@ function reactivateSupplier(id) {
     .then(res => {
         if (res.success) {
             alert(res.message);
+            if (res.metrics) updateSupplierMetrics(res.metrics);
             suppliersDt.ajax.reload(null, false);
         } else {
             alert(res.message || 'Error reactivating supplier.');
@@ -933,6 +974,7 @@ function deleteSupplier(id, companyName) {
     .then(res => {
         if (res.success) {
             alert(res.message);
+            if (res.metrics) updateSupplierMetrics(res.metrics);
             suppliersDt.ajax.reload(function () {
                 const info = suppliersDt.page.info();
                 if (info && info.pages > 0 && info.page >= info.pages) {

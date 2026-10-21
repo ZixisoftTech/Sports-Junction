@@ -115,6 +115,10 @@ $isMessagesPage = strpos($_SERVER['REQUEST_URI'] ?? '', '/supplier/messages') !=
                     </div>
 
                     <a href="<?= htmlspecialchars($baseUrl) ?>/supplier/enquiries" class="hover:text-blue-900 transition-colors py-1">Customer Enquiries</a>
+                    <a href="<?= htmlspecialchars($baseUrl) ?>/supplier/sample-enquiries" class="hover:text-teal-800 transition-colors py-1 flex items-center gap-1">
+                        <span class="material-symbols-outlined text-[16px] text-teal-600">science</span>
+                        <span>Prototype Samples</span>
+                    </a>
                     
                     <a href="<?= htmlspecialchars($baseUrl) ?>/supplier/messages" class="hover:text-teal-800 text-teal-800 transition-colors py-1 flex items-center gap-1.5 font-extrabold relative">
                         <span class="material-symbols-outlined text-[18px]">chat</span>

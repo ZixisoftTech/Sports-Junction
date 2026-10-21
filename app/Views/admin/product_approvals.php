@@ -29,7 +29,7 @@ $baseUrl = Response::baseUrl();
                     <div class="d-flex align-items-center justify-content-between">
                         <div>
                             <span class="text-warning small fw-bold text-uppercase">Awaiting Approval</span>
-                            <h3 class="fw-bold m-0 mt-1 text-warning"><?= (int)($metrics['pending'] ?? 0) ?></h3>
+                            <h3 class="fw-bold m-0 mt-1 text-warning" id="metricCountPending"><?= (int)($metrics['pending'] ?? 0) ?></h3>
                         </div>
                         <div class="bg-warning-subtle text-warning p-2.5 rounded-3">
                             <i class="bi bi-hourglass-top fs-4"></i>
@@ -45,7 +45,7 @@ $baseUrl = Response::baseUrl();
                     <div class="d-flex align-items-center justify-content-between">
                         <div>
                             <span class="text-success small fw-bold text-uppercase">Approved &amp; Live</span>
-                            <h3 class="fw-bold m-0 mt-1 text-success"><?= (int)($metrics['approved'] ?? 0) ?></h3>
+                            <h3 class="fw-bold m-0 mt-1 text-success" id="metricCountApproved"><?= (int)($metrics['approved'] ?? 0) ?></h3>
                         </div>
                         <div class="bg-success-subtle text-success p-2.5 rounded-3">
                             <i class="bi bi-check2-circle fs-4"></i>
@@ -61,7 +61,7 @@ $baseUrl = Response::baseUrl();
                     <div class="d-flex align-items-center justify-content-between">
                         <div>
                             <span class="text-danger small fw-bold text-uppercase">Rejected Submissions</span>
-                            <h3 class="fw-bold m-0 mt-1 text-danger"><?= (int)($metrics['rejected'] ?? 0) ?></h3>
+                            <h3 class="fw-bold m-0 mt-1 text-danger" id="metricCountRejected"><?= (int)($metrics['rejected'] ?? 0) ?></h3>
                         </div>
                         <div class="bg-danger-subtle text-danger p-2.5 rounded-3">
                             <i class="bi bi-x-octagon fs-4"></i>
@@ -77,7 +77,7 @@ $baseUrl = Response::baseUrl();
                     <div class="d-flex align-items-center justify-content-between">
                         <div>
                             <span class="text-muted small fw-bold text-uppercase">Total Catalog Records</span>
-                            <h3 class="fw-bold m-0 mt-1"><?= (int)($metrics['total'] ?? 0) ?></h3>
+                            <h3 class="fw-bold m-0 mt-1" id="metricCountTotal"><?= (int)($metrics['total'] ?? 0) ?></h3>
                         </div>
                         <div class="bg-primary-subtle text-primary p-2.5 rounded-3">
                             <i class="bi bi-boxes fs-4"></i>
@@ -163,6 +163,7 @@ $baseUrl = Response::baseUrl();
             <form id="productRejectForm" onsubmit="submitProductReject(event)">
                 <input type="hidden" id="rejectProductId">
                 <div class="modal-body p-4">
+                    <div id="productRejectAlert" class="alert alert-danger d-none py-2 px-3 small mb-3"></div>
                     <p class="text-muted small mb-3">Provide detailed feedback explaining why this product cannot be approved or what changes are required from the manufacturer.</p>
                     <div class="mb-3">
                         <label class="form-label small fw-bold">Mandatory Rejection Feedback *</label>
@@ -555,6 +556,14 @@ function reviewProduct(id) {
         });
 }
 
+function updateApprovalMetrics(metrics) {
+    if (!metrics) return;
+    if (metrics.pending !== undefined) $('#metricCountPending').text(metrics.pending);
+    if (metrics.approved !== undefined) $('#metricCountApproved').text(metrics.approved);
+    if (metrics.rejected !== undefined) $('#metricCountRejected').text(metrics.rejected);
+    if (metrics.total !== undefined) $('#metricCountTotal').text(metrics.total);
+}
+
 function approveProduct(id) {
     if (!confirm('Approve this product and publish it immediately across the public marketplace?')) {
         return;
@@ -571,6 +580,7 @@ function approveProduct(id) {
     .then(res => {
         if (res.success) {
             alert(res.message);
+            if (res.metrics) updateApprovalMetrics(res.metrics);
             productAppDt.ajax.reload(null, false);
             if ($('#productReviewModal').hasClass('show')) {
                 bootstrap.Modal.getInstance(document.getElementById('productReviewModal')).hide();
@@ -584,6 +594,7 @@ function approveProduct(id) {
 function openProductRejectModal(id) {
     $('#rejectProductId').val(id);
     $('#productRejectionReason').val('');
+    $('#productRejectAlert').addClass('d-none').text('');
     const modal = new bootstrap.Modal(document.getElementById('productRejectModal'));
     modal.show();
 }
@@ -592,6 +603,19 @@ function submitProductReject(e) {
     e.preventDefault();
     const id = $('#rejectProductId').val();
     const reason = $('#productRejectionReason').val();
+    const $alert = $('#productRejectAlert');
+    $alert.addClass('d-none').text('');
+
+    if (!reason.trim()) {
+        $alert.removeClass('d-none').text('Please enter a rejection reason.');
+        return;
+    }
+
+    const form = e.target;
+    const btn = form.querySelector('button[type="submit"]');
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Processing...';
 
     fetch(`${baseUrl}/api/admin/product-approvals/${id}/reject`, {
         method: 'POST',
@@ -603,16 +627,24 @@ function submitProductReject(e) {
     })
     .then(r => r.json())
     .then(res => {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
         if (res.success) {
             bootstrap.Modal.getInstance(document.getElementById('productRejectModal')).hide();
             if ($('#productReviewModal').hasClass('show')) {
                 bootstrap.Modal.getInstance(document.getElementById('productReviewModal')).hide();
             }
             alert(res.message);
+            if (res.metrics) updateApprovalMetrics(res.metrics);
             productAppDt.ajax.reload(null, false);
         } else {
-            alert(res.message || 'Error rejecting product.');
+            $alert.removeClass('d-none').text(res.message || 'Error rejecting product.');
         }
+    })
+    .catch(err => {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+        $alert.removeClass('d-none').text('Network communication error. Please try again.');
     });
 }
 </script>

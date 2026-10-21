@@ -32,38 +32,49 @@ $baseUrl = Response::baseUrl();
     </div>
 
     <!-- Quick Stats -->
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-        <a href="<?= htmlspecialchars($baseUrl) ?>/buyer/enquiries" class="p-6 rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:border-blue-700 transition-all group">
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <a href="<?= htmlspecialchars($baseUrl) ?>/buyer/enquiries" class="p-5 sm:p-6 rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:border-blue-700 transition-all group">
             <div class="flex items-center justify-between mb-3">
-                <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Active Enquiries</span>
-                <span class="p-2.5 rounded-xl bg-blue-50 text-blue-900 group-hover:bg-blue-900 group-hover:text-white transition-colors">
-                    <span class="material-symbols-outlined text-[20px]">request_quote</span>
+                <span class="text-[11px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider">Active Enquiries</span>
+                <span class="p-2 sm:p-2.5 rounded-xl bg-blue-50 text-blue-900 group-hover:bg-blue-900 group-hover:text-white transition-colors">
+                    <span class="material-symbols-outlined text-[18px] sm:text-[20px]">request_quote</span>
                 </span>
             </div>
-            <div class="font-headline font-extrabold text-3xl text-slate-900"><?= (int)$counts['enquiries'] ?></div>
-            <div class="text-[11px] text-slate-400 mt-1">Quotations &amp; RFQs with suppliers &rarr;</div>
+            <div class="font-headline font-extrabold text-2xl sm:text-3xl text-slate-900"><?= (int)$counts['enquiries'] ?></div>
+            <div class="text-[11px] text-slate-400 mt-1">Quotations &amp; RFQs &rarr;</div>
         </a>
 
-        <a href="<?= htmlspecialchars($baseUrl) ?>/buyer/favourites" class="p-6 rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:border-blue-700 transition-all group">
+        <a href="<?= htmlspecialchars($baseUrl) ?>/buyer/sample-enquiries" class="p-5 sm:p-6 rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:border-teal-700 transition-all group">
             <div class="flex items-center justify-between mb-3">
-                <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Saved Favourites</span>
-                <span class="p-2.5 rounded-xl bg-rose-50 text-rose-600 group-hover:bg-rose-600 group-hover:text-white transition-colors">
-                    <span class="material-symbols-outlined text-[20px] fill-1">favorite</span>
+                <span class="text-[11px] sm:text-xs font-bold text-teal-700 uppercase tracking-wider">Prototype Samples</span>
+                <span class="p-2 sm:p-2.5 rounded-xl bg-teal-50 text-teal-800 group-hover:bg-teal-800 group-hover:text-white transition-colors">
+                    <span class="material-symbols-outlined text-[18px] sm:text-[20px]">science</span>
                 </span>
             </div>
-            <div class="font-headline font-extrabold text-3xl text-slate-900"><?= (int)$counts['favourites'] ?></div>
-            <div class="text-[11px] text-slate-400 mt-1">Shortlisted factory equipment &rarr;</div>
+            <div class="font-headline font-extrabold text-2xl sm:text-3xl text-slate-900"><?= (int)($counts['samples'] ?? 0) ?></div>
+            <div class="text-[11px] text-slate-400 mt-1">5-7 Days Dispatch &rarr;</div>
         </a>
 
-        <a href="<?= htmlspecialchars($baseUrl) ?>/buyer/recently-viewed" class="p-6 rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:border-blue-700 transition-all group">
+        <a href="<?= htmlspecialchars($baseUrl) ?>/buyer/favourites" class="p-5 sm:p-6 rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:border-rose-600 transition-all group">
             <div class="flex items-center justify-between mb-3">
-                <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Browsing History</span>
-                <span class="p-2.5 rounded-xl bg-teal-50 text-teal-700 group-hover:bg-teal-700 group-hover:text-white transition-colors">
-                    <span class="material-symbols-outlined text-[20px]">history</span>
+                <span class="text-[11px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider">Saved Favourites</span>
+                <span class="p-2 sm:p-2.5 rounded-xl bg-rose-50 text-rose-600 group-hover:bg-rose-600 group-hover:text-white transition-colors">
+                    <span class="material-symbols-outlined text-[18px] sm:text-[20px] fill-1">favorite</span>
                 </span>
             </div>
-            <div class="font-headline font-extrabold text-3xl text-slate-900"><?= (int)$counts['recent'] ?></div>
-            <div class="text-[11px] text-slate-400 mt-1">Recently viewed equipment &rarr;</div>
+            <div class="font-headline font-extrabold text-2xl sm:text-3xl text-slate-900"><?= (int)$counts['favourites'] ?></div>
+            <div class="text-[11px] text-slate-400 mt-1">Shortlisted equipment &rarr;</div>
+        </a>
+
+        <a href="<?= htmlspecialchars($baseUrl) ?>/buyer/recently-viewed" class="p-5 sm:p-6 rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:border-blue-700 transition-all group">
+            <div class="flex items-center justify-between mb-3">
+                <span class="text-[11px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider">Browsing History</span>
+                <span class="p-2 sm:p-2.5 rounded-xl bg-slate-50 text-slate-700 group-hover:bg-slate-700 group-hover:text-white transition-colors">
+                    <span class="material-symbols-outlined text-[18px] sm:text-[20px]">history</span>
+                </span>
+            </div>
+            <div class="font-headline font-extrabold text-2xl sm:text-3xl text-slate-900"><?= (int)$counts['recent'] ?></div>
+            <div class="text-[11px] text-slate-400 mt-1">Recent equipment &rarr;</div>
         </a>
     </div>
 

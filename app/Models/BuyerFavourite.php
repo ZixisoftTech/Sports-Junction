@@ -77,4 +77,18 @@ class BuyerFavourite extends Model
             ORDER BY bf.created_at DESC
         ", [':user_id' => $userId]);
     }
+
+    public static function countForBuyer(int $userId): int
+    {
+        return (int) self::fetchColumn("
+            SELECT COUNT(*) 
+            FROM buyer_favourites bf
+            JOIN products p ON bf.product_id = p.id
+            LEFT JOIN suppliers sp ON p.supplier_id = sp.id
+            WHERE bf.user_id = :user_id
+              AND p.status IN ('PUBLISHED', 'ACTIVE')
+              AND p.approval_status = 'APPROVED'
+              AND (sp.approval_status = 'APPROVED' AND sp.status = 'ACTIVE')
+        ", [':user_id' => $userId]);
+    }
 }

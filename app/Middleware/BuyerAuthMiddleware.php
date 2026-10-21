@@ -23,8 +23,10 @@ class BuyerAuthMiddleware
                 return false;
             }
 
+            $targetPath = $request->getPath();
+            Session::set('auth_redirect', $targetPath);
             Session::flash('error', 'Please sign in to your Buyer Account to continue.');
-            $response->redirect('/login');
+            $response->redirect('/login?redirect=' . urlencode($targetPath));
             return false;
         }
 

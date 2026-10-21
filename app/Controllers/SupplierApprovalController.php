@@ -216,7 +216,7 @@ class SupplierApprovalController extends Controller
         if ($ok) {
             Mailer::sendSupplierApproved($supplier['email'], $supplier['company_name']);
             AuditLogger::log('APPROVE', 'Supplier', $id, $supplier['company_name'], null, 'Super Admin approved supplier application');
-            $this->json(['success' => true, 'message' => "Supplier '{$supplier['company_name']}' approved successfully."]);
+            $this->json(['success' => true, 'message' => "Supplier '{$supplier['company_name']}' approved successfully.", 'metrics' => Supplier::getMetrics()]);
         } else {
             $this->json(['success' => false, 'message' => 'Failed to update approval status.'], 500);
         }
@@ -247,7 +247,7 @@ class SupplierApprovalController extends Controller
         if ($ok) {
             Mailer::sendSupplierRejected($supplier['email'], $supplier['company_name'], $reason);
             AuditLogger::log('REJECT', 'Supplier', $id, $supplier['company_name'], ['reason' => $reason], 'Super Admin rejected supplier application');
-            $this->json(['success' => true, 'message' => "Supplier application rejected."]);
+            $this->json(['success' => true, 'message' => "Supplier application rejected.", 'metrics' => Supplier::getMetrics()]);
         } else {
             $this->json(['success' => false, 'message' => 'Failed to update approval status.'], 500);
         }
@@ -272,7 +272,7 @@ class SupplierApprovalController extends Controller
         $ok = Supplier::updateApprovalStatus($id, 'SUSPENDED', $reason, $adminId);
         if ($ok) {
             AuditLogger::log('SUSPEND', 'Supplier', $id, $supplier['company_name'], ['reason' => $reason], 'Super Admin suspended supplier');
-            $this->json(['success' => true, 'message' => "Supplier '{$supplier['company_name']}' suspended."]);
+            $this->json(['success' => true, 'message' => "Supplier '{$supplier['company_name']}' suspended.", 'metrics' => Supplier::getMetrics()]);
         } else {
             $this->json(['success' => false, 'message' => 'Failed to suspend supplier.'], 500);
         }
@@ -296,7 +296,7 @@ class SupplierApprovalController extends Controller
         $ok = Supplier::updateApprovalStatus($id, 'APPROVED', null, $adminId);
         if ($ok) {
             AuditLogger::log('REACTIVATE', 'Supplier', $id, $supplier['company_name'], null, 'Super Admin reactivated supplier');
-            $this->json(['success' => true, 'message' => "Supplier '{$supplier['company_name']}' reactivated."]);
+            $this->json(['success' => true, 'message' => "Supplier '{$supplier['company_name']}' reactivated.", 'metrics' => Supplier::getMetrics()]);
         } else {
             $this->json(['success' => false, 'message' => 'Failed to reactivate supplier.'], 500);
         }
@@ -368,7 +368,7 @@ class SupplierApprovalController extends Controller
         $ok = Supplier::delete($id);
         if ($ok) {
             AuditLogger::log('DELETE', 'Supplier', $id, $supplier['company_name'], null, 'Super Admin permanently deleted supplier');
-            $this->json(['success' => true, 'message' => "Supplier '{$supplier['company_name']}' deleted successfully."]);
+            $this->json(['success' => true, 'message' => "Supplier '{$supplier['company_name']}' deleted successfully.", 'metrics' => Supplier::getMetrics()]);
         } else {
             $this->json(['success' => false, 'message' => 'Failed to delete supplier.'], 500);
         }
