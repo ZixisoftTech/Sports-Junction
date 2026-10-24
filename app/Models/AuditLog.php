@@ -8,8 +8,51 @@ use PDO;
 
 class AuditLog extends Model
 {
+    public static function ensureSchema(): void
+    {
+        static $checked = false;
+        if ($checked) return;
+        $checked = true;
+
+        try {
+            self::execute("
+                CREATE TABLE IF NOT EXISTS `audit_logs` (
+                  `id` int unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                  `user_id` int unsigned DEFAULT NULL,
+                  `action` varchar(50) NOT NULL,
+                  `entity_type` varchar(50) NOT NULL,
+                  `entity_id` int unsigned DEFAULT NULL,
+                  `record_identifier` varchar(150) DEFAULT NULL,
+                  `result` varchar(50) NULL DEFAULT 'SUCCESS',
+                  `summary` varchar(255) NULL,
+                  `affected_counts` json DEFAULT NULL,
+                  `details` text,
+                  `ip_address` varchar(45) DEFAULT NULL,
+                  `user_agent` varchar(255) DEFAULT NULL,
+                  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                  KEY `idx_audit_user` (`user_id`),
+                  KEY `idx_audit_entity` (`entity_type`,`entity_id`),
+                  KEY `idx_audit_created` (`created_at`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+            ");
+
+            $cols = self::fetchAll("DESCRIBE `audit_logs`");
+            $colNames = array_column($cols, 'Field');
+
+            if (!in_array('result', $colNames, true)) {
+                self::execute("ALTER TABLE `audit_logs` ADD COLUMN `result` VARCHAR(50) NULL DEFAULT 'SUCCESS' AFTER `entity_id`");
+            }
+            if (!in_array('summary', $colNames, true)) {
+                self::execute("ALTER TABLE `audit_logs` ADD COLUMN `summary` VARCHAR(255) NULL AFTER `details`");
+            }
+        } catch (\Throwable $e) {
+            @error_log("AuditLog::ensureSchema error: " . $e->getMessage());
+        }
+    }
+
     public static function getRecent(int $limit = 15): array
     {
+        self::ensureSchema();
         return self::fetchAll("
             SELECT a.*, u.name AS user_name, u.email AS user_email, u.role AS user_role
             FROM audit_logs a 
@@ -41,17 +84,23 @@ class AuditLog extends Model
 
     public static function getFilterOptions(): array
     {
-        $actions = self::fetchAll("SELECT DISTINCT action FROM audit_logs WHERE action IS NOT NULL AND action != '' ORDER BY action ASC");
-        $entities = self::fetchAll("SELECT DISTINCT entity_type FROM audit_logs WHERE entity_type IS NOT NULL AND entity_type != '' ORDER BY entity_type ASC");
-        $results = self::fetchAll("SELECT DISTINCT result FROM audit_logs WHERE result IS NOT NULL AND result != '' ORDER BY result ASC");
-        $roles = self::fetchAll("SELECT DISTINCT u.role FROM audit_logs a JOIN users u ON a.user_id = u.id WHERE u.role IS NOT NULL ORDER BY u.role ASC");
+        self::ensureSchema();
+        try {
+            $actions = self::fetchAll("SELECT DISTINCT action FROM audit_logs WHERE action IS NOT NULL AND action != '' ORDER BY action ASC");
+            $entities = self::fetchAll("SELECT DISTINCT entity_type FROM audit_logs WHERE entity_type IS NOT NULL AND entity_type != '' ORDER BY entity_type ASC");
+            $results = self::fetchAll("SELECT DISTINCT result FROM audit_logs WHERE result IS NOT NULL AND result != '' ORDER BY result ASC");
+            $roles = self::fetchAll("SELECT DISTINCT u.role FROM audit_logs a JOIN users u ON a.user_id = u.id WHERE u.role IS NOT NULL ORDER BY u.role ASC");
 
-        return [
-            'actions'  => array_column($actions, 'action'),
-            'entities' => array_column($entities, 'entity_type'),
-            'results'  => array_column($results, 'result'),
-            'roles'    => array_column($roles, 'role'),
-        ];
+            return [
+                'actions'  => array_column($actions, 'action'),
+                'entities' => array_column($entities, 'entity_type'),
+                'results'  => array_column($results, 'result'),
+                'roles'    => array_column($roles, 'role'),
+            ];
+        } catch (\Throwable $e) {
+            @error_log("AuditLog::getFilterOptions error: " . $e->getMessage());
+            return ['actions' => [], 'entities' => [], 'results' => [], 'roles' => []];
+        }
     }
 
     private static function buildFilterQuery(array $params): array

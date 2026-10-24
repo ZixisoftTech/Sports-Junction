@@ -30,34 +30,107 @@ class CmsPage extends Model
     public const FOOTER_COLUMNS = self::CATEGORIES;
 
     /**
+     * Self-healing: Ensure schema and all columns exist in database
+     */
+    public static function ensureSchema(): void
+    {
+        static $schemaChecked = false;
+        if ($schemaChecked) return;
+        $schemaChecked = true;
+
+        try {
+            self::execute("
+                CREATE TABLE IF NOT EXISTS `cms_pages` (
+                    `id` INT AUTO_INCREMENT PRIMARY KEY,
+                    `title` VARCHAR(255) NOT NULL,
+                    `footer_label` VARCHAR(255) NULL,
+                    `slug` VARCHAR(255) NOT NULL UNIQUE,
+                    `column_category` VARCHAR(50) NOT NULL DEFAULT 'ABOUT',
+                    `content` LONGTEXT NULL,
+                    `featured_image` VARCHAR(255) NULL,
+                    `external_url` VARCHAR(255) NULL,
+                    `meta_title` VARCHAR(255) NULL,
+                    `meta_description` TEXT NULL,
+                    `sort_order` INT DEFAULT 0,
+                    `show_in_footer` TINYINT(1) DEFAULT 1,
+                    `is_active` TINYINT(1) DEFAULT 1,
+                    `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                    INDEX idx_slug (`slug`),
+                    INDEX idx_category (`column_category`),
+                    INDEX idx_active (`is_active`),
+                    INDEX idx_footer (`show_in_footer`),
+                    INDEX idx_sort (`sort_order`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+            ");
+
+            $cols = self::fetchAll("DESCRIBE `cms_pages`");
+            $colNames = array_column($cols, 'Field');
+
+            if (!in_array('column_category', $colNames, true)) {
+                self::execute("ALTER TABLE `cms_pages` ADD COLUMN `column_category` VARCHAR(50) NOT NULL DEFAULT 'ABOUT' AFTER `slug`");
+            }
+            if (!in_array('footer_label', $colNames, true)) {
+                self::execute("ALTER TABLE `cms_pages` ADD COLUMN `footer_label` VARCHAR(255) NULL AFTER `title`");
+            }
+            if (!in_array('show_in_footer', $colNames, true)) {
+                self::execute("ALTER TABLE `cms_pages` ADD COLUMN `show_in_footer` TINYINT(1) DEFAULT 1 AFTER `sort_order`");
+            }
+            if (!in_array('featured_image', $colNames, true)) {
+                self::execute("ALTER TABLE `cms_pages` ADD COLUMN `featured_image` VARCHAR(255) NULL AFTER `content`");
+            }
+            if (!in_array('meta_title', $colNames, true)) {
+                self::execute("ALTER TABLE `cms_pages` ADD COLUMN `meta_title` VARCHAR(255) NULL AFTER `external_url`");
+            }
+            if (!in_array('meta_description', $colNames, true)) {
+                self::execute("ALTER TABLE `cms_pages` ADD COLUMN `meta_description` TEXT NULL AFTER `meta_title`");
+            }
+            if (!in_array('sort_order', $colNames, true)) {
+                self::execute("ALTER TABLE `cms_pages` ADD COLUMN `sort_order` INT DEFAULT 0 AFTER `external_url`");
+            }
+            if (!in_array('is_active', $colNames, true)) {
+                self::execute("ALTER TABLE `cms_pages` ADD COLUMN `is_active` TINYINT(1) DEFAULT 1 AFTER `show_in_footer`");
+            }
+        } catch (\Throwable $e) {
+            @error_log("CmsPage::ensureSchema error: " . $e->getMessage());
+        }
+    }
+
+    /**
      * Find page by slug (with automatic alias resolution)
      */
     public static function findBySlug(string $slug): ?array
     {
         $slug = trim($slug);
+        self::ensureSchema();
         self::ensureSeeded();
 
-        $sql = "SELECT * FROM `cms_pages` WHERE `slug` = :s LIMIT 1";
-        $page = self::fetch($sql, [':s' => $slug]);
+        try {
+            $sql = "SELECT * FROM `cms_pages` WHERE `slug` = :s LIMIT 1";
+            $page = self::fetch($sql, [':s' => $slug]);
 
-        if (!$page) {
-            // Check alias mappings
-            $aliases = [
-                'manufacturing-sla'             => 'terms-manufacturing-sla',
-                'terms-manufacturing-sla'       => 'manufacturing-sla',
-                'seller-manufacturer-agreement' => 'seller-agreement',
-                'seller-agreement'              => 'seller-manufacturer-agreement',
-                'sitemap'                       => 'xml-sitemap',
-                'xml-sitemap'                   => 'sitemap',
-                'contact-us'                    => 'contact-us-support',
-                'contact-us-support'            => 'contact-us',
-            ];
-            if (isset($aliases[$slug])) {
-                $page = self::fetch($sql, [':s' => $aliases[$slug]]);
+            if (!$page) {
+                // Check alias mappings
+                $aliases = [
+                    'manufacturing-sla'             => 'terms-manufacturing-sla',
+                    'terms-manufacturing-sla'       => 'manufacturing-sla',
+                    'seller-manufacturer-agreement' => 'seller-agreement',
+                    'seller-agreement'              => 'seller-manufacturer-agreement',
+                    'sitemap'                       => 'xml-sitemap',
+                    'xml-sitemap'                   => 'sitemap',
+                    'contact-us'                    => 'contact-us-support',
+                    'contact-us-support'            => 'contact-us',
+                ];
+                if (isset($aliases[$slug])) {
+                    $page = self::fetch($sql, [':s' => $aliases[$slug]]);
+                }
             }
-        }
 
-        return $page ?: null;
+            return $page ?: null;
+        } catch (\Throwable $e) {
+            @error_log("CmsPage::findBySlug error: " . $e->getMessage());
+            return null;
+        }
     }
 
     /**
@@ -65,8 +138,14 @@ class CmsPage extends Model
      */
     public static function findById(int $id): ?array
     {
-        $sql = "SELECT * FROM `cms_pages` WHERE `id` = :id LIMIT 1";
-        return self::fetch($sql, [':id' => $id]);
+        self::ensureSchema();
+        try {
+            $sql = "SELECT * FROM `cms_pages` WHERE `id` = :id LIMIT 1";
+            return self::fetch($sql, [':id' => $id]);
+        } catch (\Throwable $e) {
+            @error_log("CmsPage::findById error: " . $e->getMessage());
+            return null;
+        }
     }
 
     /**
@@ -74,13 +153,19 @@ class CmsPage extends Model
      */
     public static function all(bool $activeOnly = false): array
     {
+        self::ensureSchema();
         self::ensureSeeded();
-        $sql = "SELECT * FROM `cms_pages`";
-        if ($activeOnly) {
-            $sql .= " WHERE `is_active` = 1";
+        try {
+            $sql = "SELECT * FROM `cms_pages`";
+            if ($activeOnly) {
+                $sql .= " WHERE `is_active` = 1";
+            }
+            $sql .= " ORDER BY FIELD(column_category, 'ABOUT', 'PROTECTION', 'HELP', 'SOURCING', 'LEGAL'), `sort_order` ASC, `id` ASC";
+            return self::fetchAll($sql);
+        } catch (\Throwable $e) {
+            @error_log("CmsPage::all error: " . $e->getMessage());
+            return [];
         }
-        $sql .= " ORDER BY FIELD(column_category, 'ABOUT', 'PROTECTION', 'HELP', 'SOURCING', 'LEGAL'), `sort_order` ASC, `id` ASC";
-        return self::fetchAll($sql);
     }
 
     /**
@@ -88,13 +173,19 @@ class CmsPage extends Model
      */
     public static function getByCategory(string $category, bool $activeOnly = true): array
     {
+        self::ensureSchema();
         self::ensureSeeded();
-        $sql = "SELECT * FROM `cms_pages` WHERE `column_category` = :cat";
-        if ($activeOnly) {
-            $sql .= " AND `is_active` = 1";
+        try {
+            $sql = "SELECT * FROM `cms_pages` WHERE `column_category` = :cat";
+            if ($activeOnly) {
+                $sql .= " AND `is_active` = 1";
+            }
+            $sql .= " ORDER BY `sort_order` ASC, `id` ASC";
+            return self::fetchAll($sql, [':cat' => $category]);
+        } catch (\Throwable $e) {
+            @error_log("CmsPage::getByCategory error: " . $e->getMessage());
+            return [];
         }
-        $sql .= " ORDER BY `sort_order` ASC, `id` ASC";
-        return self::fetchAll($sql, [':cat' => $category]);
     }
 
     /**
@@ -102,22 +193,8 @@ class CmsPage extends Model
      */
     public static function getByColumns(bool $activeOnly = true, bool $footerOnly = true): array
     {
+        self::ensureSchema();
         self::ensureSeeded();
-
-        $where = [];
-        if ($activeOnly) {
-            $where[] = "`is_active` = 1";
-        }
-        if ($footerOnly) {
-            $where[] = "`show_in_footer` = 1";
-        }
-
-        $sql = "SELECT * FROM `cms_pages`";
-        if (!empty($where)) {
-            $sql .= " WHERE " . implode(' AND ', $where);
-        }
-        $sql .= " ORDER BY `sort_order` ASC, `id` ASC";
-        $rows = self::fetchAll($sql);
 
         $grouped = [
             self::COL_ABOUT => [],
@@ -127,11 +204,30 @@ class CmsPage extends Model
             self::COL_LEGAL => []
         ];
 
-        foreach ($rows as $row) {
-            $cat = strtoupper(trim((string)($row['column_category'] ?? '')));
-            if (isset($grouped[$cat])) {
-                $grouped[$cat][] = $row;
+        try {
+            $where = [];
+            if ($activeOnly) {
+                $where[] = "`is_active` = 1";
             }
+            if ($footerOnly) {
+                $where[] = "`show_in_footer` = 1";
+            }
+
+            $sql = "SELECT * FROM `cms_pages`";
+            if (!empty($where)) {
+                $sql .= " WHERE " . implode(' AND ', $where);
+            }
+            $sql .= " ORDER BY `sort_order` ASC, `id` ASC";
+            $rows = self::fetchAll($sql);
+
+            foreach ($rows as $row) {
+                $cat = strtoupper(trim((string)($row['column_category'] ?? '')));
+                if (isset($grouped[$cat])) {
+                    $grouped[$cat][] = $row;
+                }
+            }
+        } catch (\Throwable $e) {
+            @error_log("CmsPage::getByColumns error: " . $e->getMessage());
         }
 
         return $grouped;
@@ -145,6 +241,8 @@ class CmsPage extends Model
         static $checked = false;
         if ($checked) return;
         $checked = true;
+
+        self::ensureSchema();
 
         try {
             $count = (int) self::fetchColumn("SELECT COUNT(*) FROM cms_pages WHERE column_category IN ('ABOUT', 'PROTECTION', 'HELP', 'SOURCING', 'LEGAL')");

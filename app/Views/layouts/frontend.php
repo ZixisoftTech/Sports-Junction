@@ -9,12 +9,24 @@ use App\Models\ChatConversation;
 $baseUrl = Response::baseUrl();
 $currentUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . "://" . ($_SERVER['HTTP_HOST'] ?? 'localhost') . ($_SERVER['REQUEST_URI'] ?? '');
 
-$siteSettings = SiteSetting::getAllKeyed();
-$siteLogo = \App\Models\SiteSetting::getLogoUrl();
+try {
+    $siteSettings = SiteSetting::getAllKeyed();
+} catch (\Throwable $e) {
+    $siteSettings = [];
+}
+try {
+    $siteLogo = \App\Models\SiteSetting::getLogoUrl();
+} catch (\Throwable $e) {
+    $siteLogo = $baseUrl . '/assets/images/logo.png';
+}
 $siteName = $siteSettings['site_name'] ?? 'Sports Junction';
 
 $authUser = \App\Helpers\Session::get('auth_user');
-$authSupplierId = \App\Models\Supplier::currentSupplierId();
+$authSupplierId = 0;
+try {
+    $authSupplierId = \App\Models\Supplier::currentSupplierId();
+} catch (\Throwable $e) {}
+
 $buyerUnreadCount = 0;
 $buyerFavCount = 0;
 $buyerSortCount = 0;
@@ -32,7 +44,11 @@ if ($authUser && ($authUser['role'] ?? '') === 'BUYER') {
     $buyerSortCount = 0;
     $buyerFavCount = 0;
 }
-$footerColumns = CmsPage::getByColumns(true);
+try {
+    $footerColumns = CmsPage::getByColumns(true);
+} catch (\Throwable $e) {
+    $footerColumns = [];
+}
 $categories = !empty($categories) ? $categories : \App\Models\Category::allActive();
 $allCountries = !empty($countries) ? $countries : \App\Models\Country::allActive();
 $buyerCountryId = null;

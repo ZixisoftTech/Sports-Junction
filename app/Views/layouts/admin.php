@@ -10,8 +10,13 @@ $activeMenu = $activeMenu ?? 'dashboard';
 $adminUnreadNotifCount = 0;
 $adminRecentNotifs = [];
 if (!empty($user['id']) && ($user['role'] ?? '') === 'SUPER_ADMIN') {
-    $adminUnreadNotifCount = \App\Models\Notification::getUnreadCount((int)$user['id']);
-    $adminRecentNotifs = \App\Models\Notification::getRecentForAdmin((int)$user['id'], 6);
+    try {
+        $adminUnreadNotifCount = \App\Models\Notification::getUnreadCount((int)$user['id']);
+        $adminRecentNotifs = \App\Models\Notification::getRecentForAdmin((int)$user['id'], 6);
+    } catch (\Throwable $e) {
+        $adminUnreadNotifCount = 0;
+        $adminRecentNotifs = [];
+    }
 }
 ?>
 <!DOCTYPE html>

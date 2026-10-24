@@ -8,11 +8,42 @@ use Throwable;
 
 class SiteFeedback extends Model
 {
+    public static function ensureSchema(): void
+    {
+        static $checked = false;
+        if ($checked) return;
+        $checked = true;
+
+        try {
+            self::execute("
+                CREATE TABLE IF NOT EXISTS `site_feedbacks` (
+                    `id` INT AUTO_INCREMENT PRIMARY KEY,
+                    `name` VARCHAR(150) NOT NULL,
+                    `email` VARCHAR(191) NOT NULL,
+                    `user_role` VARCHAR(50) NOT NULL DEFAULT 'BUYER',
+                    `category` VARCHAR(50) NOT NULL DEFAULT 'GENERAL',
+                    `rating` TINYINT NOT NULL DEFAULT 5,
+                    `subject` VARCHAR(255) NOT NULL,
+                    `message` TEXT NOT NULL,
+                    `ip_address` VARCHAR(45) NULL,
+                    `status` ENUM('NEW', 'REVIEWED', 'ARCHIVED') NOT NULL DEFAULT 'NEW',
+                    `admin_notes` TEXT NULL,
+                    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    INDEX idx_feedback_status (`status`),
+                    INDEX idx_feedback_created (`created_at`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+            ");
+        } catch (Throwable $e) {
+            @error_log("SiteFeedback::ensureSchema error: " . $e->getMessage());
+        }
+    }
+
     /**
      * Create new user feedback submission
      */
     public static function create(array $data): int
     {
+        self::ensureSchema();
         try {
             $name = trim((string)($data['name'] ?? ''));
             $email = trim((string)($data['email'] ?? ''));

@@ -131,6 +131,45 @@ class Notification extends Model
         return date('d M Y', $time);
     }
 
+    public static function ensureSchema(): void
+    {
+        static $checked = false;
+        if ($checked) return;
+        $checked = true;
+
+        try {
+            self::execute("
+                CREATE TABLE IF NOT EXISTS `notifications` (
+                    `id` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                    `user_id` INT NOT NULL,
+                    `type` VARCHAR(50) NOT NULL,
+                    `title` VARCHAR(255) NOT NULL,
+                    `message` TEXT NOT NULL,
+                    `link` VARCHAR(255) NULL,
+                    `related_type` VARCHAR(50) NULL,
+                    `related_id` INT NULL,
+                    `is_read` TINYINT(1) NOT NULL DEFAULT 0,
+                    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    INDEX idx_notif_user (`user_id`),
+                    INDEX idx_notif_read (`is_read`),
+                    INDEX idx_notif_created (`created_at`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+            ");
+
+            $cols = self::fetchAll("DESCRIBE `notifications`");
+            $colNames = array_column($cols, 'Field');
+
+            if (!in_array('related_type', $colNames, true)) {
+                self::execute("ALTER TABLE `notifications` ADD COLUMN `related_type` VARCHAR(50) NULL AFTER `link`");
+            }
+            if (!in_array('related_id', $colNames, true)) {
+                self::execute("ALTER TABLE `notifications` ADD COLUMN `related_id` INT NULL AFTER `related_type`");
+            }
+        } catch (\Throwable $e) {
+            @error_log("Notification::ensureSchema error: " . $e->getMessage());
+        }
+    }
+
     /**
      * Create a notification. Avoids duplicates if related_type and related_id match.
      */
@@ -143,6 +182,7 @@ class Notification extends Model
         ?string $relatedType = null,
         ?int $relatedId = null
     ): int {
+        self::ensureSchema();
         try {
             // Check for existing duplicate if related reference exists
             if (!empty($relatedType) && !empty($relatedId)) {
@@ -232,6 +272,7 @@ class Notification extends Model
      */
     public static function getUnreadCount(int $userId): int
     {
+        self::ensureSchema();
         try {
             return (int) self::fetchColumn("
                 SELECT COUNT(*) FROM `notifications` 
@@ -247,6 +288,7 @@ class Notification extends Model
      */
     public static function getRecentForAdmin(int $userId, int $limit = 8): array
     {
+        self::ensureSchema();
         try {
             $rows = self::fetchAll("
                 SELECT * FROM `notifications` 
