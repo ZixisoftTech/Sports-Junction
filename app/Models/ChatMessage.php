@@ -121,9 +121,42 @@ class ChatMessage extends Model
                     } elseif ($messageType === 'ATTACHMENT') {
                         $snippet = "Shared a business document/attachment.";
                     }
-                    $link = ($recipientRole === 'SUPPLIER') ? "/supplier/messages?conversation_id={$conversationId}" : "/buyer/messages?conversation_id={$conversationId}";
+                    $recipUser = \App\Models\User::findById($recipientUserId);
+                    $isSuperAdmin = ($recipUser && ($recipUser['role'] ?? '') === 'SUPER_ADMIN');
+                    if ($isSuperAdmin) {
+                        $link = "/admin/communication/{$conversationId}";
+                    } else {
+                        $link = ($recipientRole === 'SUPPLIER') ? "/supplier/messages?conversation_id={$conversationId}" : "/buyer/messages?conversation_id={$conversationId}";
+                    }
                     // If first buyer message was already sent via Template V, dispatch in-app only; otherwise dispatch both
                     ChatNotifier::notify($recipientUserId, 'NEW_CHAT_MESSAGE', $title, $snippet, $link, !$isFirstBuyerMessage);
+                }
+
+                // Super Admin Notification Dispatch
+                if ($senderRole !== 'SUPER_ADMIN' && !$isInternalAdminNote) {
+                    $senderName = $senderRole === 'BUYER' 
+                        ? ($conv['buyer_first_name'] . (!empty($conv['buyer_company']) ? " ({$conv['buyer_company']})" : ''))
+                        : ($conv['supplier_company_name'] ?: 'Supplier');
+                    
+                    $adminTitle = "New Message from {$senderName} [{$senderRole}]";
+                    $adminSnippet = mb_substr(strip_tags((string)$rawBody), 0, 120);
+                    if ($messageType === 'OFFER') {
+                        $adminSnippet = "Sent a formal negotiation offer.";
+                    } elseif ($messageType === 'ATTACHMENT') {
+                        $adminSnippet = "Shared a business document/attachment.";
+                    }
+                    if (!empty($conv['product_title'])) {
+                        $adminSnippet = "[Product: {$conv['product_title']}] " . $adminSnippet;
+                    }
+
+                    \App\Models\Notification::notifySuperAdmins(
+                        'NEW_CHAT_MESSAGE',
+                        $adminTitle,
+                        $adminSnippet,
+                        "/admin/communication/{$conversationId}",
+                        'CONVERSATION',
+                        $messageId
+                    );
                 }
             }
         }

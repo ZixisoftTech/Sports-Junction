@@ -71,16 +71,25 @@ class AdminHeroBannerController extends Controller
             }
         }
 
+        $bannerType = in_array($input['banner_type'] ?? '', ['WITH_TEXT', 'IMAGE_ONLY'], true) ? $input['banner_type'] : 'WITH_TEXT';
+        $input['banner_type'] = $bannerType;
+
+        if ($bannerType === 'IMAGE_ONLY' && empty(trim((string)($input['title'] ?? '')))) {
+            $input['title'] = 'Image Banner';
+        }
+
         $validator = Validator::make($input);
         $rules = [
-            'title' => 'required|max:255',
             'image' => 'required|max:500',
         ];
+        if ($bannerType === 'WITH_TEXT') {
+            $rules['title'] = 'required|max:255';
+        }
 
         if (!$validator->validate($rules)) {
             $this->json([
                 'success' => false,
-                'message' => 'Please provide a valid banner title and image.',
+                'message' => ($bannerType === 'WITH_TEXT') ? 'Please provide a valid banner title and image.' : 'Please provide a valid banner image.',
                 'errors'  => $validator->errors()
             ], 422);
             return;
@@ -130,16 +139,25 @@ class AdminHeroBannerController extends Controller
             $input['image'] = $existing['image'];
         }
 
+        $bannerType = in_array($input['banner_type'] ?? '', ['WITH_TEXT', 'IMAGE_ONLY'], true) ? $input['banner_type'] : ($existing['banner_type'] ?? 'WITH_TEXT');
+        $input['banner_type'] = $bannerType;
+
+        if ($bannerType === 'IMAGE_ONLY' && empty(trim((string)($input['title'] ?? '')))) {
+            $input['title'] = !empty($existing['title']) ? $existing['title'] : 'Image Banner';
+        }
+
         $validator = Validator::make($input);
         $rules = [
-            'title' => 'required|max:255',
             'image' => 'required|max:500',
         ];
+        if ($bannerType === 'WITH_TEXT') {
+            $rules['title'] = 'required|max:255';
+        }
 
         if (!$validator->validate($rules)) {
             $this->json([
                 'success' => false,
-                'message' => 'Please provide a valid banner title and image.',
+                'message' => ($bannerType === 'WITH_TEXT') ? 'Please provide a valid banner title and image.' : 'Please provide a valid banner image.',
                 'errors'  => $validator->errors()
             ], 422);
             return;

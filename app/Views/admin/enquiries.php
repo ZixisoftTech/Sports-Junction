@@ -43,44 +43,78 @@ $selectedBuyerId = !empty($filterBuyer['id']) ? (int)$filterBuyer['id'] : '';
 <?php endif; ?>
 
 <!-- Metrics Row -->
+<!-- Metrics Row -->
 <div class="row g-3 mb-4">
     <div class="col-6 col-md-2">
-        <div class="stat-card h-100 p-3">
+        <div class="stat-card h-100 p-3 cursor-pointer clickable-card" id="cardEnqTotal" data-card="total" role="button" tabindex="0" title="Click to show all enquiries">
             <div class="text-slate-500 small fw-semibold">Total Enquiries</div>
             <h4 class="fw-bold text-slate-900 mb-0 mt-1" id="mTotal"><?= (int)($metrics['total'] ?? 0) ?></h4>
         </div>
     </div>
     <div class="col-6 col-md-2">
-        <div class="stat-card h-100 p-3">
+        <div class="stat-card h-100 p-3 cursor-pointer clickable-card" id="cardEnqProductPage" data-card="product_page" role="button" tabindex="0" title="Click to filter product page enquiries">
             <div class="text-slate-500 small fw-semibold">Product Page</div>
             <h4 class="fw-bold text-primary mb-0 mt-1" id="mProductPage"><?= (int)($metrics['product_page'] ?? 0) ?></h4>
         </div>
     </div>
     <div class="col-6 col-md-2">
-        <div class="stat-card h-100 p-3">
+        <div class="stat-card h-100 p-3 cursor-pointer clickable-card" id="cardEnqGeneral" data-card="general_rfq" role="button" tabindex="0" title="Click to filter general RFQ enquiries">
             <div class="text-slate-500 small fw-semibold">General RFQs</div>
             <h4 class="fw-bold text-info mb-0 mt-1" id="mGeneral"><?= (int)($metrics['general_rfq'] ?? 0) ?></h4>
         </div>
     </div>
     <div class="col-6 col-md-2">
-        <div class="stat-card h-100 p-3">
+        <div class="stat-card h-100 p-3 cursor-pointer clickable-card" id="cardEnqContactUs" data-card="contact_us" role="button" tabindex="0" title="Click to filter contact us enquiries">
             <div class="text-slate-500 small fw-semibold">Contact Us</div>
             <h4 class="fw-bold text-purple mb-0 mt-1" style="color:#7c3aed;" id="mContactUs"><?= (int)($metrics['contact_us'] ?? 0) ?></h4>
         </div>
     </div>
     <div class="col-6 col-md-2">
-        <div class="stat-card h-100 p-3">
+        <div class="stat-card h-100 p-3 cursor-pointer clickable-card" id="cardEnqPending" data-card="pending" role="button" tabindex="0" title="Click to filter pending / new enquiries">
             <div class="text-slate-500 small fw-semibold">Pending / New</div>
             <h4 class="fw-bold text-warning mb-0 mt-1" id="mPending"><?= (int)($metrics['pending'] ?? 0) ?></h4>
         </div>
     </div>
     <div class="col-6 col-md-2">
-        <div class="stat-card h-100 p-3">
+        <div class="stat-card h-100 p-3 cursor-pointer clickable-card" id="cardEnqResolved" data-card="resolved" role="button" tabindex="0" title="Click to filter resolved / closed enquiries">
             <div class="text-slate-500 small fw-semibold">Resolved / Closed</div>
             <h4 class="fw-bold text-success mb-0 mt-1" id="mResolved"><?= (int)($metrics['resolved'] ?? 0) ?></h4>
         </div>
     </div>
 </div>
+
+<style>
+.clickable-card {
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 2px solid transparent !important;
+    position: relative;
+    user-select: none;
+}
+.clickable-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 40, 142, 0.12) !important;
+}
+.clickable-card.active-card {
+    border-color: #00288e !important;
+    background-color: #f0f4ff !important;
+    box-shadow: 0 0 0 3px rgba(0, 40, 142, 0.18), 0 6px 16px rgba(0, 40, 142, 0.12) !important;
+    transform: translateY(-2px);
+}
+.clickable-card.active-card::after {
+    content: "ACTIVE";
+    position: absolute;
+    top: 6px;
+    right: 8px;
+    font-size: 8px;
+    font-weight: 700;
+    color: #00288e;
+    background: #dbeafe;
+    padding: 1px 5px;
+    border-radius: 999px;
+    letter-spacing: 0.5px;
+}
+</style>
 
 <!-- Multi-Filter & Search Card -->
 <div class="card card-premium mb-4">
@@ -113,6 +147,7 @@ $selectedBuyerId = !empty($filterBuyer['id']) ? (int)$filterBuyer['id'] : '';
                     <option value="PRODUCT_PAGE">Product Page Enquiry</option>
                     <option value="RFQ">RFQ (Request For Quotation)</option>
                     <option value="FAST_OEM">Fast OEM Customization</option>
+                    <option value="SAMPLE">Prototype Samples</option>
                     <option value="GENERAL">General Enquiry</option>
                     <option value="CONTACT_US">Contact Us Message</option>
                 </select>
@@ -241,6 +276,8 @@ function renderSourceBadge(src) {
         return `<span class="badge rounded-pill" style="background:#fef3c7;color:#b45309;"><i class="bi bi-clipboard2-check me-1"></i>RFQ Request</span>`;
     } else if (src === 'FAST_OEM') {
         return `<span class="badge rounded-pill" style="background:#ccfbf1;color:#0f766e;"><i class="bi bi-gear-wide-connected me-1"></i>Fast OEM</span>`;
+    } else if (src === 'SAMPLE') {
+        return `<span class="badge rounded-pill" style="background:#ccfbf1;color:#0f766e;border:1px solid #99f6e4;"><i class="bi bi-box-seam me-1"></i>Prototype Sample</span>`;
     }
     return `<span class="badge rounded-pill" style="background:#e0f2fe;color:#0369a1;"><i class="bi bi-megaphone me-1"></i>General Enquiry</span>`;
 }
@@ -400,11 +437,91 @@ $(document).ready(function() {
         }
     });
 
-    $('#filterSupplier, #filterSource, #filterStatus, #filterCategory, #filterStartDate, #filterEndDate').on('change', function() {
+    let activeEnquiryCardFilter = null;
+
+    function setEnquiryCardHighlight(cardKey) {
+        $('.clickable-card').removeClass('active-card');
+        if (cardKey) {
+            $(`.clickable-card[data-card="${cardKey}"]`).addClass('active-card');
+        }
+    }
+
+    $('.clickable-card').on('click', function () {
+        const clickedCard = $(this).data('card');
+
+        // Toggle off if clicking the currently active card
+        if (activeEnquiryCardFilter === clickedCard) {
+            activeEnquiryCardFilter = null;
+            setEnquiryCardHighlight(null);
+            $('#filterSource').val('ALL');
+            $('#filterStatus').val('ALL');
+            enquiriesTable.ajax.reload();
+            return;
+        }
+
+        activeEnquiryCardFilter = clickedCard;
+        setEnquiryCardHighlight(clickedCard);
+
+        if (clickedCard === 'total') {
+            $('#filterSource').val('ALL');
+            $('#filterStatus').val('ALL');
+        } else if (clickedCard === 'product_page') {
+            $('#filterSource').val('PRODUCT_PAGE');
+            $('#filterStatus').val('ALL');
+        } else if (clickedCard === 'general_rfq') {
+            $('#filterSource').val('GENERAL');
+            $('#filterStatus').val('ALL');
+        } else if (clickedCard === 'contact_us') {
+            $('#filterSource').val('CONTACT_US');
+            $('#filterStatus').val('ALL');
+        } else if (clickedCard === 'pending') {
+            $('#filterSource').val('ALL');
+            $('#filterStatus').val('SUBMITTED');
+        } else if (clickedCard === 'resolved') {
+            $('#filterSource').val('ALL');
+            $('#filterStatus').val('RESOLVED');
+        }
+
+        enquiriesTable.ajax.reload();
+    });
+
+    $('#filterSource, #filterStatus').on('change', function() {
+        const src = $('#filterSource').val();
+        const st = $('#filterStatus').val();
+        if (src === 'PRODUCT_PAGE' && st === 'ALL') {
+            activeEnquiryCardFilter = 'product_page';
+            setEnquiryCardHighlight('product_page');
+        } else if (src === 'GENERAL' && st === 'ALL') {
+            activeEnquiryCardFilter = 'general_rfq';
+            setEnquiryCardHighlight('general_rfq');
+        } else if (src === 'CONTACT_US' && st === 'ALL') {
+            activeEnquiryCardFilter = 'contact_us';
+            setEnquiryCardHighlight('contact_us');
+        } else if ((st === 'SUBMITTED' || st === 'PENDING') && src === 'ALL') {
+            activeEnquiryCardFilter = 'pending';
+            setEnquiryCardHighlight('pending');
+        } else if ((st === 'RESOLVED' || st === 'CLOSED') && src === 'ALL') {
+            activeEnquiryCardFilter = 'resolved';
+            setEnquiryCardHighlight('resolved');
+        } else if (src === 'ALL' && st === 'ALL') {
+            if (activeEnquiryCardFilter !== 'total') {
+                activeEnquiryCardFilter = null;
+                setEnquiryCardHighlight(null);
+            }
+        } else {
+            activeEnquiryCardFilter = null;
+            setEnquiryCardHighlight(null);
+        }
+        enquiriesTable.ajax.reload();
+    });
+
+    $('#filterSupplier, #filterCategory, #filterStartDate, #filterEndDate').on('change', function() {
         enquiriesTable.ajax.reload();
     });
 
     $('#btnClearEnquiryFilters').on('click', function() {
+        activeEnquiryCardFilter = null;
+        setEnquiryCardHighlight(null);
         $('#supplierSearchBox').val('').trigger('input');
         $('#filterSupplier').val('ALL');
         $('#filterSource').val('ALL');

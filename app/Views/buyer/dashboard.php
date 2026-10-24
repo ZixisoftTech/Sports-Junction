@@ -32,7 +32,7 @@ $baseUrl = Response::baseUrl();
     </div>
 
     <!-- Quick Stats -->
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
         <a href="<?= htmlspecialchars($baseUrl) ?>/buyer/enquiries" class="p-5 sm:p-6 rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:border-blue-700 transition-all group">
             <div class="flex items-center justify-between mb-3">
                 <span class="text-[11px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider">Active Enquiries</span>
@@ -55,15 +55,26 @@ $baseUrl = Response::baseUrl();
             <div class="text-[11px] text-slate-400 mt-1">5-7 Days Dispatch &rarr;</div>
         </a>
 
-        <a href="<?= htmlspecialchars($baseUrl) ?>/buyer/favourites" class="p-5 sm:p-6 rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:border-rose-600 transition-all group">
+        <a href="<?= htmlspecialchars($baseUrl) ?>/buyer/sort-list" class="p-5 sm:p-6 rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:border-blue-700 transition-all group">
             <div class="flex items-center justify-between mb-3">
-                <span class="text-[11px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider">Saved Favourites</span>
-                <span class="p-2 sm:p-2.5 rounded-xl bg-rose-50 text-rose-600 group-hover:bg-rose-600 group-hover:text-white transition-colors">
-                    <span class="material-symbols-outlined text-[18px] sm:text-[20px] fill-1">favorite</span>
+                <span class="text-[11px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider">Sort List</span>
+                <span class="p-2 sm:p-2.5 rounded-xl bg-blue-50 text-blue-900 group-hover:bg-blue-900 group-hover:text-white transition-colors">
+                    <span class="material-symbols-outlined text-[18px] sm:text-[20px] fill-1">checklist</span>
                 </span>
             </div>
-            <div class="font-headline font-extrabold text-2xl sm:text-3xl text-slate-900"><?= (int)$counts['favourites'] ?></div>
-            <div class="text-[11px] text-slate-400 mt-1">Shortlisted equipment &rarr;</div>
+            <div class="font-headline font-extrabold text-2xl sm:text-3xl text-slate-900"><?= (int)($counts['sortList'] ?? $counts['favourites'] ?? 0) ?></div>
+            <div class="text-[11px] text-slate-400 mt-1">Ready for bulk enquiry &rarr;</div>
+        </a>
+
+        <a href="<?= htmlspecialchars($baseUrl) ?>/buyer/bulk-enquiries" class="p-5 sm:p-6 rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:border-blue-700 transition-all group">
+            <div class="flex items-center justify-between mb-3">
+                <span class="text-[11px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider">Bulk Enquiries</span>
+                <span class="p-2 sm:p-2.5 rounded-xl bg-indigo-50 text-indigo-800 group-hover:bg-indigo-800 group-hover:text-white transition-colors">
+                    <span class="material-symbols-outlined text-[18px] sm:text-[20px]">receipt_long</span>
+                </span>
+            </div>
+            <div class="font-headline font-extrabold text-2xl sm:text-3xl text-slate-900"><?= (int)($counts['bulkEnquiries'] ?? 0) ?></div>
+            <div class="text-[11px] text-slate-400 mt-1">Multi-product sourcing &rarr;</div>
         </a>
 
         <a href="<?= htmlspecialchars($baseUrl) ?>/buyer/recently-viewed" class="p-5 sm:p-6 rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:border-blue-700 transition-all group">
@@ -93,10 +104,10 @@ $baseUrl = Response::baseUrl();
                 <thead class="bg-slate-50 border-b border-slate-200/80 text-slate-500 font-bold uppercase tracking-wider">
                     <tr>
                         <th class="py-3 px-4">Enquiry ID</th>
+                        <th class="py-3 px-4">Created Date</th>
                         <th class="py-3 px-4">Product</th>
                         <th class="py-3 px-4">Manufacturer</th>
                         <th class="py-3 px-4">Requested Qty</th>
-                        <th class="py-3 px-4">Date</th>
                         <th class="py-3 px-4">Status</th>
                         <th class="py-3 px-4 text-right">Actions</th>
                     </tr>
@@ -112,13 +123,16 @@ $baseUrl = Response::baseUrl();
                         <?php foreach ($enquiries as $inq): ?>
                             <tr class="hover:bg-slate-50/50 transition-colors">
                                 <td class="py-3.5 px-4 font-mono font-bold text-slate-900">#ENQ-<?= (int)$inq['id'] ?></td>
+                                <td class="py-3.5 px-4 whitespace-nowrap">
+                                    <div class="font-semibold text-slate-800 text-xs"><?= date('d M Y', strtotime($inq['created_at'])) ?></div>
+                                    <div class="text-[11px] text-slate-400 font-medium"><?= date('h:i A', strtotime($inq['created_at'])) ?></div>
+                                </td>
                                 <td class="py-3.5 px-4 font-bold text-slate-900 flex items-center gap-2.5">
                                     <img src="<?= htmlspecialchars(\App\Helpers\Uploader::imageUrl($inq['primary_image'])) ?>" onerror="this.onerror=null;this.src='<?= htmlspecialchars($baseUrl) ?>/assets/images/logo.jpg';" class="w-9 h-9 rounded-lg object-cover border border-slate-200 shrink-0">
                                     <span><?= htmlspecialchars($inq['product_name'] ?? 'Product Inquiry') ?></span>
                                 </td>
                                 <td class="py-3.5 px-4 text-slate-600 font-semibold"><?= htmlspecialchars($inq['supplier_name'] ?? 'Sports Junction Hub') ?></td>
                                 <td class="py-3.5 px-4 text-slate-900 font-bold"><?= (int)$inq['target_quantity'] ?> units</td>
-                                <td class="py-3.5 px-4 text-slate-500 text-[11px]"><?= date('d M Y', strtotime($inq['created_at'])) ?></td>
                                 <td class="py-3.5 px-4">
                                     <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold border <?= ($inq['status'] === 'RESPONDED') ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-amber-50 text-amber-800 border-amber-200' ?>">
                                         <?= htmlspecialchars($inq['status']) ?>
@@ -137,23 +151,34 @@ $baseUrl = Response::baseUrl();
         </div>
     </div>
 
-    <!-- Saved Favourites Grid -->
+    <!-- My Sort List Grid -->
     <div class="mb-8">
         <div class="flex items-center justify-between mb-4">
             <div class="flex items-center gap-2">
-                <span class="material-symbols-outlined text-rose-600 text-[20px] fill-1">favorite</span>
-                <h2 class="font-headline font-bold text-base text-slate-900">Saved Favourite Products</h2>
+                <span class="material-symbols-outlined text-blue-900 text-[22px]">checklist</span>
+                <div>
+                    <h2 class="font-headline font-bold text-base text-slate-900">My Sort List</h2>
+                    <p class="text-[11px] text-slate-400">Shortlisted products ready for unified bulk enquiry</p>
+                </div>
             </div>
-            <a href="<?= htmlspecialchars($baseUrl) ?>/buyer/favourites" class="text-xs font-bold text-blue-900 hover:underline">View All (<?= (int)$counts['favourites'] ?>) &rarr;</a>
+            <div class="flex items-center gap-2">
+                <a href="<?= htmlspecialchars($baseUrl) ?>/buyer/sort-list" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-blue-900 hover:bg-blue-950 text-white font-bold text-xs shadow-xs transition-colors">
+                    <span class="material-symbols-outlined text-[15px]">send</span>
+                    <span>Send Bulk Enquiry (<?= (int)($counts['sortList'] ?? $counts['favourites'] ?? 0) ?>)</span>
+                </a>
+            </div>
         </div>
 
-        <?php if (empty($favourites)): ?>
+        <?php 
+        $displaySortProducts = !empty($sortList) ? $sortList : (!empty($favourites) ? $favourites : []);
+        ?>
+        <?php if (empty($displaySortProducts)): ?>
             <div class="bg-white rounded-2xl border border-slate-200/80 p-8 text-center text-slate-400 text-xs">
-                No favourite products saved yet. Browse our verified sports catalog and click the heart icon on any product to save it here.
+                No products in your Sort List yet. Browse our verified sports equipment catalog and click <strong>"Add to Sort"</strong> on any product to assemble multiple items for one bulk enquiry.
             </div>
         <?php else: ?>
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <?php foreach ($favourites as $fav): ?>
+                <?php foreach ($displaySortProducts as $fav): ?>
                     <div class="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-3.5 flex flex-col justify-between group hover:border-blue-700 transition-all">
                         <div>
                             <div class="relative rounded-xl overflow-hidden mb-3 aspect-square bg-slate-50 border border-slate-100">
@@ -168,7 +193,7 @@ $baseUrl = Response::baseUrl();
                         </div>
                         <div class="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between">
                             <a href="<?= htmlspecialchars($baseUrl) ?>/product/<?= htmlspecialchars($fav['slug']) ?>" class="text-xs font-bold text-blue-900 hover:underline">View Product &rarr;</a>
-                            <button type="button" onclick="removeFav(<?= (int)$fav['id'] ?>, this)" class="text-slate-400 hover:text-rose-600 transition-colors" title="Remove Favourite">
+                            <button type="button" onclick="removeSortItem(<?= (int)$fav['id'] ?>, this)" class="text-slate-400 hover:text-rose-600 transition-colors" title="Remove from Sort List">
                                 <span class="material-symbols-outlined text-[18px]">delete</span>
                             </button>
                         </div>
@@ -180,14 +205,18 @@ $baseUrl = Response::baseUrl();
 </div>
 
 <script>
-function removeFav(id, btn) {
-    if (!confirm('Remove this product from your favourites?')) return;
-    fetch('<?= htmlspecialchars($baseUrl) ?>/buyer/favourites/' + id, {
-        method: 'DELETE',
+function removeSortItem(id, btn) {
+    if (!confirm('Remove this product from your Sort List?')) return;
+    fetch('<?= htmlspecialchars($baseUrl) ?>/buyer/sort-list/' + id, {
+        method: 'POST',
         headers: {
             'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
             'X-CSRF-Token': '<?= htmlspecialchars(CSRF::token()) ?>'
-        }
+        },
+        body: JSON.stringify({
+            _csrf: '<?= htmlspecialchars(CSRF::token()) ?>'
+        })
     })
     .then(r => r.json())
     .then(res => {
@@ -196,6 +225,10 @@ function removeFav(id, btn) {
         } else {
             alert(res.message || 'Error removing item');
         }
-    });
+    })
+    .catch(() => alert('Connection error. Please try again.'));
+}
+function removeFav(id, btn) {
+    removeSortItem(id, btn);
 }
 </script>

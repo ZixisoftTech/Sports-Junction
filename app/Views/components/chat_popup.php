@@ -234,7 +234,11 @@ function openProductChat(productData) {
     if (!isUserLoggedIn) {
         const loginLink = document.getElementById('popupLoginLink');
         if (loginLink) {
-            loginLink.href = `${popupBaseUrl}/login?redirect=${encodeURIComponent(window.location.href)}`;
+            let returnPath = window.location.pathname + window.location.search;
+            if (typeof popupBaseUrl !== 'undefined' && popupBaseUrl && returnPath.startsWith(popupBaseUrl)) {
+                returnPath = returnPath.substring(popupBaseUrl.length) || '/';
+            }
+            loginLink.href = `${popupBaseUrl}/login?redirect=${encodeURIComponent(returnPath)}`;
         }
         maximizeFloatingChat();
         return;

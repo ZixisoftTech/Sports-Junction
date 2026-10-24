@@ -6,6 +6,13 @@ use App\Helpers\Session;
 $baseUrl = Response::baseUrl();
 $user = Session::get('auth_user') ?? ['name' => 'Super Administrator', 'email' => 'sportjunctions@gmail.com', 'role' => 'SUPER_ADMIN'];
 $activeMenu = $activeMenu ?? 'dashboard';
+
+$adminUnreadNotifCount = 0;
+$adminRecentNotifs = [];
+if (!empty($user['id']) && ($user['role'] ?? '') === 'SUPER_ADMIN') {
+    $adminUnreadNotifCount = \App\Models\Notification::getUnreadCount((int)$user['id']);
+    $adminRecentNotifs = \App\Models\Notification::getRecentForAdmin((int)$user['id'], 6);
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -143,7 +150,7 @@ $activeMenu = $activeMenu ?? 'dashboard';
             <i class="bi bi-people"></i>
             <span>Buyer Management</span>
         </a>
-        <a href="<?= htmlspecialchars($baseUrl) ?>/admin/enquiries" class="sj-nav-item <?= ($activeMenu === 'enquiries' || (str_contains($_SERVER['REQUEST_URI'] ?? '', '/admin/enquiries') && !str_contains($_SERVER['REQUEST_URI'] ?? '', '/admin/rfq-oem'))) ? 'active' : '' ?>">
+        <a href="<?= htmlspecialchars($baseUrl) ?>/admin/enquiries" class="sj-nav-item <?= ($activeMenu === 'enquiries' || (str_contains($_SERVER['REQUEST_URI'] ?? '', '/admin/enquiries') && !str_contains($_SERVER['REQUEST_URI'] ?? '', '/admin/rfq-oem') && !str_contains($_SERVER['REQUEST_URI'] ?? '', '/admin/sample-enquiries'))) ? 'active' : '' ?>">
             <i class="bi bi-chat-left-quote"></i>
             <span>Enquiry Management</span>
         </a>
@@ -155,9 +162,20 @@ $activeMenu = $activeMenu ?? 'dashboard';
             <i class="bi bi-box-seam"></i>
             <span>Prototype Samples</span>
         </a>
+        <a href="<?= htmlspecialchars($baseUrl) ?>/admin/bulk-enquiries" class="sj-nav-item <?= ($activeMenu === 'bulk_enquiries' || str_contains($_SERVER['REQUEST_URI'] ?? '', '/admin/bulk-enquiries')) ? 'active' : '' ?>">
+            <i class="bi bi-list-check"></i>
+            <span>Bulk Product Enquiries</span>
+        </a>
         <a href="<?= htmlspecialchars($baseUrl) ?>/admin/communication" class="sj-nav-item <?= ($activeMenu === 'communication' || str_contains($_SERVER['REQUEST_URI'] ?? '', '/admin/communication')) ? 'active' : '' ?>">
             <i class="bi bi-chat-dots-fill"></i>
             <span>Communication Center</span>
+        </a>
+        <a href="<?= htmlspecialchars($baseUrl) ?>/admin/notifications" class="sj-nav-item <?= ($activeMenu === 'notifications' || str_contains($_SERVER['REQUEST_URI'] ?? '', '/admin/notifications')) ? 'active' : '' ?>">
+            <i class="bi bi-bell-fill"></i>
+            <span>Notification Center</span>
+            <span class="badge bg-danger rounded-pill ms-auto small" id="adminSidebarNotifBadge" style="<?= ($adminUnreadNotifCount ?? 0) > 0 ? '' : 'display: none;' ?>">
+                <?= ($adminUnreadNotifCount ?? 0) > 99 ? '99+' : ($adminUnreadNotifCount ?? 0) ?>
+            </span>
         </a>
 
         <div class="sj-nav-section-title">Website &amp; CMS</div>
@@ -187,7 +205,7 @@ $activeMenu = $activeMenu ?? 'dashboard';
         </a>
 
         <div class="sj-nav-section-title">Security & Audit</div>
-        <a href="<?= htmlspecialchars($baseUrl) ?>/admin/dashboard#audit" class="sj-nav-item">
+        <a href="<?= htmlspecialchars($baseUrl) ?>/admin/audit-trail" class="sj-nav-item <?= ($activeMenu === 'audit_trail') ? 'active' : '' ?>">
             <i class="bi bi-journal-text"></i>
             <span>Audit Trail</span>
         </a>
@@ -232,6 +250,93 @@ $activeMenu = $activeMenu ?? 'dashboard';
                 <i class="bi bi-shield-fill-check text-success me-1.5"></i>
                 <span class="fw-semibold me-1">Role:</span>
                 <span class="badge bg-primary text-white">SUPER_ADMIN</span>
+            </div>
+
+            <!-- Super Admin Notification Bell Dropdown -->
+            <div class="dropdown" id="adminNotifWrapper">
+                <button class="btn btn-light border position-relative rounded-circle d-flex align-items-center justify-content-center p-0 shadow-2xs" 
+                        type="button" 
+                        id="adminNotifBellBtn" 
+                        data-bs-toggle="dropdown" 
+                        data-bs-auto-close="outside"
+                        aria-expanded="false" 
+                        style="width: 38px; height: 38px; background: #fff;" 
+                        title="Notification Center">
+                    <i class="bi bi-bell-fill fs-5 text-secondary" id="adminNotifBellIcon"></i>
+                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-white fw-bold shadow-sm" 
+                          id="adminNotifBadge" 
+                          style="font-size: 0.65rem; padding: 0.28em 0.52em; <?= ($adminUnreadNotifCount ?? 0) > 0 ? '' : 'display: none;' ?>">
+                        <?= ($adminUnreadNotifCount ?? 0) > 99 ? '99+' : ($adminUnreadNotifCount ?? 0) ?>
+                    </span>
+                </button>
+
+                <div class="dropdown-menu dropdown-menu-end shadow-lg border-0 p-0 mt-2 rounded-3" 
+                     id="adminNotifDropdown" 
+                     style="width: 390px; max-width: calc(100vw - 24px); z-index: 1060;">
+                    <!-- Dropdown Header -->
+                    <div class="p-3 border-bottom d-flex align-items-center justify-content-between bg-light rounded-top-3">
+                        <div class="d-flex align-items-center gap-2">
+                            <h6 class="m-0 fw-bold text-dark d-flex align-items-center gap-1.5">
+                                <i class="bi bi-bell-fill text-primary"></i>
+                                <span>Notifications</span>
+                            </h6>
+                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle fw-semibold rounded-pill small" id="adminNotifHeaderBadge">
+                                <?= ($adminUnreadNotifCount ?? 0) ?> unread
+                            </span>
+                        </div>
+                        <button type="button" class="btn btn-link btn-sm text-decoration-none p-0 text-muted small fw-semibold" id="btnDropdownMarkAllRead" title="Mark all notifications as read">
+                            <i class="bi bi-check2-all me-1"></i>Mark all read
+                        </button>
+                    </div>
+
+                    <!-- Notification Items Container -->
+                    <div class="overflow-y-auto" id="adminNotifListContainer" style="max-height: 360px;">
+                        <?php if (empty($adminRecentNotifs)): ?>
+                            <div class="text-center py-5 text-muted small px-3">
+                                <i class="bi bi-bell-slash fs-1 text-secondary opacity-50 d-block mb-2"></i>
+                                <span class="fw-semibold">No notifications right now</span>
+                                <div class="text-muted smaller mt-1">New enquiries and buyer/supplier messages will appear here.</div>
+                            </div>
+                        <?php else: ?>
+                            <?php foreach ($adminRecentNotifs as $n): ?>
+                                <a href="<?= htmlspecialchars($baseUrl) ?>/admin/notifications/<?= (int)$n['id'] ?>/go" 
+                                   class="d-flex align-items-start gap-2.5 p-3 border-bottom text-decoration-none text-dark transition-colors admin-notif-item <?= $n['is_read'] ? 'bg-white' : 'bg-primary-subtle bg-opacity-10' ?>"
+                                   data-id="<?= (int)$n['id'] ?>">
+                                    <div class="rounded-circle d-flex align-items-center justify-content-center shrink-0 mt-0.5 <?= $n['badge_class'] ?>" style="width: 32px; height: 32px;">
+                                        <i class="bi <?= htmlspecialchars($n['icon']) ?> fs-6"></i>
+                                    </div>
+                                    <div class="flex-grow-1 min-w-0">
+                                        <div class="d-flex align-items-center justify-content-between gap-2 mb-1">
+                                            <span class="badge <?= $n['badge_class'] ?> rounded-pill small fw-semibold" style="font-size: 0.65rem;">
+                                                <?= htmlspecialchars($n['type_label']) ?>
+                                            </span>
+                                            <small class="text-muted" style="font-size: 0.7rem;">
+                                                <?= htmlspecialchars($n['time_ago']) ?>
+                                            </small>
+                                        </div>
+                                        <div class="fw-bold small text-truncate text-dark mb-0.5">
+                                            <?= htmlspecialchars($n['title']) ?>
+                                        </div>
+                                        <div class="text-muted small text-truncate" style="font-size: 0.78rem;">
+                                            <?= htmlspecialchars($n['message']) ?>
+                                        </div>
+                                    </div>
+                                    <?php if (!$n['is_read']): ?>
+                                        <span class="rounded-circle bg-primary mt-2 shrink-0" style="width: 7px; height: 7px;" title="Unread"></span>
+                                    <?php endif; ?>
+                                </a>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </div>
+
+                    <!-- Dropdown Footer -->
+                    <div class="p-2.5 border-top bg-light text-center rounded-bottom-3">
+                        <a href="<?= htmlspecialchars($baseUrl) ?>/admin/notifications" class="text-decoration-none fw-bold small text-primary d-inline-flex align-items-center gap-1">
+                            <span>View All in Notification Center</span>
+                            <i class="bi bi-arrow-right"></i>
+                        </a>
+                    </div>
+                </div>
             </div>
 
             <div class="dropdown">
@@ -461,6 +566,148 @@ $activeMenu = $activeMenu ?? 'dashboard';
             });
         }
     });
+
+    // Super Admin Real-Time Notification Poller & Dropdown Manager
+    (function () {
+        const baseUrl = window.SportsJunction.baseUrl || '';
+        const pollUrl = baseUrl + '/api/admin/notifications/poll';
+        const markAllUrl = baseUrl + '/api/admin/notifications/mark-all-read';
+        let pollTimer = null;
+
+        function updateBadges(count) {
+            const num = parseInt(count, 10) || 0;
+            const text = num > 99 ? '99+' : num.toString();
+
+            const bellBadge = document.getElementById('adminNotifBadge');
+            const sidebarBadge = document.getElementById('adminSidebarNotifBadge');
+            const headerBadge = document.getElementById('adminNotifHeaderBadge');
+
+            if (bellBadge) {
+                bellBadge.textContent = text;
+                bellBadge.style.display = num > 0 ? '' : 'none';
+            }
+            if (sidebarBadge) {
+                sidebarBadge.textContent = text;
+                sidebarBadge.style.display = num > 0 ? '' : 'none';
+            }
+            if (headerBadge) {
+                headerBadge.textContent = num + ' unread';
+            }
+        }
+
+        function renderDropdownList(notifications) {
+            const container = document.getElementById('adminNotifListContainer');
+            if (!container) return;
+
+            if (!notifications || notifications.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-5 text-muted small px-3">
+                        <i class="bi bi-bell-slash fs-1 text-secondary opacity-50 d-block mb-2"></i>
+                        <span class="fw-semibold">No notifications right now</span>
+                        <div class="text-muted smaller mt-1">New enquiries and buyer/supplier messages will appear here.</div>
+                    </div>`;
+                return;
+            }
+
+            let html = '';
+            notifications.forEach(n => {
+                const bgClass = n.is_read ? 'bg-white' : 'bg-primary-subtle bg-opacity-10';
+                const unreadDot = !n.is_read ? '<span class="rounded-circle bg-primary mt-2 shrink-0" style="width: 7px; height: 7px;" title="Unread"></span>' : '';
+                const link = baseUrl + '/admin/notifications/' + n.id + '/go';
+
+                html += `
+                    <a href="${link}" class="d-flex align-items-start gap-2.5 p-3 border-bottom text-decoration-none text-dark transition-colors admin-notif-item ${bgClass}" data-id="${n.id}">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center shrink-0 mt-0.5 ${n.badge_class || 'bg-light'}" style="width: 32px; height: 32px;">
+                            <i class="bi ${n.icon || 'bi-bell'} fs-6"></i>
+                        </div>
+                        <div class="flex-grow-1 min-w-0">
+                            <div class="d-flex align-items-center justify-content-between gap-2 mb-1">
+                                <span class="badge ${n.badge_class || 'bg-secondary'} rounded-pill small fw-semibold" style="font-size: 0.65rem;">
+                                    ${window.escapeHtml(n.type_label || 'Notification')}
+                                </span>
+                                <small class="text-muted" style="font-size: 0.7rem;">
+                                    ${window.escapeHtml(n.time_ago || '')}
+                                </small>
+                            </div>
+                            <div class="fw-bold small text-truncate text-dark mb-0.5">
+                                ${window.escapeHtml(n.title || '')}
+                            </div>
+                            <div class="text-muted small text-truncate" style="font-size: 0.78rem;">
+                                ${window.escapeHtml(n.message || '')}
+                            </div>
+                        </div>
+                        ${unreadDot}
+                    </a>`;
+            });
+
+            container.innerHTML = html;
+        }
+
+        async function fetchNotifications() {
+            try {
+                const res = await fetch(pollUrl, {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                if (!res.ok) return;
+                const data = await res.json();
+                if (data && data.success) {
+                    updateBadges(data.unread_count);
+                    renderDropdownList(data.notifications);
+                }
+            } catch (err) {
+                console.warn('Notification poll deferred:', err);
+            }
+        }
+
+        // Setup polling every 30 seconds
+        pollTimer = setInterval(fetchNotifications, 30000);
+
+        // Mark all as read from dropdown
+        document.addEventListener('DOMContentLoaded', () => {
+            const btnMarkAll = document.getElementById('btnDropdownMarkAllRead');
+            if (btnMarkAll) {
+                btnMarkAll.addEventListener('click', async (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    btnMarkAll.disabled = true;
+                    btnMarkAll.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Updating...';
+                    try {
+                        const res = await fetch(markAllUrl, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-Requested-With': 'XMLHttpRequest',
+                                'X-CSRF-Token': window.SportsJunction.csrfToken || ''
+                            }
+                        });
+                        const data = await res.json();
+                        if (data && data.success) {
+                            updateBadges(0);
+                            await fetchNotifications();
+                        }
+                    } catch (err) {
+                        console.error('Error marking all notifications as read:', err);
+                    } finally {
+                        btnMarkAll.disabled = false;
+                        btnMarkAll.innerHTML = '<i class="bi bi-check2-all me-1"></i>Mark all read';
+                    }
+                });
+            }
+
+            // Also refresh when bell is clicked to guarantee latest items
+            const bellBtn = document.getElementById('adminNotifBellBtn');
+            if (bellBtn) {
+                bellBtn.addEventListener('show.bs.dropdown', () => {
+                    fetchNotifications();
+                });
+            }
+        });
+
+        // Cleanup timer on window unload
+        window.addEventListener('beforeunload', () => {
+            if (pollTimer) clearInterval(pollTimer);
+        });
+    })();
 </script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="<?= htmlspecialchars($baseUrl) ?>/assets/js/master-module.js"></script>

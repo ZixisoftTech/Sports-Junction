@@ -8,6 +8,7 @@ use App\Helpers\Session;
 use App\Models\SiteSetting;
 use App\Models\CmsPage;
 use App\Models\Category;
+use App\Helpers\AuditLogger;
 use Throwable;
 
 class AdminSettingsController extends Controller
@@ -140,6 +141,15 @@ class AdminSettingsController extends Controller
         $useStaticOtp = $this->request->post('use_static_otp') ? '1' : '0';
         SiteSetting::set('use_static_otp', $useStaticOtp, 'auth');
 
+        AuditLogger::log(
+            'UPDATE',
+            'SiteSetting',
+            null,
+            'General Site Settings',
+            null,
+            "Updated website branding, general info, and contact settings"
+        );
+
         Session::flash('success', 'Website settings, branding, and contact details updated successfully.');
         $this->redirect('/admin/settings');
     }
@@ -171,13 +181,16 @@ class AdminSettingsController extends Controller
         $admin = $this->requireAdmin();
 
         $title = trim((string) $this->request->post('title', ''));
+        $footerLabel = trim((string) $this->request->post('footer_label', ''));
         $slug = trim((string) $this->request->post('slug', ''));
-        $cat = trim((string) $this->request->post('column_category', 'TOP_SECTORS'));
+        $cat = trim((string) $this->request->post('column_category', CmsPage::COL_ABOUT));
         $content = trim((string) $this->request->post('content', ''));
         $url = trim((string) $this->request->post('external_url', ''));
+        $featuredImage = trim((string) $this->request->post('featured_image', ''));
         $metaTitle = trim((string) $this->request->post('meta_title', ''));
         $metaDesc = trim((string) $this->request->post('meta_description', ''));
         $order = (int) $this->request->post('sort_order', 0);
+        $showInFooter = (int) $this->request->post('show_in_footer', 1);
         $isActive = (int) $this->request->post('is_active', 1);
 
         if (empty($title)) {
@@ -195,17 +208,22 @@ class AdminSettingsController extends Controller
             $slug .= '-' . time();
         }
 
-        CmsPage::create([
-            'title' => $title,
-            'slug' => $slug,
+        $pageId = CmsPage::create([
+            'title'           => $title,
+            'footer_label'    => !empty($footerLabel) ? $footerLabel : $title,
+            'slug'            => $slug,
             'column_category' => $cat,
-            'content' => $content,
-            'external_url' => $url,
-            'meta_title' => $metaTitle,
+            'content'         => $content,
+            'external_url'    => $url,
+            'featured_image'  => $featuredImage,
+            'meta_title'      => $metaTitle,
             'meta_description' => $metaDesc,
-            'sort_order' => $order,
-            'is_active' => $isActive
+            'sort_order'      => $order,
+            'show_in_footer'  => $showInFooter,
+            'is_active'       => $isActive
         ]);
+
+        AuditLogger::log('CREATE', 'CmsPage', (int)$pageId, $title, null, "Created CMS page '{$title}' ({$slug})");
 
         Session::flash('success', "Page '{$title}' created successfully.");
         $this->redirect('/admin/pages');
@@ -228,13 +246,16 @@ class AdminSettingsController extends Controller
         }
 
         $title = trim((string) $this->request->post('title', ''));
+        $footerLabel = trim((string) $this->request->post('footer_label', ''));
         $slug = trim((string) $this->request->post('slug', ''));
-        $cat = trim((string) $this->request->post('column_category', 'TOP_SECTORS'));
+        $cat = trim((string) $this->request->post('column_category', CmsPage::COL_ABOUT));
         $content = trim((string) $this->request->post('content', ''));
         $url = trim((string) $this->request->post('external_url', ''));
+        $featuredImage = trim((string) $this->request->post('featured_image', ''));
         $metaTitle = trim((string) $this->request->post('meta_title', ''));
         $metaDesc = trim((string) $this->request->post('meta_description', ''));
         $order = (int) $this->request->post('sort_order', 0);
+        $showInFooter = (int) $this->request->post('show_in_footer', 1);
         $isActive = (int) $this->request->post('is_active', 1);
 
         if (empty($title)) {
@@ -254,18 +275,69 @@ class AdminSettingsController extends Controller
         }
 
         CmsPage::update($id, [
-            'title' => $title,
-            'slug' => $slug,
+            'title'           => $title,
+            'footer_label'    => !empty($footerLabel) ? $footerLabel : $title,
+            'slug'            => $slug,
             'column_category' => $cat,
-            'content' => $content,
-            'external_url' => $url,
-            'meta_title' => $metaTitle,
+            'content'         => $content,
+            'external_url'    => $url,
+            'featured_image'  => $featuredImage,
+            'meta_title'      => $metaTitle,
             'meta_description' => $metaDesc,
-            'sort_order' => $order,
-            'is_active' => $isActive
+            'sort_order'      => $order,
+            'show_in_footer'  => $showInFooter,
+            'is_active'       => $isActive
         ]);
 
+        AuditLogger::log('UPDATE', 'CmsPage', $id, $title, null, "Updated CMS page '{$title}' ({$slug})");
+
         Session::flash('success', "Page '{$title}' updated successfully.");
+        $this->redirect('/admin/pages');
+    }
+
+    /**
+     * POST /api/admin/pages/{id}/toggle-status
+     */
+    public function togglePageStatus(array $params = []): void
+    {
+        $admin = $this->requireAdmin();
+        $id = (int) ($params['id'] ?? 0);
+        $ok = ($id > 0) ? CmsPage::toggleStatus($id) : false;
+        $page = ($id > 0) ? CmsPage::findById($id) : null;
+
+        if ($this->request->isAjax()) {
+            $this->json([
+                'success'   => $ok,
+                'is_active' => (int)($page['is_active'] ?? 0),
+                'message'   => $ok ? 'Page publication status updated.' : 'Failed to update status.'
+            ]);
+            return;
+        }
+
+        Session::flash($ok ? 'success' : 'error', $ok ? 'Page publication status updated.' : 'Failed to update status.');
+        $this->redirect('/admin/pages');
+    }
+
+    /**
+     * POST /api/admin/pages/{id}/toggle-footer
+     */
+    public function togglePageFooter(array $params = []): void
+    {
+        $admin = $this->requireAdmin();
+        $id = (int) ($params['id'] ?? 0);
+        $ok = ($id > 0) ? CmsPage::toggleFooterVisibility($id) : false;
+        $page = ($id > 0) ? CmsPage::findById($id) : null;
+
+        if ($this->request->isAjax()) {
+            $this->json([
+                'success'        => $ok,
+                'show_in_footer' => (int)($page['show_in_footer'] ?? 0),
+                'message'        => $ok ? 'Footer visibility status updated.' : 'Failed to update visibility.'
+            ]);
+            return;
+        }
+
+        Session::flash($ok ? 'success' : 'error', $ok ? 'Footer visibility status updated.' : 'Failed to update visibility.');
         $this->redirect('/admin/pages');
     }
 
@@ -278,7 +350,11 @@ class AdminSettingsController extends Controller
         $admin = $this->requireAdmin();
         $id = (int) ($params['id'] ?? 0);
 
+        $page = CmsPage::findById($id);
         CmsPage::delete($id);
+
+        AuditLogger::log('DELETE', 'CmsPage', $id, $page['title'] ?? ("Page #" . $id), null, "Deleted CMS page");
+
         Session::flash('success', 'Page deleted successfully.');
         $this->redirect('/admin/pages');
     }
@@ -367,6 +443,15 @@ class AdminSettingsController extends Controller
                 'sort_order'       => 5
             ]);
         }
+
+        AuditLogger::log(
+            'UPDATE',
+            'CmsPage',
+            $page ? (int)$page['id'] : null,
+            'Seller Agreement',
+            null,
+            "Updated seller agreement content and status"
+        );
 
         Session::flash('success', 'Seller Agreement has been successfully saved and published.');
         $this->redirect('/admin/seller-agreement');
@@ -463,6 +548,8 @@ class AdminSettingsController extends Controller
             SiteSetting::set('homepage_categories_max', '8', 'homepage');
             SiteSetting::set('homepage_categories_selected', '', 'homepage');
 
+            AuditLogger::log('UPDATE', 'SiteSetting', null, 'Homepage Categories', null, 'Reset homepage category display configuration to defaults');
+
             Session::flash('success', 'Homepage category display configuration reset to default.');
             $this->redirect('/admin/settings#homepage-categories-card');
             return;
@@ -489,6 +576,8 @@ class AdminSettingsController extends Controller
         SiteSetting::set('homepage_categories_enabled', $enabled, 'homepage');
         SiteSetting::set('homepage_categories_max', (string)$max, 'homepage');
         SiteSetting::set('homepage_categories_selected', $selectedStr, 'homepage');
+
+        AuditLogger::log('UPDATE', 'SiteSetting', null, 'Homepage Categories', ['selected_count' => count($selectedIds), 'max' => $max], "Updated homepage category display configuration (max {$max})");
 
         Session::flash('success', 'Homepage category display configuration updated successfully.');
         $this->redirect('/admin/settings#homepage-categories-card');

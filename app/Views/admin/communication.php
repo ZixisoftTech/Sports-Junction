@@ -25,53 +25,87 @@ $baseUrl = \App\Core\Response::baseUrl();
 <!-- Metrics Row -->
 <div class="row g-3 mb-4">
     <div class="col-6 col-md-2">
-        <div class="stat-card h-100 bg-white p-3 rounded-3 border">
+        <div class="stat-card h-100 bg-white p-3 rounded-3 border cursor-pointer clickable-card" id="cardCommTotal" data-card="total" role="button" tabindex="0" title="Click to show all conversations">
             <div class="text-slate-500 small fw-semibold mb-1">Total Chats</div>
             <h3 class="fw-bold text-slate-900 mb-0"><?= (int)($stats['total_conversations'] ?? 0) ?></h3>
         </div>
     </div>
     <div class="col-6 col-md-2">
-        <div class="stat-card h-100 bg-white p-3 rounded-3 border">
+        <div class="stat-card h-100 bg-white p-3 rounded-3 border cursor-pointer clickable-card" id="cardCommNegotiating" data-card="negotiating" role="button" tabindex="0" title="Click to filter negotiating conversations">
             <div class="text-slate-500 small fw-semibold mb-1">Negotiating</div>
             <h3 class="fw-bold text-primary mb-0"><?= (int)($stats['active_negotiations'] ?? 0) ?></h3>
         </div>
     </div>
     <div class="col-6 col-md-2">
-        <div class="stat-card h-100 bg-white p-3 rounded-3 border">
+        <div class="stat-card h-100 bg-white p-3 rounded-3 border cursor-pointer clickable-card" id="cardCommOffersPending" data-card="offers_pending" role="button" tabindex="0" title="Click to filter offer pending conversations">
             <div class="text-slate-500 small fw-semibold mb-1">Offers Pending</div>
-            <h3 class="fw-bold text-warning mb-0"><?= (int)($stats['pending_offers'] ?? 0) ?></h3>
+            <h3 class="fw-bold mb-0" style="color: #d97706 !important;"><?= (int)($stats['pending_offers'] ?? 0) ?></h3>
         </div>
     </div>
     <div class="col-6 col-md-2">
-        <div class="stat-card h-100 bg-white p-3 rounded-3 border">
+        <div class="stat-card h-100 bg-white p-3 rounded-3 border cursor-pointer clickable-card" id="cardCommDealsAgreed" data-card="deals_agreed" role="button" tabindex="0" title="Click to filter agreed & completed deals">
             <div class="text-slate-500 small fw-semibold mb-1">Deals Agreed</div>
-            <h3 class="fw-bold text-success mb-0"><?= (int)($stats['deals_agreed'] ?? 0) ?></h3>
+            <h3 class="fw-bold mb-0" style="color: #16a34a !important;"><?= (int)($stats['deals_agreed'] ?? 0) ?></h3>
         </div>
     </div>
     <div class="col-6 col-md-2">
-        <div class="stat-card h-100 bg-white p-3 rounded-3 border">
+        <div class="stat-card h-100 bg-white p-3 rounded-3 border cursor-pointer clickable-card" id="cardCommFlagged" data-card="flagged" role="button" tabindex="0" title="Click to filter conversations with flagged violations">
             <div class="text-slate-500 small fw-semibold mb-1">Flagged Violations</div>
-            <h3 class="fw-bold text-danger mb-0"><?= (int)($stats['flagged_messages'] ?? 0) ?></h3>
+            <h3 class="fw-bold mb-0" style="color: #dc2626 !important;"><?= (int)($stats['flagged_messages'] ?? 0) ?></h3>
         </div>
     </div>
     <div class="col-6 col-md-2">
-        <div class="stat-card h-100 bg-white p-3 rounded-3 border">
+        <div class="stat-card h-100 bg-white p-3 rounded-3 border cursor-pointer clickable-card" id="cardCommPendingReports" data-card="pending_reports" role="button" tabindex="0" title="Click to view pending safety reports">
             <div class="text-slate-500 small fw-semibold mb-1">Pending Reports</div>
-            <h3 class="fw-bold text-danger mb-0"><?= (int)($stats['pending_reports'] ?? 0) ?></h3>
+            <h3 class="fw-bold mb-0" style="color: #dc2626 !important;"><?= (int)($stats['pending_reports'] ?? 0) ?></h3>
         </div>
     </div>
 </div>
+
+<style>
+.clickable-card {
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 2px solid #e2e8f0 !important;
+    position: relative;
+    user-select: none;
+}
+.clickable-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 40, 142, 0.12) !important;
+    border-color: #cbd5e1 !important;
+}
+.clickable-card.active-card {
+    border-color: #00288e !important;
+    background-color: #f0f4ff !important;
+    box-shadow: 0 0 0 3px rgba(0, 40, 142, 0.18), 0 6px 16px rgba(0, 40, 142, 0.12) !important;
+    transform: translateY(-2px);
+}
+.clickable-card.active-card::after {
+    content: "ACTIVE";
+    position: absolute;
+    top: 6px;
+    right: 8px;
+    font-size: 9px;
+    font-weight: 700;
+    color: #00288e;
+    background: #dbeafe;
+    padding: 1px 6px;
+    border-radius: 999px;
+    letter-spacing: 0.5px;
+}
+</style>
 
 <!-- Tabs Navigation -->
 <ul class="nav nav-tabs mb-4 border-bottom" id="commTabs" role="tablist">
     <li class="nav-item" role="presentation">
         <button class="nav-link active fw-bold text-dark px-4 py-2.5" id="convs-tab" data-bs-toggle="tab" data-bs-target="#tab-convs" type="button" role="tab">
-            <i class="bi bi-chat-dots me-1 text-primary"></i> All Conversations (<?= count($conversations) ?>)
+            <i class="bi bi-chat-dots me-1 text-primary"></i> All Conversations (<span id="convsTabCount"><?= count($conversations) ?></span>)
         </button>
     </li>
     <li class="nav-item" role="presentation">
         <button class="nav-link fw-bold text-dark px-4 py-2.5" id="reports-tab" data-bs-toggle="tab" data-bs-target="#tab-reports" type="button" role="tab">
-            <i class="bi bi-shield-exclamation me-1 text-danger"></i> Safety & Misconduct Reports (<?= count($reports) ?>)
+            <i class="bi bi-shield-exclamation me-1 text-danger"></i> Safety &amp; Misconduct Reports (<span id="reportsTabCount"><?= count($reports) ?></span>)
         </button>
     </li>
 </ul>
@@ -82,21 +116,21 @@ $baseUrl = \App\Core\Response::baseUrl();
         <!-- Filter Card -->
         <div class="card border-0 shadow-sm rounded-3 mb-4">
             <div class="card-body p-3">
-                <form method="GET" action="<?= $baseUrl ?>/admin/communication" class="row g-2 align-items-center">
+                <form method="GET" action="<?= $baseUrl ?>/admin/communication" id="commFilterForm" class="row g-2 align-items-center">
                     <div class="col-md-3">
                         <div class="input-group input-group-sm">
                             <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-muted"></i></span>
-                            <input type="text" name="search" value="<?= htmlspecialchars($search ?? '') ?>" placeholder="Search buyer, supplier, product..." class="form-control border-start-0 bg-light">
+                            <input type="text" name="search" id="commSearchInput" value="<?= htmlspecialchars($search ?? '') ?>" placeholder="Search buyer, supplier, product..." class="form-control border-start-0 bg-light">
                         </div>
                     </div>
 
                     <div class="col-md-2">
-                        <select name="status" class="form-select form-select-sm bg-light">
+                        <select name="status" id="commStatusSelect" class="form-select form-select-sm bg-light">
                             <option value="all">All Statuses</option>
                             <option value="ACTIVE" <?= ($statusFilter === 'ACTIVE') ? 'selected' : '' ?>>Active</option>
                             <option value="NEGOTIATION_ONGOING" <?= ($statusFilter === 'NEGOTIATION_ONGOING') ? 'selected' : '' ?>>Negotiation Ongoing</option>
                             <option value="OFFER_PENDING" <?= ($statusFilter === 'OFFER_PENDING') ? 'selected' : '' ?>>Offer Pending</option>
-                            <option value="DEAL_AGREED" <?= ($statusFilter === 'DEAL_AGREED') ? 'selected' : '' ?>>Deal Agreed</option>
+                            <option value="DEAL_AGREED" <?= ($statusFilter === 'DEAL_AGREED' || $statusFilter === 'DEALS_AGREED') ? 'selected' : '' ?>>Deal Agreed / Completed</option>
                             <option value="DEAL_COMPLETED" <?= ($statusFilter === 'DEAL_COMPLETED') ? 'selected' : '' ?>>Deal Completed</option>
                             <option value="BLOCKED" <?= ($statusFilter === 'BLOCKED') ? 'selected' : '' ?>>Blocked</option>
                             <option value="UNDER_REVIEW" <?= ($statusFilter === 'UNDER_REVIEW') ? 'selected' : '' ?>>Under Review</option>
@@ -104,7 +138,7 @@ $baseUrl = \App\Core\Response::baseUrl();
                     </div>
 
                     <div class="col-md-3">
-                        <select name="supplier_id" class="form-select form-select-sm bg-light">
+                        <select name="supplier_id" id="commSupplierSelect" class="form-select form-select-sm bg-light">
                             <option value="">All Suppliers / Manufacturers</option>
                             <?php foreach ($suppliers as $s): ?>
                                 <option value="<?= (int)$s['id'] ?>" <?= ((string)$supplierFilter === (string)$s['id']) ? 'selected' : '' ?>>
@@ -123,7 +157,7 @@ $baseUrl = \App\Core\Response::baseUrl();
 
                     <div class="col-md-2 d-flex gap-2">
                         <button type="submit" class="btn btn-primary btn-sm fw-semibold w-100">Filter</button>
-                        <a href="<?= $baseUrl ?>/admin/communication" class="btn btn-outline-secondary btn-sm">Reset</a>
+                        <a href="<?= $baseUrl ?>/admin/communication" id="btnResetCommFilters" class="btn btn-outline-secondary btn-sm">Reset</a>
                     </div>
                 </form>
             </div>
@@ -145,9 +179,15 @@ $baseUrl = \App\Core\Response::baseUrl();
                             <th class="text-end pe-3">Actions</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y">
+                    <tbody class="divide-y" id="convsTableBody">
+                        <tr id="noMatchingConvsRow" style="display:none;">
+                            <td colspan="8" class="text-center py-5 text-muted">
+                                <i class="bi bi-filter display-6 d-block mb-2 text-slate-300"></i>
+                                No conversations match the selected filter.
+                            </td>
+                        </tr>
                         <?php if (empty($conversations)): ?>
-                            <tr>
+                            <tr id="emptyConvsRow">
                                 <td colspan="8" class="text-center py-5 text-muted">
                                     <i class="bi bi-chat-square-text display-6 d-block mb-2 text-slate-300"></i>
                                     No conversations found matching filters.
@@ -155,7 +195,24 @@ $baseUrl = \App\Core\Response::baseUrl();
                             </tr>
                         <?php else: ?>
                             <?php foreach ($conversations as $c): ?>
-                                <tr>
+                                <?php 
+                                    $searchStr = strtolower(
+                                        ($c['buyer_company'] ?? '') . ' ' . 
+                                        ($c['buyer_first_name'] ?? '') . ' ' . 
+                                        ($c['buyer_last_name'] ?? '') . ' ' . 
+                                        ($c['buyer_email'] ?? '') . ' ' . 
+                                        ($c['supplier_company_name'] ?? '') . ' ' . 
+                                        ($c['supplier_contact_person'] ?? '') . ' ' . 
+                                        ($c['product_title'] ?? '') . ' ' . 
+                                        ($c['last_message_body'] ?? '')
+                                    );
+                                ?>
+                                <tr class="conv-row" 
+                                    data-id="<?= (int)$c['id'] ?>"
+                                    data-status="<?= htmlspecialchars($c['status']) ?>"
+                                    data-flagged="<?= ((int)($c['flagged_messages_count'] ?? 0) > 0) ? '1' : '0' ?>"
+                                    data-supplier="<?= (int)($c['supplier_id'] ?? 0) ?>"
+                                    data-search="<?= htmlspecialchars($searchStr) ?>">
                                     <td class="ps-3 fw-bold text-slate-500">#<?= (int)$c['id'] ?></td>
                                     <td>
                                         <div class="fw-bold text-slate-900"><?= htmlspecialchars($c['buyer_company'] ?: ($c['buyer_first_name'] . ' ' . $c['buyer_last_name'])) ?></div>
@@ -239,9 +296,15 @@ $baseUrl = \App\Core\Response::baseUrl();
                             <th class="text-end pe-3">Resolution Actions</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="reportsTableBody">
+                        <tr id="noMatchingReportsRow" style="display:none;">
+                            <td colspan="7" class="text-center py-5 text-muted">
+                                <i class="bi bi-filter display-6 d-block mb-2 text-slate-300"></i>
+                                No safety reports match the selected filter.
+                            </td>
+                        </tr>
                         <?php if (empty($reports)): ?>
-                            <tr>
+                            <tr id="emptyReportsRow">
                                 <td colspan="7" class="text-center py-5 text-muted">
                                     <i class="bi bi-shield-check display-6 d-block mb-2 text-success"></i>
                                     No safety reports currently pending.
@@ -249,7 +312,10 @@ $baseUrl = \App\Core\Response::baseUrl();
                             </tr>
                         <?php else: ?>
                             <?php foreach ($reports as $r): ?>
-                                <tr>
+                                <tr class="report-row" 
+                                    data-id="<?= (int)$r['id'] ?>"
+                                    data-status="<?= htmlspecialchars($r['status']) ?>"
+                                    data-search="<?= htmlspecialchars(strtolower(($r['reporter_company'] ?? '') . ' ' . ($r['reporter_first_name'] ?? '') . ' ' . ($r['reporter_last_name'] ?? '') . ' ' . ($r['reported_company'] ?? '') . ' ' . ($r['reported_first_name'] ?? '') . ' ' . ($r['reported_last_name'] ?? '') . ' ' . ($r['reason'] ?? '') . ' ' . ($r['description'] ?? ''))) ?>">
                                     <td class="ps-3 fw-bold text-slate-500">#<?= (int)$r['id'] ?></td>
                                     <td>
                                         <div class="fw-bold text-slate-900"><?= htmlspecialchars($r['reporter_company'] ?: ($r['reporter_first_name'] . ' ' . $r['reporter_last_name'])) ?></div>
@@ -328,6 +394,253 @@ $baseUrl = \App\Core\Response::baseUrl();
 </div>
 
 <script>
+let activeCommCardFilter = null;
+
+function setCommCardHighlight(cardName) {
+    document.querySelectorAll('.clickable-card').forEach(function(card) {
+        if (cardName && card.getAttribute('data-card') === cardName) {
+            card.classList.add('active-card');
+        } else {
+            card.classList.remove('active-card');
+        }
+    });
+}
+
+function filterConversationsTable() {
+    const searchVal = (document.getElementById('commSearchInput')?.value || '').toLowerCase().trim();
+    const statusVal = document.getElementById('commStatusSelect')?.value || 'all';
+    const supplierVal = document.getElementById('commSupplierSelect')?.value || '';
+    const flaggedOnly = document.getElementById('chkFlagged')?.checked;
+
+    const rows = document.querySelectorAll('.conv-row');
+    let visibleCount = 0;
+
+    rows.forEach(function(row) {
+        const rowStatus = row.getAttribute('data-status') || '';
+        const rowFlagged = row.getAttribute('data-flagged') === '1';
+        const rowSupplier = row.getAttribute('data-supplier') || '';
+        const rowSearch = row.getAttribute('data-search') || '';
+
+        let match = true;
+
+        if (activeCommCardFilter === 'negotiating') {
+            if (rowStatus !== 'NEGOTIATION_ONGOING') match = false;
+        } else if (activeCommCardFilter === 'offers_pending') {
+            if (rowStatus !== 'OFFER_PENDING') match = false;
+        } else if (activeCommCardFilter === 'deals_agreed') {
+            if (rowStatus !== 'DEAL_AGREED' && rowStatus !== 'DEAL_COMPLETED') match = false;
+        } else if (activeCommCardFilter === 'flagged') {
+            if (!rowFlagged) match = false;
+        } else if (activeCommCardFilter === 'total') {
+            // All conversations
+        } else {
+            if (statusVal !== 'all') {
+                if (statusVal === 'DEAL_AGREED') {
+                    if (rowStatus !== 'DEAL_AGREED' && rowStatus !== 'DEAL_COMPLETED') match = false;
+                } else if (rowStatus !== statusVal) {
+                    match = false;
+                }
+            }
+            if (flaggedOnly && !rowFlagged) {
+                match = false;
+            }
+        }
+
+        if (supplierVal && rowSupplier !== supplierVal) {
+            match = false;
+        }
+
+        if (searchVal && !rowSearch.includes(searchVal)) {
+            match = false;
+        }
+
+        if (match) {
+            row.style.display = '';
+            visibleCount++;
+        } else {
+            row.style.display = 'none';
+        }
+    });
+
+    const noRow = document.getElementById('noMatchingConvsRow');
+    if (noRow) {
+        noRow.style.display = (rows.length > 0 && visibleCount === 0) ? '' : 'none';
+    }
+
+    const countSpan = document.getElementById('convsTabCount');
+    if (countSpan) {
+        countSpan.textContent = visibleCount;
+    }
+}
+
+function filterReportsTable() {
+    const rows = document.querySelectorAll('.report-row');
+    let visibleCount = 0;
+
+    rows.forEach(function(row) {
+        const rowStatus = row.getAttribute('data-status') || '';
+        let match = true;
+
+        if (activeCommCardFilter === 'pending_reports') {
+            if (rowStatus !== 'PENDING') match = false;
+        }
+
+        if (match) {
+            row.style.display = '';
+            visibleCount++;
+        } else {
+            row.style.display = 'none';
+        }
+    });
+
+    const noRow = document.getElementById('noMatchingReportsRow');
+    if (noRow) {
+        noRow.style.display = (rows.length > 0 && visibleCount === 0) ? '' : 'none';
+    }
+
+    const countSpan = document.getElementById('reportsTabCount');
+    if (countSpan) {
+        countSpan.textContent = visibleCount;
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const currentStatus = "<?= htmlspecialchars($statusFilter ?? '') ?>";
+    const currentFlagged = "<?= htmlspecialchars($flaggedOnly ?? '') ?>";
+
+    if (currentFlagged === '1') {
+        activeCommCardFilter = 'flagged';
+        setCommCardHighlight('flagged');
+    } else if (currentStatus === 'NEGOTIATION_ONGOING') {
+        activeCommCardFilter = 'negotiating';
+        setCommCardHighlight('negotiating');
+    } else if (currentStatus === 'OFFER_PENDING') {
+        activeCommCardFilter = 'offers_pending';
+        setCommCardHighlight('offers_pending');
+    } else if (currentStatus === 'DEAL_AGREED' || currentStatus === 'DEAL_COMPLETED') {
+        activeCommCardFilter = 'deals_agreed';
+        setCommCardHighlight('deals_agreed');
+    }
+
+    // Card click events
+    document.querySelectorAll('.clickable-card').forEach(function(card) {
+        card.addEventListener('click', function(e) {
+            const cardType = this.getAttribute('data-card');
+
+            // If already active, toggle off
+            if (activeCommCardFilter === cardType) {
+                activeCommCardFilter = null;
+                setCommCardHighlight(null);
+                const statusSelect = document.getElementById('commStatusSelect');
+                if (statusSelect) statusSelect.value = 'all';
+                const chk = document.getElementById('chkFlagged');
+                if (chk) chk.checked = false;
+                filterConversationsTable();
+                filterReportsTable();
+                return;
+            }
+
+            activeCommCardFilter = cardType;
+            setCommCardHighlight(cardType);
+
+            if (cardType === 'pending_reports') {
+                const reportTabBtn = document.getElementById('reports-tab');
+                if (reportTabBtn && window.bootstrap && bootstrap.Tab) {
+                    bootstrap.Tab.getOrCreateInstance(reportTabBtn).show();
+                }
+                filterReportsTable();
+            } else {
+                const convTabBtn = document.getElementById('convs-tab');
+                if (convTabBtn && window.bootstrap && bootstrap.Tab) {
+                    bootstrap.Tab.getOrCreateInstance(convTabBtn).show();
+                }
+
+                const statusSelect = document.getElementById('commStatusSelect');
+                const chkFlagged = document.getElementById('chkFlagged');
+
+                if (cardType === 'total') {
+                    if (statusSelect) statusSelect.value = 'all';
+                    if (chkFlagged) chkFlagged.checked = false;
+                } else if (cardType === 'negotiating') {
+                    if (statusSelect) statusSelect.value = 'NEGOTIATION_ONGOING';
+                    if (chkFlagged) chkFlagged.checked = false;
+                } else if (cardType === 'offers_pending') {
+                    if (statusSelect) statusSelect.value = 'OFFER_PENDING';
+                    if (chkFlagged) chkFlagged.checked = false;
+                } else if (cardType === 'deals_agreed') {
+                    if (statusSelect) statusSelect.value = 'DEAL_AGREED';
+                    if (chkFlagged) chkFlagged.checked = false;
+                } else if (cardType === 'flagged') {
+                    if (statusSelect) statusSelect.value = 'all';
+                    if (chkFlagged) chkFlagged.checked = true;
+                }
+
+                filterConversationsTable();
+            }
+        });
+    });
+
+    // Form inputs live filtering
+    const statusSelect = document.getElementById('commStatusSelect');
+    const chkFlagged = document.getElementById('chkFlagged');
+    const searchInput = document.getElementById('commSearchInput');
+    const supplierSelect = document.getElementById('commSupplierSelect');
+
+    [statusSelect, chkFlagged, supplierSelect].forEach(function(el) {
+        if (el) {
+            el.addEventListener('change', function() {
+                const st = statusSelect ? statusSelect.value : 'all';
+                const fl = chkFlagged ? chkFlagged.checked : false;
+
+                if (fl) {
+                    activeCommCardFilter = 'flagged';
+                    setCommCardHighlight('flagged');
+                } else if (st === 'NEGOTIATION_ONGOING') {
+                    activeCommCardFilter = 'negotiating';
+                    setCommCardHighlight('negotiating');
+                } else if (st === 'OFFER_PENDING') {
+                    activeCommCardFilter = 'offers_pending';
+                    setCommCardHighlight('offers_pending');
+                } else if (st === 'DEAL_AGREED' || st === 'DEAL_COMPLETED') {
+                    activeCommCardFilter = 'deals_agreed';
+                    setCommCardHighlight('deals_agreed');
+                } else if (st === 'all') {
+                    if (activeCommCardFilter !== 'total') {
+                        activeCommCardFilter = null;
+                        setCommCardHighlight(null);
+                    }
+                } else {
+                    activeCommCardFilter = null;
+                    setCommCardHighlight(null);
+                }
+                filterConversationsTable();
+            });
+        }
+    });
+
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            filterConversationsTable();
+        });
+    }
+
+    // Reset button
+    const resetBtn = document.getElementById('btnResetCommFilters');
+    if (resetBtn) {
+        resetBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            activeCommCardFilter = null;
+            setCommCardHighlight(null);
+            if (searchInput) searchInput.value = '';
+            if (statusSelect) statusSelect.value = 'all';
+            if (supplierSelect) supplierSelect.value = '';
+            if (chkFlagged) chkFlagged.checked = false;
+            filterConversationsTable();
+            filterReportsTable();
+        });
+    }
+});
+
 function openResolveReportModal(reportId) {
     const form = document.getElementById('resolveReportForm');
     form.action = '<?= $baseUrl ?>/admin/communication/reports/' + reportId + '/resolve';

@@ -30,6 +30,20 @@ class ChatReport extends Model
         ]);
 
         $id = (int) self::db()->lastInsertId();
+
+        try {
+            \App\Models\Notification::notifySuperAdmins(
+                'SAFETY_REPORT',
+                "Safety & Misconduct Report Filed",
+                "Reason: {$reason} — Conversation #{$conversationId}. Requires admin review.",
+                "/admin/communication/{$conversationId}",
+                'REPORT',
+                $id
+            );
+        } catch (\Throwable $ne) {
+            error_log("Failed to notify admin of report #{$id}: " . $ne->getMessage());
+        }
+
         return self::findById($id) ?? [];
     }
 

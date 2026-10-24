@@ -53,7 +53,12 @@ $formAction = $isAdminLogin ? ($baseUrl . '/admin/login') : ($baseUrl . '/login'
         <!-- Login Form -->
         <form action="<?= htmlspecialchars($formAction) ?>" method="POST" class="space-y-4" id="loginForm">
             <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(CSRF::token()) ?>">
-            <?php $redirectParam = (string)($_GET['redirect'] ?? Session::get('auth_redirect') ?? ''); ?>
+            <?php 
+                $redirectParam = (string)($_GET['redirect'] ?? Session::get('auth_redirect') ?? ''); 
+                if ($baseUrl !== '' && $baseUrl !== '/' && str_starts_with($redirectParam, $baseUrl)) {
+                    $redirectParam = substr($redirectParam, strlen($baseUrl)) ?: '/';
+                }
+            ?>
             <?php if (!empty($redirectParam) && str_starts_with($redirectParam, '/') && !str_starts_with($redirectParam, '//')): ?>
                 <input type="hidden" name="redirect" value="<?= htmlspecialchars($redirectParam) ?>">
             <?php endif; ?>

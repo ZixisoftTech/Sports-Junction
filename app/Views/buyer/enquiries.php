@@ -5,6 +5,17 @@ use App\Core\Response;
 use App\Helpers\CSRF;
 
 $baseUrl = Response::baseUrl();
+
+if (!empty($enquiries)) {
+    usort($enquiries, function ($a, $b) {
+        $tA = !empty($a['created_at']) ? strtotime($a['created_at']) : 0;
+        $tB = !empty($b['created_at']) ? strtotime($b['created_at']) : 0;
+        if ($tA === $tB) {
+            return (int)($b['id'] ?? 0) <=> (int)($a['id'] ?? 0);
+        }
+        return $tB <=> $tA;
+    });
+}
 ?>
 
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -25,11 +36,11 @@ $baseUrl = Response::baseUrl();
                 <thead class="bg-slate-50 border-b border-slate-200/80 text-slate-500 font-bold uppercase tracking-wider">
                     <tr>
                         <th class="py-3.5 px-4">Enquiry ID</th>
+                        <th class="py-3.5 px-4">Created Date</th>
                         <th class="py-3.5 px-4">Enquiry Source</th>
                         <th class="py-3.5 px-4">Product / Requirement</th>
                         <th class="py-3.5 px-4">Supplier Name</th>
                         <th class="py-3.5 px-4">Quantity</th>
-                        <th class="py-3.5 px-4">Submission Date</th>
                         <th class="py-3.5 px-4">Status</th>
                         <th class="py-3.5 px-4 text-right">Actions</th>
                     </tr>
@@ -61,6 +72,10 @@ $baseUrl = Response::baseUrl();
                             ?>
                             <tr class="hover:bg-slate-50/50 transition-colors">
                                 <td class="py-4 px-4 font-bold text-slate-900 font-mono">#ENQ-<?= str_pad((string)(int)$inq['id'], 5, '0', STR_PAD_LEFT) ?></td>
+                                <td class="py-4 px-4 whitespace-nowrap">
+                                    <div class="font-semibold text-slate-800 text-xs"><?= date('d M Y', strtotime($inq['created_at'])) ?></div>
+                                    <div class="text-[11px] text-slate-400 font-medium"><?= date('h:i A', strtotime($inq['created_at'])) ?></div>
+                                </td>
                                 <td class="py-4 px-4">
                                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-50 text-blue-800 border border-blue-200">
                                         <?= htmlspecialchars($srcLabel) ?>
@@ -79,7 +94,6 @@ $baseUrl = Response::baseUrl();
                                 </td>
                                 <td class="py-4 px-4 text-slate-600 font-semibold"><?= htmlspecialchars($inq['supplier_name'] ?: 'Unassigned') ?></td>
                                 <td class="py-4 px-4 text-slate-900 font-bold"><?= $src === 'CONTACT_US' ? '-' : ((int)$inq['target_quantity'] . ' ' . htmlspecialchars($inq['moq_unit_name'] ?? 'units')) ?></td>
-                                <td class="py-4 px-4 text-slate-500 text-[11px]"><?= date('d M Y, h:i A', strtotime($inq['created_at'])) ?></td>
                                 <td class="py-4 px-4">
                                     <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold border <?= $badgeClass ?>">
                                         <?= htmlspecialchars($st) ?>

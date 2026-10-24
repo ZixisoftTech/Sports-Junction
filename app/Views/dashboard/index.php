@@ -183,6 +183,9 @@ $baseUrl = Response::baseUrl();
             <h6 class="fw-bold m-0"><i class="bi bi-journal-text text-primary me-2"></i>Recent Master Management Audit Trail</h6>
             <small class="text-muted">Immutable log of creates, modifications, status toggles, and permanent deletions</small>
         </div>
+        <a href="<?= htmlspecialchars($baseUrl ?? '') ?>/admin/audit-trail" class="btn btn-sm btn-outline-primary fw-semibold">
+            <i class="bi bi-box-arrow-up-right me-1"></i>View Full Audit Trail
+        </a>
     </div>
     <div class="card-body p-0">
         <div class="table-responsive">

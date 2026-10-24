@@ -18,13 +18,16 @@ $authUser = \App\Helpers\Session::get('auth_user');
 $authSupplierId = \App\Models\Supplier::currentSupplierId();
 $buyerUnreadCount = 0;
 $buyerFavCount = 0;
+$buyerSortCount = 0;
 if ($authUser && ($authUser['role'] ?? '') === 'BUYER') {
     try {
         $buyerUnreadCount = ChatConversation::getTotalUnreadCountForUser((int)$authUser['id'], 'BUYER');
         $buyerFavCount = \App\Models\BuyerFavourite::countForBuyer((int)$authUser['id']);
+        $buyerSortCount = $buyerFavCount;
     } catch (\Throwable $e) {
         $buyerUnreadCount = 0;
         $buyerFavCount = 0;
+        $buyerSortCount = 0;
     }
 }
 $footerColumns = CmsPage::getByColumns(true);
@@ -59,8 +62,20 @@ if ($authUser && ($authUser['role'] ?? '') === 'BUYER') {
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
 
+    <!-- Suppress Tailwind Play CDN in production console warning -->
+    <script>
+        (function() {
+            var origWarn = console.warn;
+            console.warn = function() {
+                if (arguments[0] && typeof arguments[0] === 'string' && arguments[0].indexOf('cdn.tailwindcss.com should not be used in production') !== -1) {
+                    return;
+                }
+                origWarn.apply(console, arguments);
+            };
+        })();
+    </script>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com?plugins=typography,forms,aspect-ratio"></script>
     <script>
@@ -158,10 +173,10 @@ if ($authUser && ($authUser['role'] ?? '') === 'BUYER') {
             <div class="flex items-center gap-2 sm:gap-3 shrink-0 text-sm font-semibold">
                 <?php if ($authUser): ?>
                     <?php if (($authUser['role'] ?? '') === 'BUYER'): ?>
-                        <a href="<?= htmlspecialchars($baseUrl) ?>/buyer/favourites" class="text-on-surface hover:text-rose-600 transition-colors flex items-center gap-1 relative py-1 px-1.5 rounded-lg hover:bg-rose-50/60" title="Saved Favourites">
-                            <span class="material-symbols-outlined text-[20px] text-rose-600 fill-1">favorite</span>
-                            <span class="hidden lg:inline text-xs font-bold text-slate-800">Favourites</span>
-                            <span id="topNavFavouritesBadge" class="<?= ($buyerFavCount > 0 ? '' : 'hidden') ?> inline-flex items-center justify-center px-1.5 py-0.5 rounded-full bg-rose-600 text-white font-black text-[10px] leading-tight ml-0.5 shadow-xs"><?= $buyerFavCount > 99 ? '99+' : $buyerFavCount ?></span>
+                        <a href="<?= htmlspecialchars($baseUrl) ?>/buyer/sort-list" class="text-on-surface hover:text-blue-900 transition-colors flex items-center gap-1 relative py-1 px-1.5 rounded-lg hover:bg-blue-50/60" title="Sort List">
+                            <span class="material-symbols-outlined text-[20px] text-blue-900 fill-1">checklist</span>
+                            <span class="hidden lg:inline text-xs font-bold text-slate-800">Sort List</span>
+                            <span id="topNavSortBadge" class="<?= ($buyerSortCount > 0 ? '' : 'hidden') ?> inline-flex items-center justify-center px-1.5 py-0.5 rounded-full bg-blue-900 text-white font-black text-[10px] leading-tight ml-0.5 shadow-xs"><?= $buyerSortCount > 99 ? '99+' : $buyerSortCount ?></span>
                         </a>
                         <div class="hidden sm:flex items-center gap-3">
                             <a href="<?= htmlspecialchars($baseUrl) ?>/buyer/enquiries" class="text-on-surface hover:text-primary transition-colors flex items-center gap-1" title="My Enquiries">
@@ -187,9 +202,9 @@ if ($authUser && ($authUser['role'] ?? '') === 'BUYER') {
                         <a href="<?= htmlspecialchars($baseUrl) ?>/logout" class="text-xs font-bold text-rose-600 hover:underline px-2">Logout</a>
                     <?php endif; ?>
                 <?php else: ?>
-                    <a href="<?= htmlspecialchars($baseUrl) ?>/login?redirect=/buyer/favourites" class="text-on-surface hover:text-rose-600 transition-colors flex items-center gap-1 py-1 px-1.5 rounded-lg hover:bg-slate-100" title="Saved Favourites">
-                        <span class="material-symbols-outlined text-[20px] text-slate-500 hover:text-rose-600 transition-colors">favorite</span>
-                        <span class="hidden lg:inline text-xs font-bold">Favourites</span>
+                    <a href="<?= htmlspecialchars($baseUrl) ?>/login?redirect=/buyer/sort-list" class="text-on-surface hover:text-blue-900 transition-colors flex items-center gap-1 py-1 px-1.5 rounded-lg hover:bg-slate-100" title="Sort List">
+                        <span class="material-symbols-outlined text-[20px] text-slate-500 hover:text-blue-900 transition-colors">checklist</span>
+                        <span class="hidden lg:inline text-xs font-bold">Sort List</span>
                     </a>
                     <div class="hidden sm:flex items-center gap-2">
                         <a href="<?= htmlspecialchars($baseUrl) ?>/login" class="text-on-surface hover:text-primary transition-colors py-1 px-2">Login</a>
@@ -316,8 +331,8 @@ if ($authUser && ($authUser['role'] ?? '') === 'BUYER') {
                         </div>
                     </div>
 
-                    <a href="<?= htmlspecialchars($baseUrl) ?>/products" class="text-on-surface-variant hover:text-primary transition-colors shrink-0">ALL PRODUCTS</a>
-                    <a href="<?= htmlspecialchars($baseUrl) ?>/contact" class="text-on-surface-variant hover:text-primary transition-colors shrink-0">HELP</a>
+                    <a href="<?= htmlspecialchars($baseUrl) ?>/products" class="text-on-surface-variant hover:text-primary transition-colors shrink-0 font-medium">Products</a>
+                    <a href="<?= htmlspecialchars($baseUrl) ?>/contact" class="text-on-surface-variant hover:text-primary transition-colors shrink-0 font-medium">Help Center</a>
                 </nav>
 
                 <div class="hidden lg:flex items-center gap-5 text-on-surface-variant normal-case shrink-0 text-xs">
@@ -446,108 +461,69 @@ if ($authUser && ($authUser['role'] ?? '') === 'BUYER') {
         <span id="toast-text" class="text-sm font-semibold">Direct factory RFQ successfully transmitted!</span>
     </div>
 
-    <!-- Footer: Clean Dark Navy / Near-Black Exactly 3 Columns Matching Reference -->
+    <!-- Footer: Clean 5-Column Responsive Layout -->
     <footer class="bg-[#030712] text-slate-300 border-t border-slate-900 mt-20 pt-16 pb-12">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             
-            <!-- Column Grid: Exactly Three Columns -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-10 md:gap-14 lg:gap-20 pb-12">
-                
-                <!-- Column 1 — TOP SECTORS -->
-                <div>
-                    <h4 class="font-headline font-bold text-xs sm:text-sm text-white mb-5 tracking-wider uppercase">
-                        TOP SECTORS
-                    </h4>
-                    <ul class="space-y-3.5 text-xs text-slate-400">
-                        <?php if (!empty($footerColumns['TOP_SECTORS'])): ?>
-                            <?php foreach ($footerColumns['TOP_SECTORS'] as $p): ?>
-                                <?php $url = !empty($p['external_url']) ? (str_starts_with($p['external_url'], 'http') ? htmlspecialchars($p['external_url']) : htmlspecialchars($baseUrl . $p['external_url'])) : htmlspecialchars($baseUrl . '/page/' . $p['slug']); ?>
-                                <li>
-                                    <a href="<?= $url ?>" class="hover:text-white transition-colors block leading-relaxed">
-                                        <?= htmlspecialchars($p['title']) ?>
-                                    </a>
-                                </li>
-                            <?php endforeach; ?>
-                        <?php else: ?>
-                            <li><a href="<?= $baseUrl ?>/category/cricket-and-field-sports" class="hover:text-white transition-colors block leading-relaxed">Cricket Bats &amp; Pads</a></li>
-                            <li><a href="<?= $baseUrl ?>/category/football-and-inflatables" class="hover:text-white transition-colors block leading-relaxed">Match Footballs</a></li>
-                            <li><a href="<?= $baseUrl ?>/category/agility-and-speed-training" class="hover:text-white transition-colors block leading-relaxed">Agility Hurdles &amp; Ladders</a></li>
-                            <li><a href="<?= $baseUrl ?>/category/sports-and-fitness" class="hover:text-white transition-colors block leading-relaxed">Commercial Gym Equipment</a></li>
-                            <li><a href="<?= $baseUrl ?>/category/apparel-and-accessories" class="hover:text-white transition-colors block leading-relaxed">Sportswear &amp; Uniforms</a></li>
-                        <?php endif; ?>
-                    </ul>
-                </div>
+            <!-- Column Grid: 5 Dynamic Columns -->
+            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-8 lg:gap-8 pb-12">
+                <?php
+                    $footerSections = [
+                        'ABOUT' => [
+                            'title' => 'About Sports Junction',
+                            'items' => $footerColumns['ABOUT'] ?? []
+                        ],
+                        'PROTECTION' => [
+                            'title' => 'Buyer & Seller Protection',
+                            'items' => $footerColumns['PROTECTION'] ?? []
+                        ],
+                        'HELP' => [
+                            'title' => 'Help & Support',
+                            'items' => $footerColumns['HELP'] ?? []
+                        ],
+                        'SOURCING' => [
+                            'title' => 'Sourcing & Logistics',
+                            'items' => $footerColumns['SOURCING'] ?? []
+                        ],
+                        'LEGAL' => [
+                            'title' => 'Legal & Platform Policies',
+                            'items' => $footerColumns['LEGAL'] ?? []
+                        ]
+                    ];
+                ?>
 
-                <!-- Column 2 — SOURCING SOLUTIONS -->
-                <div>
-                    <h4 class="font-headline font-bold text-xs sm:text-sm text-white mb-5 tracking-wider uppercase">
-                        SOURCING SOLUTIONS
-                    </h4>
-                    <ul class="space-y-3.5 text-xs text-slate-400">
-                        <?php if (!empty($footerColumns['SOURCING'])): ?>
-                            <?php foreach ($footerColumns['SOURCING'] as $p): ?>
-                                <?php 
-                                    $rawUrl = $p['external_url'] ?? '';
-                                    if (empty($rawUrl)) {
-                                        $url = htmlspecialchars($baseUrl . '/page/' . $p['slug']);
-                                    } elseif (str_starts_with($rawUrl, 'http')) {
-                                        $url = htmlspecialchars($rawUrl);
-                                    } else {
-                                        $url = htmlspecialchars($baseUrl . $rawUrl);
-                                    }
-                                    $isRfq = stripos($p['title'], 'RFQ') !== false || stripos($p['title'], 'Request for Quotation') !== false;
-                                ?>
-                                <li>
-                                    <?php if ($isRfq): ?>
-                                        <a href="javascript:void(0)" onclick="openRfqModal()" class="hover:text-white transition-colors block leading-relaxed cursor-pointer">
-                                            <?= htmlspecialchars($p['title']) ?>
+                <?php foreach ($footerSections as $secKey => $section): ?>
+                    <div>
+                        <h4 class="font-headline font-bold text-xs sm:text-sm text-white mb-5 tracking-wider uppercase">
+                            <?= htmlspecialchars($section['title']) ?>
+                        </h4>
+                        <ul class="space-y-3 text-xs text-slate-400">
+                            <?php if (!empty($section['items'])): ?>
+                                <?php foreach ($section['items'] as $p): ?>
+                                    <?php
+                                        $label = !empty($p['footer_label']) ? $p['footer_label'] : $p['title'];
+                                        $rawUrl = trim((string)($p['external_url'] ?? ''));
+                                        if (!empty($rawUrl)) {
+                                            if (str_starts_with($rawUrl, 'http://') || str_starts_with($rawUrl, 'https://') || str_starts_with($rawUrl, '//')) {
+                                                $targetUrl = $rawUrl;
+                                            } else {
+                                                $targetUrl = $baseUrl . '/' . ltrim($rawUrl, '/');
+                                            }
+                                        } else {
+                                            $targetUrl = $baseUrl . '/' . ltrim($p['slug'], '/');
+                                        }
+                                        $isExternal = !empty($rawUrl) && (str_starts_with($rawUrl, 'http://') || str_starts_with($rawUrl, 'https://') || str_ends_with($rawUrl, '.xml'));
+                                    ?>
+                                    <li>
+                                        <a href="<?= htmlspecialchars($targetUrl) ?>" <?= $isExternal ? 'target="_blank" rel="noopener noreferrer"' : '' ?> class="hover:text-white transition-colors block leading-relaxed">
+                                            <?= htmlspecialchars($label) ?>
                                         </a>
-                                    <?php else: ?>
-                                        <a href="<?= $url ?>" class="hover:text-white transition-colors block leading-relaxed">
-                                            <?= htmlspecialchars($p['title']) ?>
-                                        </a>
-                                    <?php endif; ?>
-                                </li>
-                            <?php endforeach; ?>
-                        <?php else: ?>
-                            <li><a href="<?= $baseUrl ?>/products" class="hover:text-white transition-colors block leading-relaxed">Direct Factory Catalog</a></li>
-                            <li><a href="javascript:void(0)" onclick="openRfqModal()" class="hover:text-white transition-colors block leading-relaxed cursor-pointer">Request for Quotation (RFQ)</a></li>
-                            <li><a href="<?= $baseUrl ?>/contact" class="hover:text-white transition-colors block leading-relaxed">Contact Us &amp; Support</a></li>
-                            <li><a href="<?= $baseUrl ?>/page/container-freight-logistics" class="hover:text-white transition-colors block leading-relaxed">Container Freight Logistics</a></li>
-                            <li><a href="<?= $baseUrl ?>/sitemap.xml" target="_blank" class="hover:text-white transition-colors block leading-relaxed">XML Sitemap</a></li>
-                        <?php endif; ?>
-                    </ul>
-                </div>
-
-                <!-- Column 3 — PLATFORM & POLICIES -->
-                <div>
-                    <h4 class="font-headline font-bold text-xs sm:text-sm text-white mb-5 tracking-wider uppercase">
-                        PLATFORM &amp; POLICIES
-                    </h4>
-                    <ul class="space-y-3.5 text-xs text-slate-400">
-                        <?php if (!empty($footerColumns['PLATFORM_ADMIN'])): ?>
-                            <?php foreach ($footerColumns['PLATFORM_ADMIN'] as $p): ?>
-                                <?php 
-                                    // Skip any administrative or portal links
-                                    if (stripos($p['title'], 'admin') !== false || stripos($p['slug'], 'admin') !== false || (!empty($p['external_url']) && stripos($p['external_url'], 'admin') !== false)) {
-                                        continue;
-                                    }
-                                    $url = !empty($p['external_url']) ? (str_starts_with($p['external_url'], 'http') ? htmlspecialchars($p['external_url']) : htmlspecialchars($baseUrl . $p['external_url'])) : htmlspecialchars($baseUrl . '/page/' . $p['slug']); 
-                                ?>
-                                <li>
-                                    <a href="<?= $url ?>" class="hover:text-white transition-colors block leading-relaxed">
-                                        <?= htmlspecialchars($p['title']) ?>
-                                    </a>
-                                </li>
-                            <?php endforeach; ?>
-                        <?php else: ?>
-                            <li><a href="<?= $baseUrl ?>/page/terms-and-conditions" class="hover:text-white transition-colors block leading-relaxed">Terms and Conditions</a></li>
-                            <li><a href="<?= $baseUrl ?>/page/privacy-policy" class="hover:text-white transition-colors block leading-relaxed">Privacy Policy</a></li>
-                            <li><a href="<?= $baseUrl ?>/page/terms-manufacturing-sla" class="hover:text-white transition-colors block leading-relaxed">Terms &amp; Manufacturing SLA</a></li>
-                            <li><a href="<?= $baseUrl ?>/page/seller-agreement" class="hover:text-white transition-colors block leading-relaxed">Seller &amp; Manufacturer Agreement</a></li>
-                        <?php endif; ?>
-                    </ul>
-                </div>
+                                    </li>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </ul>
+                    </div>
+                <?php endforeach; ?>
 
             </div>
 

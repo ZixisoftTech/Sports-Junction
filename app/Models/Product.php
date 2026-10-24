@@ -907,6 +907,13 @@ class Product extends Model
             $bindings[':is_featured'] = (int)$params['is_featured'];
         }
 
+        if (!empty($params['audit_pending'])) {
+            $where[] = "(p.approval_status = 'PENDING_APPROVAL' OR p.pending_changes IS NOT NULL)";
+        } elseif (!empty($params['approval_status'])) {
+            $where[] = "p.approval_status = :approval_status";
+            $bindings[':approval_status'] = $params['approval_status'];
+        }
+
         $whereClause = !empty($where) ? 'WHERE ' . implode(' AND ', $where) : '';
 
         $totalRecords = (int) self::fetchColumn("SELECT COUNT(*) FROM products");

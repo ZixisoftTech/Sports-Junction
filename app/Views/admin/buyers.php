@@ -31,7 +31,7 @@ $csrfToken = \App\Helpers\CSRF::generate();
 <!-- Metrics Row -->
 <div class="row g-3 mb-4">
     <div class="col-12 col-sm-6 col-lg-3">
-        <div class="stat-card h-100">
+        <div class="stat-card h-100 cursor-pointer clickable-card" id="cardBuyerTotal" data-card="total" role="button" tabindex="0" title="Click to show all buyers">
             <div class="d-flex justify-content-between align-items-center">
                 <div>
                     <div class="stat-title">Total Buyers</div>
@@ -44,7 +44,7 @@ $csrfToken = \App\Helpers\CSRF::generate();
         </div>
     </div>
     <div class="col-12 col-sm-6 col-lg-3">
-        <div class="stat-card h-100">
+        <div class="stat-card h-100 cursor-pointer clickable-card" id="cardBuyerActive" data-card="active" role="button" tabindex="0" title="Click to filter active accounts">
             <div class="d-flex justify-content-between align-items-center">
                 <div>
                     <div class="stat-title">Active Accounts</div>
@@ -57,7 +57,7 @@ $csrfToken = \App\Helpers\CSRF::generate();
         </div>
     </div>
     <div class="col-12 col-sm-6 col-lg-3">
-        <div class="stat-card h-100">
+        <div class="stat-card h-100 cursor-pointer clickable-card" id="cardBuyerVerified" data-card="verified" role="button" tabindex="0" title="Click to filter email verified buyers">
             <div class="d-flex justify-content-between align-items-center">
                 <div>
                     <div class="stat-title">Email Verified</div>
@@ -70,7 +70,7 @@ $csrfToken = \App\Helpers\CSRF::generate();
         </div>
     </div>
     <div class="col-12 col-sm-6 col-lg-3">
-        <div class="stat-card h-100">
+        <div class="stat-card h-100 cursor-pointer clickable-card" id="cardBuyerInactive" data-card="inactive" role="button" tabindex="0" title="Click to filter inactive / suspended buyers">
             <div class="d-flex justify-content-between align-items-center">
                 <div>
                     <div class="stat-title">Inactive / Suspended</div>
@@ -83,6 +83,39 @@ $csrfToken = \App\Helpers\CSRF::generate();
         </div>
     </div>
 </div>
+
+<style>
+.clickable-card {
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 2px solid transparent !important;
+    position: relative;
+    user-select: none;
+}
+.clickable-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 40, 142, 0.12) !important;
+}
+.clickable-card.active-card {
+    border-color: #00288e !important;
+    background-color: #f0f4ff !important;
+    box-shadow: 0 0 0 3px rgba(0, 40, 142, 0.18), 0 6px 16px rgba(0, 40, 142, 0.12) !important;
+    transform: translateY(-2px);
+}
+.clickable-card.active-card::after {
+    content: "ACTIVE FILTER";
+    position: absolute;
+    top: 6px;
+    right: 8px;
+    font-size: 9px;
+    font-weight: 700;
+    color: #00288e;
+    background: #dbeafe;
+    padding: 1px 6px;
+    border-radius: 999px;
+    letter-spacing: 0.5px;
+}
+</style>
 
 <!-- Filters Card -->
 <div class="card card-premium mb-4">
@@ -580,11 +613,79 @@ $(document).ready(function() {
         }
     });
 
-    $('#filterAccountStatus, #filterVerificationStatus, #filterCountry').on('change', function() {
+    let activeBuyerCardFilter = null;
+
+    function setBuyerCardHighlight(cardKey) {
+        $('.clickable-card').removeClass('active-card');
+        if (cardKey) {
+            $(`.clickable-card[data-card="${cardKey}"]`).addClass('active-card');
+        }
+    }
+
+    $('.clickable-card').on('click', function () {
+        const clickedCard = $(this).data('card');
+
+        // Toggle off if clicking the currently active card
+        if (activeBuyerCardFilter === clickedCard) {
+            activeBuyerCardFilter = null;
+            setBuyerCardHighlight(null);
+            $('#filterAccountStatus').val('ALL');
+            $('#filterVerificationStatus').val('ALL');
+            buyersTable.ajax.reload();
+            return;
+        }
+
+        activeBuyerCardFilter = clickedCard;
+        setBuyerCardHighlight(clickedCard);
+
+        if (clickedCard === 'total') {
+            $('#filterAccountStatus').val('ALL');
+            $('#filterVerificationStatus').val('ALL');
+        } else if (clickedCard === 'active') {
+            $('#filterAccountStatus').val('ACTIVE');
+            $('#filterVerificationStatus').val('ALL');
+        } else if (clickedCard === 'verified') {
+            $('#filterAccountStatus').val('ALL');
+            $('#filterVerificationStatus').val('VERIFIED');
+        } else if (clickedCard === 'inactive') {
+            $('#filterAccountStatus').val('INACTIVE');
+            $('#filterVerificationStatus').val('ALL');
+        }
+
+        buyersTable.ajax.reload();
+    });
+
+    $('#filterAccountStatus, #filterVerificationStatus').on('change', function() {
+        const acc = $('#filterAccountStatus').val();
+        const ver = $('#filterVerificationStatus').val();
+        if (acc === 'ACTIVE' && ver === 'ALL') {
+            activeBuyerCardFilter = 'active';
+            setBuyerCardHighlight('active');
+        } else if (ver === 'VERIFIED' && acc === 'ALL') {
+            activeBuyerCardFilter = 'verified';
+            setBuyerCardHighlight('verified');
+        } else if (acc === 'INACTIVE' && ver === 'ALL') {
+            activeBuyerCardFilter = 'inactive';
+            setBuyerCardHighlight('inactive');
+        } else if (acc === 'ALL' && ver === 'ALL') {
+            if (activeBuyerCardFilter !== 'total') {
+                activeBuyerCardFilter = null;
+                setBuyerCardHighlight(null);
+            }
+        } else {
+            activeBuyerCardFilter = null;
+            setBuyerCardHighlight(null);
+        }
+        buyersTable.ajax.reload();
+    });
+
+    $('#filterCountry').on('change', function() {
         buyersTable.ajax.reload();
     });
 
     $('#btnResetBuyerFilters').on('click', function() {
+        activeBuyerCardFilter = null;
+        setBuyerCardHighlight(null);
         $('#filterAccountStatus').val('ALL');
         $('#filterVerificationStatus').val('ALL');
         $('#filterCountry').val('ALL');
@@ -896,12 +997,12 @@ function showCredentialsModal(id, nameOrCompany, type) {
         collapseEl.classList.remove('show');
     }
 
-    // Reset password visibility
+    // Default password visibility to plain text so Admin immediately sees the password
     const passInput = document.getElementById('credPassword');
-    passInput.type = 'password';
+    passInput.type = 'text';
     const passIcon = document.getElementById('toggleCredPassIcon');
     if (passIcon) {
-        passIcon.className = 'bi bi-eye';
+        passIcon.className = 'bi bi-eye-slash';
     }
 
     modal.show();

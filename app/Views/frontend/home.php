@@ -25,76 +25,100 @@ $baseUrl = Response::baseUrl();
         <div id="heroBannerCarousel" class="w-full relative rounded-2xl overflow-hidden bg-slate-900 min-h-[380px] sm:min-h-[420px] lg:min-h-[450px] flex items-center shadow-lg group">
             <?php foreach ($banners as $idx => $b): 
                 $imgSrc = Response::formatImageUrl($b['image']);
-                $ctaUrl = !empty($b['cta_url']) ? (str_starts_with($b['cta_url'], 'http') ? $b['cta_url'] : $baseUrl . '/' . ltrim($b['cta_url'], '/')) : $baseUrl . '/products';
+                $bannerType = $b['banner_type'] ?? 'WITH_TEXT';
+                $isImageOnly = ($bannerType === 'IMAGE_ONLY');
+                $rawCta = trim((string)($b['cta_url'] ?? ''));
+                $ctaUrl = !empty($rawCta) ? (str_starts_with($rawCta, 'http') ? $rawCta : $baseUrl . '/' . ltrim($rawCta, '/')) : '';
                 $secUrl = $b['secondary_cta_url'] ?? 'rfq_modal';
                 $isActive = ($idx === 0);
             ?>
             <div class="hero-slide absolute inset-0 w-full h-full flex items-center transition-opacity duration-700 ease-in-out <?= $isActive ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none' ?>" data-slide-index="<?= $idx ?>">
-                <img alt="<?= htmlspecialchars($b['title']) ?>" class="absolute inset-0 w-full h-full object-cover opacity-35" src="<?= htmlspecialchars($imgSrc) ?>" onerror="this.onerror=null;this.src='https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&w=1600&q=80';">
-                <div class="absolute inset-0 bg-gradient-to-r from-blue-950/95 via-blue-950/70 to-transparent"></div>
+                <?php if ($isImageOnly): ?>
+                    <?php if (!empty($ctaUrl)): ?>
+                    <a href="<?= htmlspecialchars($ctaUrl) ?>" class="absolute inset-0 w-full h-full block z-10" aria-label="<?= htmlspecialchars($b['title'] ?: 'Hero Banner') ?>">
+                        <img alt="<?= htmlspecialchars($b['title'] ?: 'Hero Banner') ?>" class="w-full h-full object-cover" src="<?= htmlspecialchars($imgSrc) ?>" onerror="this.onerror=null;this.src='https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&w=1600&q=80';">
+                    </a>
+                    <?php else: ?>
+                    <img alt="<?= htmlspecialchars($b['title'] ?: 'Hero Banner') ?>" class="absolute inset-0 w-full h-full object-cover" src="<?= htmlspecialchars($imgSrc) ?>" onerror="this.onerror=null;this.src='https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&w=1600&q=80';">
+                    <?php endif; ?>
 
-                <div class="relative z-10 max-w-2xl p-6 sm:p-10 lg:p-12 text-white flex flex-col justify-between h-full w-full">
-                    <div class="space-y-4">
-                        <?php if (!empty($b['badge_text'])): ?>
-                        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-500/20 backdrop-blur-md text-teal-300 text-xs font-bold uppercase tracking-wider border border-teal-500/30">
-                            <span class="w-2 h-2 rounded-full bg-teal-400 animate-pulse"></span>
-                            <span><?= htmlspecialchars($b['badge_text']) ?></span>
-                        </div>
-                        <?php endif; ?>
-
-                        <h1 class="font-headline text-3xl sm:text-4xl lg:text-5xl font-extrabold leading-tight tracking-tight text-white">
-                            <?= htmlspecialchars($b['title']) ?>
-                        </h1>
-
-                        <?php if (!empty($b['subtitle'])): ?>
-                        <p class="text-sm sm:text-base text-gray-200 leading-relaxed max-w-xl">
-                            <?= htmlspecialchars($b['subtitle']) ?>
-                        </p>
-                        <?php endif; ?>
-
-                        <div class="flex flex-wrap items-center gap-3 pt-3">
-                            <?php if (!empty($b['cta_text'])): ?>
-                            <a href="<?= htmlspecialchars($ctaUrl) ?>" class="px-6 py-3.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-headline font-bold text-sm shadow-lg hover:shadow-xl transition-all flex items-center gap-2">
-                                <span><?= htmlspecialchars($b['cta_text']) ?></span>
-                                <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
-                            </a>
-                            <?php endif; ?>
-
-                            <?php if (!empty($b['secondary_cta_text'])): ?>
-                                <?php if ($secUrl === 'rfq_modal' || empty($secUrl)): ?>
-                                <button type="button" onclick="openRfqModal()" class="px-6 py-3.5 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/20 backdrop-blur-md font-headline font-bold text-sm transition-all flex items-center gap-2 cursor-pointer">
-                                    <span class="material-symbols-outlined text-[18px]">description</span>
-                                    <span><?= htmlspecialchars($b['secondary_cta_text']) ?></span>
-                                </button>
-                                <?php else: ?>
-                                <a href="<?= htmlspecialchars(str_starts_with($secUrl, 'http') ? $secUrl : $baseUrl . '/' . ltrim($secUrl, '/')) ?>" class="px-6 py-3.5 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/20 backdrop-blur-md font-headline font-bold text-sm transition-all flex items-center gap-2">
-                                    <span class="material-symbols-outlined text-[18px]">description</span>
-                                    <span><?= htmlspecialchars($b['secondary_cta_text']) ?></span>
-                                </a>
-                                <?php endif; ?>
-                            <?php endif; ?>
-                        </div>
-                    </div>
-
-                    <!-- Bottom Indicators -->
-                    <div class="mt-8 pt-4 border-t border-white/10 flex items-center justify-between text-xs text-gray-300">
-                        <div class="flex items-center gap-2">
+                    <!-- Bottom Indicators for Image Only Banner -->
+                    <div class="absolute bottom-4 left-6 sm:left-10 z-20 pointer-events-auto">
+                        <div class="inline-flex items-center gap-2 bg-black/50 backdrop-blur-md px-3 py-1.5 rounded-full text-xs text-white border border-white/10 shadow-sm">
                             <?php if ($totalBanners > 1): ?>
                                 <?php for ($d = 0; $d < $totalBanners; $d++): ?>
-                                    <button type="button" class="hero-dot transition-all <?= ($d === $idx) ? 'w-8 h-1.5 rounded-full bg-blue-500' : 'w-3 h-1.5 rounded-full bg-white/30 hover:bg-white/50' ?>" data-dot-index="<?= $d ?>" aria-label="Slide <?= $d + 1 ?>"></button>
+                                    <button type="button" class="hero-dot transition-all <?= ($d === $idx) ? 'w-6 h-1.5 rounded-full bg-blue-500' : 'w-2.5 h-1.5 rounded-full bg-white/40 hover:bg-white/70' ?>" data-dot-index="<?= $d ?>" aria-label="Slide <?= $d + 1 ?>"></button>
                                 <?php endfor; ?>
-                                <span class="ml-2 font-mono font-semibold text-white"><?= sprintf('%02d / %02d', $idx + 1, $totalBanners) ?></span>
+                                <span class="ml-1.5 font-mono font-semibold"><?= sprintf('%02d / %02d', $idx + 1, $totalBanners) ?></span>
                             <?php else: ?>
-                                <span class="w-8 h-1.5 rounded-full bg-blue-500"></span>
-                                <span class="ml-2 font-mono font-semibold text-white">01 / 01</span>
+                                <span class="w-6 h-1.5 rounded-full bg-blue-500"></span>
+                                <span class="ml-1.5 font-mono font-semibold">01 / 01</span>
                             <?php endif; ?>
                         </div>
-                        <div class="flex items-center gap-2">
-                            <span class="material-symbols-outlined text-[16px] text-teal-400">local_shipping</span>
-                            <span>Global Port Dispatch: Nhava Sheva &amp; Mundra</span>
+                    </div>
+                <?php else: ?>
+                    <img alt="<?= htmlspecialchars($b['title']) ?>" class="absolute inset-0 w-full h-full object-cover opacity-35" src="<?= htmlspecialchars($imgSrc) ?>" onerror="this.onerror=null;this.src='https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&w=1600&q=80';">
+                    <div class="absolute inset-0 bg-gradient-to-r from-blue-950/95 via-blue-950/70 to-transparent"></div>
+
+                    <div class="relative z-10 max-w-2xl p-6 sm:p-10 lg:p-12 text-white flex flex-col justify-between h-full w-full">
+                        <div class="space-y-4">
+                            <?php if (!empty($b['badge_text'])): ?>
+                            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-500/20 backdrop-blur-md text-teal-300 text-xs font-bold uppercase tracking-wider border border-teal-500/30">
+                                <span class="w-2 h-2 rounded-full bg-teal-400 animate-pulse"></span>
+                                <span><?= htmlspecialchars($b['badge_text']) ?></span>
+                            </div>
+                            <?php endif; ?>
+
+                            <h1 class="font-headline text-3xl sm:text-4xl lg:text-5xl font-extrabold leading-tight tracking-tight text-white">
+                                <?= htmlspecialchars($b['title']) ?>
+                            </h1>
+
+                            <?php if (!empty($b['subtitle'])): ?>
+                            <p class="text-sm sm:text-base text-gray-200 leading-relaxed max-w-xl">
+                                <?= htmlspecialchars($b['subtitle']) ?>
+                            </p>
+                            <?php endif; ?>
+
+                            <div class="flex flex-wrap items-center gap-3 pt-3">
+                                <?php if (!empty($b['cta_text'])): ?>
+                                <a href="<?= htmlspecialchars(!empty($ctaUrl) ? $ctaUrl : $baseUrl . '/products') ?>" class="px-6 py-3.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-headline font-bold text-sm shadow-lg hover:shadow-xl transition-all flex items-center gap-2">
+                                    <span><?= htmlspecialchars($b['cta_text']) ?></span>
+                                    <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+                                </a>
+                                <?php endif; ?>
+
+                                <?php if (!empty($b['secondary_cta_text'])): ?>
+                                    <?php if ($secUrl === 'rfq_modal' || empty($secUrl)): ?>
+                                    <button type="button" onclick="openRfqModal()" class="px-6 py-3.5 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/20 backdrop-blur-md font-headline font-bold text-sm transition-all flex items-center gap-2 cursor-pointer">
+                                        <span class="material-symbols-outlined text-[18px]">description</span>
+                                        <span><?= htmlspecialchars($b['secondary_cta_text']) ?></span>
+                                    </button>
+                                    <?php else: ?>
+                                    <a href="<?= htmlspecialchars(str_starts_with($secUrl, 'http') ? $secUrl : $baseUrl . '/' . ltrim($secUrl, '/')) ?>" class="px-6 py-3.5 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/20 backdrop-blur-md font-headline font-bold text-sm transition-all flex items-center gap-2">
+                                        <span class="material-symbols-outlined text-[18px]">description</span>
+                                        <span><?= htmlspecialchars($b['secondary_cta_text']) ?></span>
+                                    </a>
+                                    <?php endif; ?>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+
+                        <!-- Bottom Indicators -->
+                        <div class="mt-8 pt-4 border-t border-white/10 flex items-center justify-start text-xs text-gray-300">
+                            <div class="flex items-center gap-2">
+                                <?php if ($totalBanners > 1): ?>
+                                    <?php for ($d = 0; $d < $totalBanners; $d++): ?>
+                                        <button type="button" class="hero-dot transition-all <?= ($d === $idx) ? 'w-8 h-1.5 rounded-full bg-blue-500' : 'w-3 h-1.5 rounded-full bg-white/30 hover:bg-white/50' ?>" data-dot-index="<?= $d ?>" aria-label="Slide <?= $d + 1 ?>"></button>
+                                    <?php endfor; ?>
+                                    <span class="ml-2 font-mono font-semibold text-white"><?= sprintf('%02d / %02d', $idx + 1, $totalBanners) ?></span>
+                                <?php else: ?>
+                                    <span class="w-8 h-1.5 rounded-full bg-blue-500"></span>
+                                    <span class="ml-2 font-mono font-semibold text-white">01 / 01</span>
+                                <?php endif; ?>
+                            </div>
                         </div>
                     </div>
-                </div>
+                <?php endif; ?>
             </div>
             <?php endforeach; ?>
 
@@ -162,57 +186,33 @@ $baseUrl = Response::baseUrl();
         });
         </script>
         <?php endif; ?>
-
-        <!-- Sourcing Highlights Strip -->
-        <div class="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3">
-            <div class="flex items-center gap-3 p-3.5 rounded-xl bg-white border border-surface-container shadow-sm">
-                <span class="material-symbols-outlined text-[24px] text-blue-700">verified</span>
-                <div>
-                    <div class="text-xs font-bold text-on-surface">15,000+ Verified Plants</div>
-                    <div class="text-[11px] text-outline">Direct factory agreements</div>
-                </div>
-            </div>
-            <div class="flex items-center gap-3 p-3.5 rounded-xl bg-white border border-surface-container shadow-sm">
-                <span class="material-symbols-outlined text-[24px] text-teal-600">bolt</span>
-                <div>
-                    <div class="text-xs font-bold text-on-surface">&lt; 2.4hr Inquiry SLA</div>
-                    <div class="text-[11px] text-outline">Dedicated lead engineers</div>
-                </div>
-            </div>
-            <div class="flex items-center gap-3 p-3.5 rounded-xl bg-white border border-surface-container shadow-sm">
-                <span class="material-symbols-outlined text-[24px] text-blue-700">fact_check</span>
-                <div>
-                    <div class="text-xs font-bold text-on-surface">ISO &amp; BSCI Audited</div>
-                    <div class="text-[11px] text-outline">On-site inspection reports</div>
-                </div>
-            </div>
-            <div class="flex items-center gap-3 p-3.5 rounded-xl bg-white border border-surface-container shadow-sm">
-                <span class="material-symbols-outlined text-[24px] text-teal-600">payments</span>
-                <div>
-                    <div class="text-xs font-bold text-on-surface">Zero Commission</div>
-                    <div class="text-[11px] text-outline">Authentic ex-factory pricing</div>
-                </div>
-            </div>
-        </div>
     </div>
 </section>
 
 <!-- 2. POPULAR B2B SOURCING CATEGORIES -->
 <?php if (!empty($homepageCategories)): ?>
-<section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 w-full">
+<?php
+    $displayedIds = array_map(fn($c) => (int)$c['id'], $homepageCategories);
+    $remainingCategories = !empty($categories) ? array_values(array_filter($categories, fn($c) => !in_array((int)$c['id'], $displayedIds, true))) : [];
+    $totalCategoriesCount = count($homepageCategories) + count($remainingCategories);
+?>
+<section id="popularCategoriesSection" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 w-full">
     <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
         <div>
             <div class="text-xs font-bold uppercase tracking-wider text-blue-800 mb-1">Global Industrial Sectors</div>
             <h2 class="font-headline text-2xl sm:text-3xl text-on-surface font-extrabold">Popular Sports Sourcing Categories</h2>
         </div>
-        <a href="<?= htmlspecialchars($baseUrl) ?>/products" class="inline-flex items-center gap-1.5 text-sm font-bold text-blue-700 hover:text-blue-900 transition-colors">
-            <span>View All Categories</span>
-            <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
-        </a>
+        <?php if (!empty($remainingCategories)): ?>
+        <button type="button" id="toggleAllCategoriesBtn" class="inline-flex items-center gap-1.5 text-sm font-bold text-blue-700 hover:text-blue-900 bg-blue-50 hover:bg-blue-100/80 px-4 py-2 rounded-xl transition-all cursor-pointer border border-blue-200/80 shadow-2xs">
+            <span id="toggleCategoriesLabel">View All Categories (<?= $totalCategoriesCount ?>)</span>
+            <span id="toggleCategoriesIcon" class="material-symbols-outlined text-[18px] transition-transform duration-300">expand_more</span>
+        </button>
+        <?php endif; ?>
     </div>
 
     <!-- Category Cards Grid -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div id="categoryCardsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- Initially visible top categories -->
         <?php foreach ($homepageCategories as $cat): ?>
             <a href="<?= htmlspecialchars($baseUrl) ?>/category/<?= htmlspecialchars($cat['slug']) ?>" class="group p-4 rounded-2xl bg-white border border-slate-200/90 shadow-2xs hover:shadow-md hover:border-blue-300 transition-all flex items-center gap-3.5 relative overflow-hidden">
                 <div class="w-12 h-12 rounded-xl bg-blue-50/80 group-hover:bg-blue-600 flex items-center justify-center text-blue-900 group-hover:text-white transition-colors shrink-0 p-2.5">
@@ -235,8 +235,77 @@ $baseUrl = Response::baseUrl();
                 </div>
             </a>
         <?php endforeach; ?>
+
+        <!-- Extra Categories revealed on click -->
+        <?php foreach ($remainingCategories as $cat): ?>
+            <a href="<?= htmlspecialchars($baseUrl) ?>/category/<?= htmlspecialchars($cat['slug']) ?>" class="extra-category-card hidden group p-4 rounded-2xl bg-white border border-slate-200/90 shadow-2xs hover:shadow-md hover:border-blue-300 transition-all flex items-center gap-3.5 relative overflow-hidden">
+                <div class="w-12 h-12 rounded-xl bg-blue-50/80 group-hover:bg-blue-600 flex items-center justify-center text-blue-900 group-hover:text-white transition-colors shrink-0 p-2.5">
+                    <?php 
+                    $catIcon = trim($cat['icon'] ?? 'sports_tennis');
+                    $isImg = (str_starts_with($catIcon, '/') || str_starts_with($catIcon, 'http') || str_contains($catIcon, '.'));
+                    if ($isImg): ?>
+                        <img src="<?= htmlspecialchars(\App\Core\Response::formatImageUrl($catIcon)) ?>" class="w-full h-full object-contain" alt="<?= htmlspecialchars($cat['name']) ?>" onerror="this.onerror=null;this.parentElement.innerHTML='<span class=\'material-symbols-outlined text-[24px]\'>sports_tennis</span>';">
+                    <?php else: ?>
+                        <span class="material-symbols-outlined text-[24px]"><?= htmlspecialchars($catIcon) ?></span>
+                    <?php endif; ?>
+                </div>
+                <div class="min-w-0 flex-1">
+                    <h3 class="font-headline font-bold text-sm text-slate-900 group-hover:text-blue-700 transition-colors line-clamp-2 leading-snug">
+                        <?= htmlspecialchars($cat['name']) ?>
+                    </h3>
+                    <p class="text-xs text-slate-500 mt-0.5 font-normal">
+                        <?= (int) ($cat['product_count'] ?? 0) ?> active products
+                    </p>
+                </div>
+            </a>
+        <?php endforeach; ?>
     </div>
 </section>
+
+<?php if (!empty($remainingCategories)): ?>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const toggleBtn = document.getElementById('toggleAllCategoriesBtn');
+    if (!toggleBtn) return;
+
+    const extraCards = document.querySelectorAll('.extra-category-card');
+    const label = document.getElementById('toggleCategoriesLabel');
+    const icon = document.getElementById('toggleCategoriesIcon');
+    const totalCount = <?= (int)$totalCategoriesCount ?>;
+    let isExpanded = false;
+
+    toggleBtn.addEventListener('click', function () {
+        isExpanded = !isExpanded;
+        extraCards.forEach(card => {
+            if (isExpanded) {
+                card.classList.remove('hidden');
+            } else {
+                card.classList.add('hidden');
+            }
+        });
+
+        if (isExpanded) {
+            label.textContent = 'Show Less';
+            icon.textContent = 'expand_less';
+            toggleBtn.classList.add('bg-blue-100', 'border-blue-400');
+        } else {
+            label.textContent = `View All Categories (${totalCount})`;
+            icon.textContent = 'expand_more';
+            toggleBtn.classList.remove('bg-blue-100', 'border-blue-400');
+            const section = document.getElementById('popularCategoriesSection');
+            if (section) {
+                section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+    });
+
+    // If URL has #all-categories or ?all_categories=1, auto-expand
+    if (window.location.hash === '#all-categories' || window.location.search.includes('all_categories=1')) {
+        toggleBtn.click();
+    }
+});
+</script>
+<?php endif; ?>
 <?php endif; ?>
 
 <!-- 3. FEATURED PRODUCTS HIGHLIGHTS -->
@@ -256,6 +325,19 @@ $baseUrl = Response::baseUrl();
         <!-- Featured Products Grid -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             <?php if (!empty($featuredProducts)): ?>
+                <?php
+                    $currentUser = \App\Helpers\Session::get('auth_user');
+                    $buyerSortIds = [];
+                    if ($currentUser && ($currentUser['role'] ?? '') === 'BUYER') {
+                        try {
+                            $buyerSortIds = \App\Models\BuyerFavourite::getBuyerSortProductIds((int)$currentUser['id']);
+                        } catch (\Throwable $e) {
+                            $buyerSortIds = [];
+                        }
+                    } else {
+                        $buyerSortIds = [];
+                    }
+                ?>
                 <?php foreach ($featuredProducts as $prod): ?>
                     <?php 
                         $prodUrl = htmlspecialchars($baseUrl) . '/product/' . htmlspecialchars($prod['slug'] ?? (string)$prod['id']);
@@ -288,10 +370,20 @@ $baseUrl = Response::baseUrl();
                                 </div>
                             <?php endif; ?>
 
-                            <div class="absolute top-3 right-3">
+                            <div class="absolute top-3 right-3 flex items-center gap-1.5 z-10">
                                 <span class="px-2 py-0.5 rounded-md bg-blue-700 text-white font-mono text-[10px] font-bold shadow-sm">
                                     OEM / ODM
                                 </span>
+                                <?php 
+                                    $inSort = in_array((int)$prod['id'], $buyerSortIds, true);
+                                ?>
+                                <button type="button" 
+                                    data-product-sort-id="<?= (int)$prod['id'] ?>"
+                                    onclick="toggleSortProduct(<?= (int)$prod['id'] ?>, this)" 
+                                    class="sort-btn w-7 h-7 rounded-full bg-white/95 backdrop-blur-md shadow-xs border <?= $inSort ? 'text-blue-900 border-blue-500 bg-blue-50' : 'text-slate-600 border-slate-200 hover:text-blue-900 hover:border-blue-400' ?> flex items-center justify-center transition-all cursor-pointer" 
+                                    title="<?= $inSort ? 'In Sort List' : 'Add to Sort' ?>">
+                                    <span class="material-symbols-outlined text-[16px] <?= $inSort ? 'fill-1' : '' ?>">checklist</span>
+                                </button>
                             </div>
                         </div>
 
@@ -301,15 +393,9 @@ $baseUrl = Response::baseUrl();
                                 <div class="text-[11px] text-outline font-semibold uppercase tracking-wider mb-1">
                                     <?= htmlspecialchars($prod['all_category_names'] ?? $prod['category_name'] ?? 'Sports Gear') ?>
                                 </div>
-                                <h3 class="font-headline font-bold text-sm text-on-surface line-clamp-2 mb-1.5 group-hover:text-blue-700 transition-colors">
+                                <h3 class="font-headline font-bold text-sm text-on-surface line-clamp-2 mb-2 group-hover:text-blue-700 transition-colors">
                                     <a href="<?= $prodUrl ?>"><?= htmlspecialchars($prod['name']) ?></a>
                                 </h3>
-
-                                <!-- Factory / Supplier Name -->
-                                <div class="flex items-center gap-1.5 text-xs text-slate-600 font-medium mb-2">
-                                    <span class="material-symbols-outlined text-[15px] text-blue-600 shrink-0">factory</span>
-                                    <span class="truncate"><?= htmlspecialchars($prod['supplier_name'] ?? 'Verified Factory') ?></span>
-                                </div>
 
                                 <!-- Price Matrix -->
                                 <div class="mt-2 mb-3">
@@ -327,7 +413,7 @@ $baseUrl = Response::baseUrl();
                                 </div>
                             </div>
 
-                            <!-- Card Footer CTAs (50% Specs & Samples / 50% Chat) -->
+                            <!-- Card Footer CTAs (50% Shortlist / 50% Chat Now) -->
                             <div class="pt-3 border-t border-surface-container grid grid-cols-2 gap-2">
                                 <?php 
                                 $isOwnProd = \App\Models\Supplier::isOwnedByCurrentSupplier($prod);
@@ -342,9 +428,17 @@ $baseUrl = Response::baseUrl();
                                         <span>View Public</span>
                                     </a>
                                 <?php else: ?>
-                                    <a href="<?= $prodUrl ?>" class="w-full py-2 text-center rounded-xl bg-surface-container-low hover:bg-surface-container-high text-blue-900 text-xs font-bold transition-colors inline-flex items-center justify-center">
-                                        Specs & Samples
-                                    </a>
+                                    <!-- Button 1: Shortlist -->
+                                    <button type="button" 
+                                        data-product-sort-id="<?= (int)$prod['id'] ?>"
+                                        onclick="toggleSortProduct(<?= (int)$prod['id'] ?>, this)" 
+                                        class="sort-footer-btn w-full py-2 text-center rounded-xl <?= $inSort ? 'bg-blue-50 text-blue-900 border border-blue-400' : 'bg-surface-container-low hover:bg-surface-container-high text-blue-900 border border-slate-200/80' ?> text-xs font-bold transition-colors inline-flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs" 
+                                        title="<?= $inSort ? 'In Sort List' : 'Add to Sort' ?>">
+                                        <span class="material-symbols-outlined text-[15px] <?= $inSort ? 'text-blue-900 font-bold' : 'text-blue-900' ?>"><?= $inSort ? 'check' : 'playlist_add' ?></span>
+                                        <span class="sort-btn-text"><?= $inSort ? 'In Sort List' : 'Shortlist' ?></span>
+                                    </button>
+
+                                    <!-- Button 2: Chat Now -->
                                     <button type="button" onclick="openProductChat(<?= htmlspecialchars(json_encode([
                                         'id' => (int)$prod['id'],
                                         'product_id' => (int)$prod['id'],
@@ -358,7 +452,7 @@ $baseUrl = Response::baseUrl();
                                         'supplier_name' => $prod['supplier_name'] ?? 'Verified Factory'
                                     ])) ?>)" class="w-full py-2 text-center rounded-xl bg-blue-900 hover:bg-blue-950 text-white text-xs font-bold transition-colors inline-flex items-center justify-center gap-1.5 cursor-pointer shadow-xs">
                                         <span class="material-symbols-outlined text-[16px]">chat</span>
-                                        <span>Chat</span>
+                                        <span>Chat Now</span>
                                     </button>
                                 <?php endif; ?>
                             </div>

@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\Controllers;
 
 use App\Core\Controller;
+use App\Core\Response;
 use App\Helpers\CSRF;
 use App\Helpers\Mailer;
 use App\Helpers\Session;
@@ -16,6 +17,7 @@ use App\Models\Otp;
 use App\Models\State;
 use App\Models\Supplier;
 use App\Models\User;
+use App\Helpers\AuditLogger;
 
 class AuthController extends Controller
 {
@@ -46,18 +48,55 @@ class AuthController extends Controller
     // 2. UNIFIED / BUYER / SUPPLIER LOGIN (Stitch Screen 4)
     // =========================================================================
 
+    private function normalizeRedirectTarget(string $target): string
+    {
+        $target = trim($target);
+        if ($target === '') {
+            return '';
+        }
+
+        if (str_starts_with($target, 'http://') || str_starts_with($target, 'https://')) {
+            $parsed = parse_url($target);
+            $target = ($parsed['path'] ?? '/') . (!empty($parsed['query']) ? '?' . $parsed['query'] : '');
+        }
+
+        $base = Response::baseUrl();
+        if ($base !== '' && $base !== '/' && str_starts_with($target, $base)) {
+            $target = substr($target, strlen($base)) ?: '/';
+        }
+
+        if (!str_starts_with($target, '/') || str_starts_with($target, '//') || str_starts_with($target, '/login') || str_starts_with($target, '/logout')) {
+            return '';
+        }
+
+        return $target;
+    }
+
     public function showLogin(): void
     {
         $redirectParam = (string)$this->request->get('redirect', '');
-        if (!empty($redirectParam) && str_starts_with($redirectParam, '/') && !str_starts_with($redirectParam, '//')) {
-            Session::set('auth_redirect', $redirectParam);
+        $normalizedParam = $this->normalizeRedirectTarget($redirectParam);
+        if (!empty($normalizedParam)) {
+            Session::set('auth_redirect', $normalizedParam);
         }
 
         $user = $this->authUser();
         if ($user) {
-            $redirectTarget = (string)($this->request->get('redirect') ?? Session::get('auth_redirect') ?? '');
+            $rawTarget = (string)($this->request->get('redirect') ?? Session::get('auth_redirect') ?? '');
             Session::remove('auth_redirect');
-            if (!empty($redirectTarget) && str_starts_with($redirectTarget, '/') && !str_starts_with($redirectTarget, '//')) {
+            $redirectTarget = $this->normalizeRedirectTarget($rawTarget);
+            $role = $user['role'] ?? '';
+
+            if (!empty($redirectTarget) && $redirectTarget !== '/') {
+                if ($role === 'SUPER_ADMIN' && (str_starts_with($redirectTarget, '/buyer') || str_starts_with($redirectTarget, '/supplier'))) {
+                    if (str_contains($redirectTarget, '/messages')) {
+                        preg_match('/(?:conversation_id|conv)[=\/](\d+)/i', $redirectTarget, $m);
+                        $this->redirect(!empty($m[1]) ? "/admin/communication/{$m[1]}" : "/admin/communication");
+                        return;
+                    }
+                    $this->redirect('/admin/dashboard');
+                    return;
+                }
                 $this->redirect($redirectTarget);
                 return;
             }
@@ -168,6 +207,7 @@ class AuthController extends Controller
 
         if (!$user) {
             RateLimiter::recordFailedAttempt($ip, $email);
+            AuditLogger::log('LOGIN', 'User', null, $email, null, "Failed login attempt: email not found ({$email})", 'FAILURE');
             Session::flash('error', $genericError);
             $this->redirect($redirectBack);
             return;
@@ -175,6 +215,7 @@ class AuthController extends Controller
 
         if (!User::verifyPassword($password, $user['password'])) {
             RateLimiter::recordFailedAttempt($ip, $email);
+            AuditLogger::log('LOGIN', 'User', (int)$user['id'], $email, null, "Failed login attempt: invalid password for {$email}", 'FAILURE', (int)$user['id']);
             Session::flash('error', $genericError);
             $this->redirect($redirectBack);
             return;
@@ -259,11 +300,28 @@ class AuthController extends Controller
             'status' => $user['status'] ?? 'ACTIVE',
         ]);
 
+        if (($user['role'] ?? '') === 'BUYER') {
+            try {
+                \App\Models\BuyerFavourite::mergeGuestSortIntoBuyer((int)$user['id']);
+            } catch (\Throwable $e) {}
+        }
+
         if ($supplierRecord && ($user['role'] ?? '') === 'SUPPLIER') {
             Session::set('auth_supplier', $supplierRecord);
         }
 
         User::updateLastLogin((int)$user['id']);
+
+        AuditLogger::log(
+            'LOGIN',
+            'User',
+            (int)$user['id'],
+            $user['name'] . ' (' . $user['email'] . ')',
+            null,
+            "Successfully signed in as {$user['role']}",
+            'SUCCESS',
+            (int)$user['id']
+        );
 
         // Remember Me: set secure cookie token for 30 days
         if ($remember) {
@@ -299,9 +357,11 @@ class AuthController extends Controller
             }
         } else {
             Session::flash('success', "Welcome back, {$user['name']}!");
-            $redirectTarget = (string)($this->request->get('redirect') ?? $this->request->post('redirect') ?? Session::get('auth_redirect') ?? '');
+            $rawTarget = (string)($this->request->get('redirect') ?? $this->request->post('redirect') ?? Session::get('auth_redirect') ?? '');
             Session::remove('auth_redirect');
-            if (!empty($redirectTarget) && str_starts_with($redirectTarget, '/') && !str_starts_with($redirectTarget, '//')) {
+            $redirectTarget = $this->normalizeRedirectTarget($rawTarget);
+
+            if (!empty($redirectTarget) && $redirectTarget !== '/') {
                 $this->redirect($redirectTarget);
                 return;
             }
@@ -561,6 +621,10 @@ class AuthController extends Controller
                 'role'   => 'BUYER',
                 'status' => 'ACTIVE',
             ]);
+
+            try {
+                \App\Models\BuyerFavourite::mergeGuestSortIntoBuyer((int)$user['id']);
+            } catch (\Throwable $e) {}
 
             Session::set('verified_role', 'BUYER');
             $this->redirect('/email-verified');
@@ -967,6 +1031,20 @@ class AuthController extends Controller
             $otp = Otp::generate($email, 'SUPPLIER_REGISTRATION', $this->request->getIp());
             $sent = Mailer::sendSupplierOtp($email, (string)$input['company_name'], $otp);
 
+            // Super Admin Notification Dispatch
+            try {
+                \App\Models\Notification::notifySuperAdmins(
+                    'SUPPLIER_REGISTRATION',
+                    "New Supplier Registration: {$input['company_name']}",
+                    "Contact: {$input['contact_person']} ({$email}). Awaiting admin verification.",
+                    "/admin/suppliers",
+                    'SUPPLIER',
+                    $supplierId
+                );
+            } catch (\Throwable $ne) {
+                error_log("Failed to notify admin of supplier #{$supplierId}: " . $ne->getMessage());
+            }
+
             Session::set('otp_email', $email);
             Session::set('otp_purpose', 'SUPPLIER_REGISTRATION');
             Session::set('otp_user_id', $userId);
@@ -1018,6 +1096,20 @@ class AuthController extends Controller
 
     public function logout(): void
     {
+        $currentUser = Session::get('auth_user');
+        if ($currentUser && !empty($currentUser['id'])) {
+            AuditLogger::log(
+                'LOGOUT',
+                'User',
+                (int)$currentUser['id'],
+                ($currentUser['name'] ?? 'User') . ' (' . ($currentUser['email'] ?? '') . ')',
+                null,
+                "User signed out",
+                'SUCCESS',
+                (int)$currentUser['id']
+            );
+        }
+
         // Clear remember cookie if present
         if (isset($_COOKIE['sj_remember'])) {
             setcookie('sj_remember', '', time() - 3600, '/');

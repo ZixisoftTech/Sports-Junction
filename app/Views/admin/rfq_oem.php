@@ -31,42 +31,75 @@ $csrfToken = \App\Helpers\CSRF::generate();
 <!-- Metrics Row -->
 <div class="row g-3 mb-4">
     <div class="col-6 col-md-2">
-        <div class="stat-card h-100 p-3">
+        <div class="stat-card h-100 p-3 cursor-pointer clickable-card" id="cardRfqTotal" data-card="total" role="button" tabindex="0" title="Click to show all RFQ & OEM enquiries">
             <div class="text-slate-500 small fw-semibold">Total RFQ &amp; OEM</div>
             <h4 class="fw-bold text-slate-900 mb-0 mt-1" id="mTotal"><?= (int)($metrics['total'] ?? 0) ?></h4>
         </div>
     </div>
     <div class="col-6 col-md-2">
-        <div class="stat-card h-100 p-3">
+        <div class="stat-card h-100 p-3 cursor-pointer clickable-card" id="cardRfqOnly" data-card="rfq" role="button" tabindex="0" title="Click to filter RFQ requests">
             <div class="text-slate-500 small fw-semibold">RFQ Requests</div>
             <h4 class="fw-bold text-warning mb-0 mt-1" style="color: #b45309 !important;" id="mRfq"><?= (int)($metrics['rfq_count'] ?? 0) ?></h4>
         </div>
     </div>
     <div class="col-6 col-md-2">
-        <div class="stat-card h-100 p-3">
+        <div class="stat-card h-100 p-3 cursor-pointer clickable-card" id="cardFastOemOnly" data-card="fast_oem" role="button" tabindex="0" title="Click to filter Fast OEM requests">
             <div class="text-slate-500 small fw-semibold">Fast OEM Requests</div>
             <h4 class="fw-bold text-teal mb-0 mt-1" style="color: #0f766e !important;" id="mFastOem"><?= (int)($metrics['fast_oem_count'] ?? 0) ?></h4>
         </div>
     </div>
     <div class="col-6 col-md-2">
-        <div class="stat-card h-100 p-3">
+        <div class="stat-card h-100 p-3 cursor-pointer clickable-card" id="cardRfqPending" data-card="pending" role="button" tabindex="0" title="Click to filter pending / new requests">
             <div class="text-slate-500 small fw-semibold">Pending / New</div>
             <h4 class="fw-bold text-danger mb-0 mt-1" id="mPending"><?= (int)($metrics['pending'] ?? 0) ?></h4>
         </div>
     </div>
     <div class="col-6 col-md-2">
-        <div class="stat-card h-100 p-3">
+        <div class="stat-card h-100 p-3 cursor-pointer clickable-card" id="cardRfqInDiscussion" data-card="in_discussion" role="button" tabindex="0" title="Click to filter requests in discussion">
             <div class="text-slate-500 small fw-semibold">In Discussion</div>
             <h4 class="fw-bold text-primary mb-0 mt-1" id="mResponded"><?= (int)($metrics['responded'] ?? 0) ?></h4>
         </div>
     </div>
     <div class="col-6 col-md-2">
-        <div class="stat-card h-100 p-3">
+        <div class="stat-card h-100 p-3 cursor-pointer clickable-card" id="cardRfqResolved" data-card="resolved" role="button" tabindex="0" title="Click to filter resolved / converted requests">
             <div class="text-slate-500 small fw-semibold">Resolved / Converted</div>
             <h4 class="fw-bold text-success mb-0 mt-1" id="mResolved"><?= (int)($metrics['resolved'] ?? 0) ?></h4>
         </div>
     </div>
 </div>
+
+<style>
+.clickable-card {
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 2px solid transparent !important;
+    position: relative;
+    user-select: none;
+}
+.clickable-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 40, 142, 0.12) !important;
+}
+.clickable-card.active-card {
+    border-color: #00288e !important;
+    background-color: #f0f4ff !important;
+    box-shadow: 0 0 0 3px rgba(0, 40, 142, 0.18), 0 6px 16px rgba(0, 40, 142, 0.12) !important;
+    transform: translateY(-2px);
+}
+.clickable-card.active-card::after {
+    content: "ACTIVE";
+    position: absolute;
+    top: 6px;
+    right: 8px;
+    font-size: 8px;
+    font-weight: 700;
+    color: #00288e;
+    background: #dbeafe;
+    padding: 1px 5px;
+    border-radius: 999px;
+    letter-spacing: 0.5px;
+}
+</style>
 
 <!-- Multi-Filter & Search Card -->
 <div class="card card-premium mb-4">
@@ -417,8 +450,85 @@ $(document).ready(function() {
         }
     });
 
-    // Event listeners for filters
-    $('#filterSupplier, #filterSource, #filterStatus, #filterCategory, #filterStartDate, #filterEndDate').on('change', function() {
+    let activeRfqOemCardFilter = null;
+
+    function setRfqOemCardHighlight(cardKey) {
+        $('.clickable-card').removeClass('active-card');
+        if (cardKey) {
+            $(`.clickable-card[data-card="${cardKey}"]`).addClass('active-card');
+        }
+    }
+
+    $('.clickable-card').on('click', function () {
+        const clickedCard = $(this).data('card');
+
+        // Toggle off if clicking the currently active card
+        if (activeRfqOemCardFilter === clickedCard) {
+            activeRfqOemCardFilter = null;
+            setRfqOemCardHighlight(null);
+            $('#filterSource').val('ALL');
+            $('#filterStatus').val('ALL');
+            rfqOemTable.ajax.reload();
+            return;
+        }
+
+        activeRfqOemCardFilter = clickedCard;
+        setRfqOemCardHighlight(clickedCard);
+
+        if (clickedCard === 'total') {
+            $('#filterSource').val('ALL');
+            $('#filterStatus').val('ALL');
+        } else if (clickedCard === 'rfq') {
+            $('#filterSource').val('RFQ');
+            $('#filterStatus').val('ALL');
+        } else if (clickedCard === 'fast_oem') {
+            $('#filterSource').val('FAST_OEM');
+            $('#filterStatus').val('ALL');
+        } else if (clickedCard === 'pending') {
+            $('#filterSource').val('ALL');
+            $('#filterStatus').val('SUBMITTED');
+        } else if (clickedCard === 'in_discussion') {
+            $('#filterSource').val('ALL');
+            $('#filterStatus').val('IN_DISCUSSION');
+        } else if (clickedCard === 'resolved') {
+            $('#filterSource').val('ALL');
+            $('#filterStatus').val('RESOLVED');
+        }
+
+        rfqOemTable.ajax.reload();
+    });
+
+    $('#filterSource, #filterStatus').on('change', function() {
+        const src = $('#filterSource').val();
+        const st = $('#filterStatus').val();
+        if (src === 'RFQ' && st === 'ALL') {
+            activeRfqOemCardFilter = 'rfq';
+            setRfqOemCardHighlight('rfq');
+        } else if (src === 'FAST_OEM' && st === 'ALL') {
+            activeRfqOemCardFilter = 'fast_oem';
+            setRfqOemCardHighlight('fast_oem');
+        } else if ((st === 'SUBMITTED' || st === 'PENDING') && src === 'ALL') {
+            activeRfqOemCardFilter = 'pending';
+            setRfqOemCardHighlight('pending');
+        } else if ((st === 'IN_DISCUSSION' || st === 'RESPONDED') && src === 'ALL') {
+            activeRfqOemCardFilter = 'in_discussion';
+            setRfqOemCardHighlight('in_discussion');
+        } else if ((st === 'RESOLVED' || st === 'CLOSED') && src === 'ALL') {
+            activeRfqOemCardFilter = 'resolved';
+            setRfqOemCardHighlight('resolved');
+        } else if (src === 'ALL' && st === 'ALL') {
+            if (activeRfqOemCardFilter !== 'total') {
+                activeRfqOemCardFilter = null;
+                setRfqOemCardHighlight(null);
+            }
+        } else {
+            activeRfqOemCardFilter = null;
+            setRfqOemCardHighlight(null);
+        }
+        rfqOemTable.ajax.reload();
+    });
+
+    $('#filterSupplier, #filterCategory, #filterStartDate, #filterEndDate').on('change', function() {
         rfqOemTable.ajax.reload();
     });
 
@@ -437,6 +547,8 @@ $(document).ready(function() {
     });
 
     $('#btnClearEnquiryFilters').on('click', function() {
+        activeRfqOemCardFilter = null;
+        setRfqOemCardHighlight(null);
         $('#filterSupplier').val('ALL');
         $('#supplierSearchBox').val('');
         $('#filterSupplier option').show();

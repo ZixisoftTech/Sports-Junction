@@ -244,8 +244,9 @@ $supplierCertificationTags = !empty($product['supplier_id']) ? \App\Models\Suppl
                             <span class="material-symbols-outlined text-[18px]">send</span>
                             <span>Send Direct Factory Inquiry</span>
                         </button>
-                        <button type="button" id="btnDetailFavourite" onclick="toggleFavouriteProduct(<?= (int)$product['id'] ?>, this)" class="px-4 py-3.5 rounded-xl border border-surface-container bg-white hover:bg-rose-50 transition-all flex items-center justify-center <?= !empty($isFavourite) ? 'text-rose-600 border-rose-200 bg-rose-50' : 'text-slate-600' ?>" title="Save to Favourites">
-                            <span class="material-symbols-outlined text-[20px] <?= !empty($isFavourite) ? 'fill-1' : '' ?>">favorite</span>
+                        <button type="button" id="btnDetailSort" data-product-sort-id="<?= (int)$product['id'] ?>" onclick="toggleSortProduct(<?= (int)$product['id'] ?>, this)" class="px-4 py-3.5 rounded-xl border border-surface-container bg-white hover:bg-blue-50 transition-all flex items-center justify-center gap-1.5 <?= (!empty($isInSortList) || !empty($isFavourite)) ? 'text-blue-900 border-blue-400 bg-blue-50 font-bold' : 'text-slate-600' ?>" title="<?= (!empty($isInSortList) || !empty($isFavourite)) ? 'In Sort List' : 'Shortlist' ?>">
+                            <span class="material-symbols-outlined text-[20px] <?= (!empty($isInSortList) || !empty($isFavourite)) ? 'fill-1' : '' ?>">checklist</span>
+                            <span class="sort-btn-text text-xs font-bold hidden sm:inline"><?= (!empty($isInSortList) || !empty($isFavourite)) ? 'In Sort List' : 'Shortlist' ?></span>
                         </button>
                     </div>
                     <!-- Chat & Negotiate Button -->
@@ -253,12 +254,10 @@ $supplierCertificationTags = !empty($product['supplier_id']) ? \App\Models\Suppl
                         <span class="material-symbols-outlined text-[18px]">chat</span>
                         <span>CHAT WITH SUPPLIER</span>
                     </button>
-                    <?php if ((int)$product['sample_available'] === 1): ?>
-                        <button type="button" onclick="openSampleOrderModal(<?= (int)$product['id'] ?>, '<?= htmlspecialchars(addslashes($product['name'])) ?>', '<?= htmlspecialchars(addslashes($product['supplier_name'] ?? 'Verified Indian Factory')) ?>', <?= (int)($product['supplier_id'] ?? 1) ?>, <?= (float)($product['sample_price'] ?? 0) ?>)" class="w-full py-2.5 rounded-xl bg-white hover:bg-teal-50 text-teal-800 border border-teal-200 font-headline font-bold text-xs transition-colors flex items-center justify-center gap-2">
-                            <span class="material-symbols-outlined text-[16px] text-teal-600">science</span>
-                            <span>Order Prototype Sample (5-7 Days Dispatch)</span>
-                        </button>
-                    <?php endif; ?>
+                    <button type="button" onclick="openSampleOrderModal(<?= (int)$product['id'] ?>, '<?= htmlspecialchars(addslashes($product['name'])) ?>', '<?= htmlspecialchars(addslashes($product['supplier_name'] ?? 'Verified Indian Factory')) ?>', <?= (int)($product['supplier_id'] ?? 1) ?>, <?= (float)($product['sample_price'] ?? 0) ?>)" class="w-full py-2.5 rounded-xl bg-white hover:bg-teal-50 text-teal-800 border border-teal-200 font-headline font-bold text-xs transition-colors flex items-center justify-center gap-2">
+                        <span class="material-symbols-outlined text-[16px] text-teal-600">science</span>
+                        <span>Order Prototype Sample (5-7 Days Dispatch)</span>
+                    </button>
                 <?php endif; ?>
             </div>
         </div>

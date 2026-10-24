@@ -277,6 +277,20 @@ class SupplierPortalController extends Controller
 
             Mailer::sendProductSubmitted($supplier['email'], $supplier['company_name'], (string)$input['name']);
 
+            // Super Admin Notification
+            try {
+                \App\Models\Notification::notifySuperAdmins(
+                    'PRODUCT_PENDING_APPROVAL',
+                    "Product Awaiting Approval: " . (string)($input['name'] ?? 'Equipment Item'),
+                    "Submitted by " . ($supplier['company_name'] ?: 'Supplier') . ". Review specifications and compliance.",
+                    "/admin/product-approvals",
+                    'PRODUCT',
+                    $id
+                );
+            } catch (\Throwable $ne) {
+                error_log("Failed to notify admin of product #{$id}: " . $ne->getMessage());
+            }
+
             $msg = "Product submitted successfully! It is queued for Super Admin review before publishing.";
             Session::flash('success', $msg);
             if ($isAjax) {

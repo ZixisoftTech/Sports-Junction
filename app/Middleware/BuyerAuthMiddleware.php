@@ -14,6 +14,29 @@ class BuyerAuthMiddleware
         Session::start();
         $user = Session::get('auth_user');
 
+        if ($user && isset($user['id']) && ($user['role'] ?? '') === 'SUPER_ADMIN') {
+            if ($request->isAjax()) {
+                return true;
+            }
+            $targetPath = $request->getPath();
+            if (str_starts_with($targetPath, '/buyer/messages')) {
+                $convId = (int) ($request->get('conversation_id') ?? $request->get('conv') ?? 0);
+                $dest = $convId > 0 ? "/admin/communication/{$convId}" : "/admin/communication";
+                $response->redirect($dest);
+                return false;
+            }
+            if (str_starts_with($targetPath, '/buyer/sample-enquiries')) {
+                $response->redirect('/admin/sample-enquiries');
+                return false;
+            }
+            if (str_starts_with($targetPath, '/buyer/enquiries')) {
+                $response->redirect('/admin/enquiries');
+                return false;
+            }
+            $response->redirect('/admin/dashboard');
+            return false;
+        }
+
         if (!$user || !isset($user['id']) || ($user['role'] ?? '') !== 'BUYER') {
             if ($request->isAjax()) {
                 $response->json([

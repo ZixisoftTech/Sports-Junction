@@ -19,13 +19,17 @@ class AuditLogger
         ?int $entityId = null,
         ?string $recordIdentifier = null,
         ?array $affectedCounts = null,
-        array|string|null $details = null
+        array|string|null $details = null,
+        string $result = 'SUCCESS',
+        ?int $userId = null
     ): void {
         try {
             $detailsStr = is_array($details) ? json_encode($details, JSON_UNESCAPED_UNICODE) : $details;
             $db = Database::getConnection();
-            $user = Session::get('auth_user');
-            $userId = $user['id'] ?? null;
+            if ($userId === null) {
+                $user = Session::get('auth_user');
+                $userId = $user['id'] ?? null;
+            }
 
             $request = new Request();
             $ip = $request->getIp();
@@ -33,9 +37,9 @@ class AuditLogger
 
             $stmt = $db->prepare("
                 INSERT INTO audit_logs (
-                    user_id, action, entity_type, entity_id, record_identifier, affected_counts, details, ip_address, user_agent, created_at
+                    user_id, action, entity_type, entity_id, record_identifier, affected_counts, details, result, ip_address, user_agent, created_at
                 ) VALUES (
-                    :user_id, :action, :entity_type, :entity_id, :record_identifier, :affected_counts, :details, :ip_address, :user_agent, NOW()
+                    :user_id, :action, :entity_type, :entity_id, :record_identifier, :affected_counts, :details, :result, :ip_address, :user_agent, NOW()
                 )
             ");
 
@@ -47,6 +51,7 @@ class AuditLogger
                 ':record_identifier' => $recordIdentifier,
                 ':affected_counts'   => $affectedCounts !== null ? json_encode($affectedCounts) : null,
                 ':details'           => $detailsStr,
+                ':result'            => strtoupper($result),
                 ':ip_address'        => $ip,
                 ':user_agent'        => $userAgent,
             ]);

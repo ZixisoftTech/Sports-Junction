@@ -19,8 +19,9 @@ class HeroBanner extends Model
             self::execute("
                 CREATE TABLE IF NOT EXISTS `hero_banners` (
                   `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                  `banner_type` ENUM('WITH_TEXT', 'IMAGE_ONLY') NOT NULL DEFAULT 'WITH_TEXT',
                   `badge_text` VARCHAR(100) NULL DEFAULT 'Factory Direct Sourcing Hub',
-                  `title` VARCHAR(255) NOT NULL,
+                  `title` VARCHAR(255) NULL,
                   `subtitle` TEXT NULL,
                   `image` VARCHAR(255) NOT NULL,
                   `cta_text` VARCHAR(100) NULL DEFAULT 'Source Catalog',
@@ -36,14 +37,26 @@ class HeroBanner extends Model
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
             ");
 
+            // Check and add missing columns if upgrading existing table
+            $cols = self::fetchAll("DESCRIBE `hero_banners`");
+            $colNames = array_column($cols, 'Field');
+
+            if (!in_array('banner_type', $colNames, true)) {
+                self::execute("ALTER TABLE `hero_banners` ADD COLUMN `banner_type` ENUM('WITH_TEXT', 'IMAGE_ONLY') NOT NULL DEFAULT 'WITH_TEXT' AFTER `id`");
+            }
+
+            // Ensure title column allows NULL for image-only banners
+            self::execute("ALTER TABLE `hero_banners` MODIFY COLUMN `title` VARCHAR(255) NULL");
+
             // Seed initial hero banner if empty
             $count = (int) self::fetchColumn("SELECT COUNT(*) FROM `hero_banners`");
             if ($count === 0) {
                 self::execute("
                     INSERT INTO `hero_banners` 
-                    (`badge_text`, `title`, `subtitle`, `image`, `cta_text`, `cta_url`, `secondary_cta_text`, `secondary_cta_url`, `display_order`, `status`, `created_at`, `updated_at`)
+                    (`banner_type`, `badge_text`, `title`, `subtitle`, `image`, `cta_text`, `cta_url`, `secondary_cta_text`, `secondary_cta_url`, `display_order`, `status`, `created_at`, `updated_at`)
                     VALUES 
                     (
+                      'WITH_TEXT',
                       'Factory Direct Sourcing Hub',
                       'Direct From Verified Indian Sports & Fitness Manufacturers',
                       'Factory-Direct Wholesale Pricing • Guaranteed MOQs • ISO 9001 & BSCI Audited Production Facilities in Meerut & Jalandhar with Fast Sample Turnaround.',
@@ -84,23 +97,37 @@ class HeroBanner extends Model
     {
         self::ensureSchema();
 
-        $badgeText = !empty($data['badge_text']) ? trim((string)$data['badge_text']) : 'Factory Direct Sourcing Hub';
-        $title = trim((string)($data['title'] ?? ''));
-        $subtitle = !empty($data['subtitle']) ? trim((string)$data['subtitle']) : null;
+        $bannerType = in_array($data['banner_type'] ?? '', ['WITH_TEXT', 'IMAGE_ONLY'], true) ? $data['banner_type'] : 'WITH_TEXT';
+
+        if ($bannerType === 'IMAGE_ONLY') {
+            $badgeText = null;
+            $title = !empty($data['title']) ? trim((string)$data['title']) : 'Image Banner';
+            $subtitle = null;
+            $ctaText = null;
+            $ctaUrl = !empty($data['cta_url']) ? trim((string)$data['cta_url']) : null;
+            $secCtaText = null;
+            $secCtaUrl = null;
+        } else {
+            $badgeText = !empty($data['badge_text']) ? trim((string)$data['badge_text']) : 'Factory Direct Sourcing Hub';
+            $title = trim((string)($data['title'] ?? ''));
+            $subtitle = !empty($data['subtitle']) ? trim((string)$data['subtitle']) : null;
+            $ctaText = !empty($data['cta_text']) ? trim((string)$data['cta_text']) : 'Source Catalog';
+            $ctaUrl = !empty($data['cta_url']) ? trim((string)$data['cta_url']) : '/products';
+            $secCtaText = !empty($data['secondary_cta_text']) ? trim((string)$data['secondary_cta_text']) : 'Request Quotation';
+            $secCtaUrl = !empty($data['secondary_cta_url']) ? trim((string)$data['secondary_cta_url']) : 'rfq_modal';
+        }
+
         $image = trim((string)($data['image'] ?? ''));
-        $ctaText = !empty($data['cta_text']) ? trim((string)$data['cta_text']) : 'Source Catalog';
-        $ctaUrl = !empty($data['cta_url']) ? trim((string)$data['cta_url']) : '/products';
-        $secCtaText = !empty($data['secondary_cta_text']) ? trim((string)$data['secondary_cta_text']) : 'Request Quotation';
-        $secCtaUrl = !empty($data['secondary_cta_url']) ? trim((string)$data['secondary_cta_url']) : 'rfq_modal';
         $displayOrder = (int)($data['display_order'] ?? 0);
         $status = in_array($data['status'] ?? '', ['ACTIVE', 'INACTIVE'], true) ? $data['status'] : 'ACTIVE';
 
         self::execute("
             INSERT INTO `hero_banners` 
-            (`badge_text`, `title`, `subtitle`, `image`, `cta_text`, `cta_url`, `secondary_cta_text`, `secondary_cta_url`, `display_order`, `status`, `created_at`, `updated_at`)
+            (`banner_type`, `badge_text`, `title`, `subtitle`, `image`, `cta_text`, `cta_url`, `secondary_cta_text`, `secondary_cta_url`, `display_order`, `status`, `created_at`, `updated_at`)
             VALUES 
-            (:badge_text, :title, :subtitle, :image, :cta_text, :cta_url, :sec_cta_text, :sec_cta_url, :display_order, :status, NOW(), NOW())
+            (:banner_type, :badge_text, :title, :subtitle, :image, :cta_text, :cta_url, :sec_cta_text, :sec_cta_url, :display_order, :status, NOW(), NOW())
         ", [
+            ':banner_type'  => $bannerType,
             ':badge_text'   => $badgeText,
             ':title'        => $title,
             ':subtitle'     => $subtitle,
@@ -114,7 +141,7 @@ class HeroBanner extends Model
         ]);
 
         $id = (int) self::lastInsertId();
-        AuditLogger::log('CREATE', 'HeroBanner', $id, $title, null, 'Created new hero banner');
+        AuditLogger::log('CREATE', 'HeroBanner', $id, $title, null, "Created new hero banner ({$bannerType})");
         return $id;
     }
 
@@ -127,20 +154,36 @@ class HeroBanner extends Model
             return false;
         }
 
-        $badgeText = isset($data['badge_text']) ? trim((string)$data['badge_text']) : $existing['badge_text'];
-        $title = !empty($data['title']) ? trim((string)$data['title']) : $existing['title'];
-        $subtitle = isset($data['subtitle']) ? trim((string)$data['subtitle']) : $existing['subtitle'];
+        $bannerType = in_array($data['banner_type'] ?? '', ['WITH_TEXT', 'IMAGE_ONLY'], true) 
+            ? $data['banner_type'] 
+            : ($existing['banner_type'] ?? 'WITH_TEXT');
+
+        if ($bannerType === 'IMAGE_ONLY') {
+            $badgeText = null;
+            $title = !empty($data['title']) ? trim((string)$data['title']) : ($existing['title'] ?: 'Image Banner');
+            $subtitle = null;
+            $ctaText = null;
+            $ctaUrl = isset($data['cta_url']) && trim((string)$data['cta_url']) !== '' ? trim((string)$data['cta_url']) : null;
+            $secCtaText = null;
+            $secCtaUrl = null;
+        } else {
+            $badgeText = isset($data['badge_text']) ? trim((string)$data['badge_text']) : $existing['badge_text'];
+            $title = !empty($data['title']) ? trim((string)$data['title']) : $existing['title'];
+            $subtitle = isset($data['subtitle']) ? trim((string)$data['subtitle']) : $existing['subtitle'];
+            $ctaText = isset($data['cta_text']) ? trim((string)$data['cta_text']) : $existing['cta_text'];
+            $ctaUrl = isset($data['cta_url']) ? trim((string)$data['cta_url']) : $existing['cta_url'];
+            $secCtaText = isset($data['secondary_cta_text']) ? trim((string)$data['secondary_cta_text']) : $existing['secondary_cta_text'];
+            $secCtaUrl = isset($data['secondary_cta_url']) ? trim((string)$data['secondary_cta_url']) : $existing['secondary_cta_url'];
+        }
+
         $image = !empty($data['image']) ? trim((string)$data['image']) : $existing['image'];
-        $ctaText = isset($data['cta_text']) ? trim((string)$data['cta_text']) : $existing['cta_text'];
-        $ctaUrl = isset($data['cta_url']) ? trim((string)$data['cta_url']) : $existing['cta_url'];
-        $secCtaText = isset($data['secondary_cta_text']) ? trim((string)$data['secondary_cta_text']) : $existing['secondary_cta_text'];
-        $secCtaUrl = isset($data['secondary_cta_url']) ? trim((string)$data['secondary_cta_url']) : $existing['secondary_cta_url'];
         $displayOrder = isset($data['display_order']) ? (int)$data['display_order'] : (int)$existing['display_order'];
         $status = in_array($data['status'] ?? '', ['ACTIVE', 'INACTIVE'], true) ? $data['status'] : $existing['status'];
 
         self::execute("
             UPDATE `hero_banners`
-            SET `badge_text` = :badge_text,
+            SET `banner_type` = :banner_type,
+                `badge_text` = :badge_text,
                 `title` = :title,
                 `subtitle` = :subtitle,
                 `image` = :image,
@@ -153,6 +196,7 @@ class HeroBanner extends Model
                 `updated_at` = NOW()
             WHERE `id` = :id
         ", [
+            ':banner_type'  => $bannerType,
             ':badge_text'   => $badgeText,
             ':title'        => $title,
             ':subtitle'     => $subtitle,
@@ -166,7 +210,7 @@ class HeroBanner extends Model
             ':id'           => $id,
         ]);
 
-        AuditLogger::log('UPDATE', 'HeroBanner', $id, $title, null, 'Updated hero banner');
+        AuditLogger::log('UPDATE', 'HeroBanner', $id, $title, null, "Updated hero banner ({$bannerType})");
         return true;
     }
 
@@ -231,11 +275,18 @@ class HeroBanner extends Model
         $bindings = [];
 
         if ($search !== '') {
-            $where[] = "(title LIKE :s1 OR subtitle LIKE :s2 OR badge_text LIKE :s3 OR cta_text LIKE :s4)";
+            $where[] = "(title LIKE :s1 OR subtitle LIKE :s2 OR badge_text LIKE :s3 OR cta_text LIKE :s4 OR cta_url LIKE :s5)";
             $bindings[':s1'] = "%{$search}%";
             $bindings[':s2'] = "%{$search}%";
             $bindings[':s3'] = "%{$search}%";
             $bindings[':s4'] = "%{$search}%";
+            $bindings[':s5'] = "%{$search}%";
+        }
+
+        $typeFilter = trim((string)($params['banner_type'] ?? ''));
+        if ($typeFilter !== '' && in_array($typeFilter, ['WITH_TEXT', 'IMAGE_ONLY'], true)) {
+            $where[] = "banner_type = :banner_type";
+            $bindings[':banner_type'] = $typeFilter;
         }
 
         if ($statusFilter !== '' && in_array($statusFilter, ['ACTIVE', 'INACTIVE'], true)) {

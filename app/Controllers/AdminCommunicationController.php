@@ -31,6 +31,12 @@ class AdminCommunicationController extends Controller
     {
         $admin = $this->requireAdmin();
 
+        $convParam = (int) ($this->request->get('conv') ?? $this->request->get('conversation_id') ?? 0);
+        if ($convParam > 0) {
+            $this->redirect("/admin/communication/{$convParam}");
+            return;
+        }
+
         $stats = ChatConversation::getStats();
         $statusFilter = $this->request->get('status', 'all');
         $supplierFilter = $this->request->get('supplier_id', '');

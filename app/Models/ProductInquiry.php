@@ -117,6 +117,49 @@ class ProductInquiry extends Model
 
         $id = (int) self::lastInsertId();
         AuditLogger::log('CREATE', 'ProductInquiry', $id, trim($data['buyer_email'] ?? ''), null, "Submitted {$source} inquiry");
+
+        // Super Admin Notification Dispatch
+        try {
+            $notifType = match ($source) {
+                'SAMPLE'     => 'ENQUIRY_SAMPLE',
+                'RFQ'        => 'ENQUIRY_RFQ',
+                'FAST_OEM'   => 'ENQUIRY_FAST_OEM',
+                'CONTACT_US' => 'ENQUIRY_CONTACT',
+                'GENERAL'    => 'ENQUIRY_GENERAL',
+                default      => 'ENQUIRY_PRODUCT'
+            };
+
+            $notifTitlePrefix = match ($source) {
+                'SAMPLE'     => 'Prototype Sample Request',
+                'RFQ'        => 'Request for Quotation (RFQ)',
+                'FAST_OEM'   => 'Fast OEM Customization Request',
+                'CONTACT_US' => 'Contact Us Enquiry',
+                'GENERAL'    => 'General Sourcing Requirement',
+                default      => 'Product Page Enquiry'
+            };
+
+            $buyerDisplay = trim($data['buyer_name'] ?? 'Buyer');
+            if (!empty($data['company_name'])) {
+                $buyerDisplay .= ' (' . trim($data['company_name']) . ')';
+            }
+
+            $notifTitle = "{$notifTitlePrefix} from {$buyerDisplay}";
+            $notifMsg = !empty($data['subject']) 
+                ? trim($data['subject']) 
+                : "New enquiry submission (#ENQ-" . str_pad((string)$id, 5, '0', STR_PAD_LEFT) . ") — Status: {$status}";
+
+            \App\Models\Notification::notifySuperAdmins(
+                $notifType,
+                $notifTitle,
+                $notifMsg,
+                "/admin/enquiries/{$id}",
+                'ENQUIRY',
+                $id
+            );
+        } catch (\Throwable $e) {
+            error_log("Failed to notify super admins of new inquiry #{$id}: " . $e->getMessage());
+        }
+
         return $id;
     }
 
@@ -182,7 +225,7 @@ class ProductInquiry extends Model
             LEFT JOIN suppliers s ON i.supplier_id = s.id
             LEFT JOIN suppliers ps ON p.supplier_id = ps.id
             WHERE {$whereClause}
-            ORDER BY i.created_at DESC
+            ORDER BY i.created_at DESC, i.id DESC
         ", $bindings);
 
         return $rows;
@@ -204,7 +247,7 @@ class ProductInquiry extends Model
             LEFT JOIN products p ON i.product_id = p.id
             LEFT JOIN moq_units mu ON p.moq_unit_id = mu.id
             WHERE (i.supplier_id = :s1 OR p.supplier_id = :s2)
-            ORDER BY i.created_at DESC
+            ORDER BY i.created_at DESC, i.id DESC
         ", [
             ':s1' => $supplierId,
             ':s2' => $supplierId,
@@ -254,7 +297,7 @@ class ProductInquiry extends Model
             LEFT JOIN products p ON i.product_id = p.id
             LEFT JOIN suppliers s ON i.supplier_id = s.id
             LEFT JOIN suppliers ps ON p.supplier_id = ps.id
-            ORDER BY i.created_at DESC
+            ORDER BY i.created_at DESC, i.id DESC
             LIMIT :lim
         ", [':lim' => $limit]);
     }
@@ -295,6 +338,10 @@ class ProductInquiry extends Model
         if (!empty($params['status']) && $params['status'] !== 'ALL') {
             if ($params['status'] === 'SUBMITTED' || $params['status'] === 'PENDING') {
                 $where[] = "i.status IN ('SUBMITTED', 'PENDING')";
+            } elseif ($params['status'] === 'RESOLVED' || $params['status'] === 'CLOSED' || $params['status'] === 'RESOLVED_CLOSED') {
+                $where[] = "i.status IN ('RESOLVED', 'CLOSED')";
+            } elseif ($params['status'] === 'IN_DISCUSSION' || $params['status'] === 'RESPONDED' || $params['status'] === 'RESPONDED_DISCUSSION') {
+                $where[] = "i.status IN ('RESPONDED', 'IN_DISCUSSION')";
             } else {
                 $where[] = "i.status = :f_status";
                 $bindings[':f_status'] = $params['status'];
@@ -371,7 +418,23 @@ class ProductInquiry extends Model
         $start  = max(0, (int) ($params['start'] ?? 0));
         $length = max(1, min(100, (int) ($params['length'] ?? 15)));
 
-        $totalRecords = (int) (self::fetch("SELECT COUNT(*) AS cnt FROM product_inquiries")['cnt'] ?? 0);
+        if (!empty($params['sample_only'])) {
+            $totalRecords = (int) (self::fetch("SELECT COUNT(*) AS cnt FROM product_inquiries WHERE enquiry_source = 'SAMPLE'")['cnt'] ?? 0);
+        } elseif (!empty($params['rfq_oem_only'])) {
+            $totalRecords = (int) (self::fetch("SELECT COUNT(*) AS cnt FROM product_inquiries WHERE enquiry_source IN ('RFQ', 'FAST_OEM')")['cnt'] ?? 0);
+        } elseif (!empty($params['buyer_id'])) {
+            $buyer = User::findById((int) $params['buyer_id']);
+            if ($buyer) {
+                $totalRecords = (int) (self::fetch("SELECT COUNT(*) AS cnt FROM product_inquiries WHERE buyer_user_id = :buid OR (enquiry_source != 'CONTACT_US' AND LOWER(buyer_email) = :bemail)", [
+                    ':buid' => (int) $buyer['id'],
+                    ':bemail' => strtolower(trim($buyer['email']))
+                ])['cnt'] ?? 0);
+            } else {
+                $totalRecords = (int) (self::fetch("SELECT COUNT(*) AS cnt FROM product_inquiries WHERE buyer_user_id = :buid", [':buid' => (int)$params['buyer_id']])['cnt'] ?? 0);
+            }
+        } else {
+            $totalRecords = (int) (self::fetch("SELECT COUNT(*) AS cnt FROM product_inquiries")['cnt'] ?? 0);
+        }
 
         $bindings = [];
         $where = self::buildAdminFilterClauses($params, $bindings);
@@ -511,6 +574,7 @@ class ProductInquiry extends Model
                 SUM(CASE WHEN enquiry_source = 'CONTACT_US' THEN 1 ELSE 0 END) AS contact_us,
                 SUM(CASE WHEN enquiry_source = 'RFQ' THEN 1 ELSE 0 END) AS rfq_count,
                 SUM(CASE WHEN enquiry_source = 'FAST_OEM' THEN 1 ELSE 0 END) AS fast_oem_count,
+                SUM(CASE WHEN enquiry_source = 'SAMPLE' THEN 1 ELSE 0 END) AS sample_count,
                 SUM(CASE WHEN status IN ('PENDING', 'SUBMITTED') THEN 1 ELSE 0 END) AS pending,
                 SUM(CASE WHEN status IN ('RESPONDED', 'IN_DISCUSSION') THEN 1 ELSE 0 END) AS responded,
                 SUM(CASE WHEN status IN ('CLOSED', 'RESOLVED') THEN 1 ELSE 0 END) AS resolved
@@ -524,6 +588,7 @@ class ProductInquiry extends Model
             'contact_us'     => (int) ($row['contact_us'] ?? 0),
             'rfq_count'      => (int) ($row['rfq_count'] ?? 0),
             'fast_oem_count' => (int) ($row['fast_oem_count'] ?? 0),
+            'sample_count'   => (int) ($row['sample_count'] ?? 0),
             'pending'        => (int) ($row['pending'] ?? 0),
             'responded'      => (int) ($row['responded'] ?? 0),
             'resolved'       => (int) ($row['resolved'] ?? 0),
@@ -627,7 +692,7 @@ class ProductInquiry extends Model
             LEFT JOIN moq_units mu ON p.moq_unit_id = mu.id
             WHERE i.enquiry_source = 'SAMPLE'
               AND (i.supplier_id = :s1 OR p.supplier_id = :s2)
-            ORDER BY i.created_at DESC
+            ORDER BY i.created_at DESC, i.id DESC
         ", [
             ':s1' => $supplierId,
             ':s2' => $supplierId,
@@ -658,7 +723,7 @@ class ProductInquiry extends Model
             LEFT JOIN suppliers s ON i.supplier_id = s.id
             LEFT JOIN suppliers ps ON p.supplier_id = ps.id
             WHERE {$whereClause}
-            ORDER BY i.created_at DESC
+            ORDER BY i.created_at DESC, i.id DESC
         ", $bindings);
     }
 

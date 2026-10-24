@@ -20,7 +20,10 @@ class SitePopup extends Model
                 CREATE TABLE IF NOT EXISTS `site_popups` (
                   `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                   `title` VARCHAR(255) NOT NULL,
-                  `image` VARCHAR(255) NOT NULL,
+                  `content_type` ENUM('IMAGE', 'TEXT') NOT NULL DEFAULT 'IMAGE',
+                  `content_html` MEDIUMTEXT NULL,
+                  `image` VARCHAR(255) NULL,
+                  `alt_text` VARCHAR(255) NULL DEFAULT '',
                   `target_url` VARCHAR(255) NULL DEFAULT '',
                   `delay_seconds` INT UNSIGNED NOT NULL DEFAULT 2,
                   `display_order` INT NOT NULL DEFAULT 0,
@@ -33,9 +36,41 @@ class SitePopup extends Model
                   INDEX idx_site_popups_order (`display_order`)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
             ");
+
+            // Check and add missing columns if upgrading existing table
+            $cols = self::fetchAll("DESCRIBE `site_popups`");
+            $colNames = array_column($cols, 'Field');
+
+            if (!in_array('content_type', $colNames, true)) {
+                self::execute("ALTER TABLE `site_popups` ADD COLUMN `content_type` ENUM('IMAGE', 'TEXT') NOT NULL DEFAULT 'IMAGE' AFTER `title`");
+            }
+            if (!in_array('content_html', $colNames, true)) {
+                self::execute("ALTER TABLE `site_popups` ADD COLUMN `content_html` MEDIUMTEXT NULL AFTER `content_type`");
+            }
+            if (!in_array('alt_text', $colNames, true)) {
+                self::execute("ALTER TABLE `site_popups` ADD COLUMN `alt_text` VARCHAR(255) NULL DEFAULT '' AFTER `image`");
+            }
+            // Ensure image is nullable
+            self::execute("ALTER TABLE `site_popups` MODIFY COLUMN `image` VARCHAR(255) NULL DEFAULT NULL");
         } catch (\Throwable $e) {
             @error_log("SitePopup::ensureSchema error: " . $e->getMessage());
         }
+    }
+
+    public static function sanitizeContent(string $html): string
+    {
+        // 1. Remove dangerous blocks: script, iframe, object, embed, applet, style
+        $clean = preg_replace('#<(script|iframe|object|embed|applet|style)[^>]*>.*?</\1>#is', '', $html);
+
+        // 2. Remove inline event handlers (onload, onclick, onerror, onmouseover, etc.)
+        $clean = preg_replace('/\s+on[a-zA-Z]+\s*=\s*(["\'][^"\']*["\']|[^\s>]+)/i', '', $clean);
+
+        // 3. Remove javascript: or vbscript: or data: in href/src
+        $clean = preg_replace('/(href|src)\s*=\s*(["\'])\s*(javascript|vbscript|data):.*?\2/i', '$1="#"', $clean);
+
+        // 4. Strip tags except safe semantic formatting elements
+        $allowedTags = '<p><br><hr><b><strong><i><em><u><s><del><h1><h2><h3><h4><h5><h6><ul><ol><li><a><table><thead><tbody><tfoot><tr><th><td><blockquote><code><pre><span><div>';
+        return strip_tags($clean, $allowedTags);
     }
 
     public static function findById(int $id): ?array
@@ -62,7 +97,18 @@ class SitePopup extends Model
         self::ensureSchema();
 
         $title = trim((string)($data['title'] ?? ''));
-        $image = trim((string)($data['image'] ?? ''));
+        $contentType = strtoupper(trim((string)($data['content_type'] ?? 'IMAGE')));
+        if (!in_array($contentType, ['IMAGE', 'TEXT'], true)) {
+            $contentType = 'IMAGE';
+        }
+
+        $contentHtml = null;
+        if ($contentType === 'TEXT' && !empty($data['content_html'])) {
+            $contentHtml = self::sanitizeContent((string)$data['content_html']);
+        }
+
+        $image = !empty($data['image']) ? trim((string)$data['image']) : null;
+        $altText = isset($data['alt_text']) ? trim((string)$data['alt_text']) : '';
         $targetUrl = !empty($data['target_url']) ? trim((string)$data['target_url']) : '';
         $delaySeconds = (int)($data['delay_seconds'] ?? 2);
         if ($delaySeconds < 0) $delaySeconds = 0;
@@ -73,12 +119,15 @@ class SitePopup extends Model
 
         self::execute("
             INSERT INTO `site_popups` 
-            (`title`, `image`, `target_url`, `delay_seconds`, `display_order`, `status`, `start_date`, `end_date`, `created_at`, `updated_at`)
+            (`title`, `content_type`, `content_html`, `image`, `alt_text`, `target_url`, `delay_seconds`, `display_order`, `status`, `start_date`, `end_date`, `created_at`, `updated_at`)
             VALUES 
-            (:title, :image, :target_url, :delay_seconds, :display_order, :status, :start_date, :end_date, NOW(), NOW())
+            (:title, :content_type, :content_html, :image, :alt_text, :target_url, :delay_seconds, :display_order, :status, :start_date, :end_date, NOW(), NOW())
         ", [
             ':title'        => $title,
+            ':content_type' => $contentType,
+            ':content_html' => $contentHtml,
             ':image'        => $image,
+            ':alt_text'     => $altText,
             ':target_url'   => $targetUrl,
             ':delay_seconds'=> $delaySeconds,
             ':display_order'=> $displayOrder,
@@ -88,7 +137,7 @@ class SitePopup extends Model
         ]);
 
         $id = (int) self::lastInsertId();
-        AuditLogger::log('CREATE', 'SitePopup', $id, $title, null, 'Created new site popup');
+        AuditLogger::log('CREATE', 'SitePopup', $id, $title, null, "Created new {$contentType} popup");
         return $id;
     }
 
@@ -102,7 +151,19 @@ class SitePopup extends Model
         }
 
         $title = !empty($data['title']) ? trim((string)$data['title']) : $existing['title'];
-        $image = !empty($data['image']) ? trim((string)$data['image']) : $existing['image'];
+        $contentType = isset($data['content_type']) && in_array(strtoupper(trim((string)$data['content_type'])), ['IMAGE', 'TEXT'], true)
+            ? strtoupper(trim((string)$data['content_type']))
+            : ($existing['content_type'] ?? 'IMAGE');
+
+        if ($contentType === 'TEXT') {
+            $contentHtml = isset($data['content_html']) ? self::sanitizeContent((string)$data['content_html']) : ($existing['content_html'] ?? null);
+            $image = array_key_exists('image', $data) ? (!empty($data['image']) ? trim((string)$data['image']) : null) : $existing['image'];
+        } else {
+            $contentHtml = $existing['content_html'] ?? null;
+            $image = array_key_exists('image', $data) ? (!empty($data['image']) ? trim((string)$data['image']) : null) : $existing['image'];
+        }
+
+        $altText = isset($data['alt_text']) ? trim((string)$data['alt_text']) : ($existing['alt_text'] ?? '');
         $targetUrl = isset($data['target_url']) ? trim((string)$data['target_url']) : $existing['target_url'];
         $delaySeconds = isset($data['delay_seconds']) ? max(0, (int)$data['delay_seconds']) : (int)$existing['delay_seconds'];
         $displayOrder = isset($data['display_order']) ? (int)$data['display_order'] : (int)$existing['display_order'];
@@ -113,7 +174,10 @@ class SitePopup extends Model
         self::execute("
             UPDATE `site_popups`
             SET `title` = :title,
+                `content_type` = :content_type,
+                `content_html` = :content_html,
                 `image` = :image,
+                `alt_text` = :alt_text,
                 `target_url` = :target_url,
                 `delay_seconds` = :delay_seconds,
                 `display_order` = :display_order,
@@ -124,7 +188,10 @@ class SitePopup extends Model
             WHERE `id` = :id
         ", [
             ':title'        => $title,
+            ':content_type' => $contentType,
+            ':content_html' => $contentHtml,
             ':image'        => $image,
+            ':alt_text'     => $altText,
             ':target_url'   => $targetUrl,
             ':delay_seconds'=> $delaySeconds,
             ':display_order'=> $displayOrder,
@@ -134,7 +201,7 @@ class SitePopup extends Model
             ':id'           => $id,
         ]);
 
-        AuditLogger::log('UPDATE', 'SitePopup', $id, $title, null, 'Updated site popup');
+        AuditLogger::log('UPDATE', 'SitePopup', $id, $title, null, "Updated {$contentType} popup");
         return true;
     }
 
@@ -189,20 +256,22 @@ class SitePopup extends Model
         $length = (int)($params['length'] ?? 10);
         $search = trim((string)($params['search']['value'] ?? ($params['search'] ?? '')));
         $statusFilter = trim((string)($params['status'] ?? ''));
+        $typeFilter = trim((string)($params['content_type'] ?? ''));
 
         // Client columns:
-        // 0: id, 1: image, 2: title, 3: target_url, 4: delay_seconds, 5: display_order, 6: status, 7: actions
+        // 0: id, 1: type, 2: creative/preview, 3: title, 4: target_url, 5: delay_seconds, 6: display_order, 7: status, 8: actions
         $columnMap = [
             0 => 'id',
-            1 => 'id',
-            2 => 'title',
-            3 => 'target_url',
-            4 => 'delay_seconds',
-            5 => 'display_order',
-            6 => 'status',
-            7 => 'created_at',
+            1 => 'content_type',
+            2 => 'id',
+            3 => 'title',
+            4 => 'target_url',
+            5 => 'delay_seconds',
+            6 => 'display_order',
+            7 => 'status',
+            8 => 'created_at',
         ];
-        $orderColIdx = isset($params['order'][0]['column']) ? (int)$params['order'][0]['column'] : 5;
+        $orderColIdx = isset($params['order'][0]['column']) ? (int)$params['order'][0]['column'] : 6;
         $orderDir = strtoupper((string)($params['order'][0]['dir'] ?? 'ASC')) === 'DESC' ? 'DESC' : 'ASC';
         $orderCol = $columnMap[$orderColIdx] ?? 'display_order';
         $orderBy = ($orderCol === 'id') ? "id {$orderDir}" : "{$orderCol} {$orderDir}, id ASC";
@@ -211,14 +280,21 @@ class SitePopup extends Model
         $bindings = [];
 
         if ($search !== '') {
-            $where[] = "(title LIKE :s1 OR target_url LIKE :s2)";
+            $where[] = "(title LIKE :s1 OR target_url LIKE :s2 OR alt_text LIKE :s3 OR content_html LIKE :s4)";
             $bindings[':s1'] = "%{$search}%";
             $bindings[':s2'] = "%{$search}%";
+            $bindings[':s3'] = "%{$search}%";
+            $bindings[':s4'] = "%{$search}%";
         }
 
         if ($statusFilter !== '' && in_array($statusFilter, ['ACTIVE', 'INACTIVE'], true)) {
             $where[] = "status = :status";
             $bindings[':status'] = $statusFilter;
+        }
+
+        if ($typeFilter !== '' && in_array($typeFilter, ['IMAGE', 'TEXT'], true)) {
+            $where[] = "content_type = :ctype";
+            $bindings[':ctype'] = $typeFilter;
         }
 
         $whereClause = !empty($where) ? 'WHERE ' . implode(' AND ', $where) : '';

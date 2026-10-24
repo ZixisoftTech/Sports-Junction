@@ -337,8 +337,12 @@ class ChatConversation extends Model
         $params = [];
 
         if (!empty($filters['status']) && $filters['status'] !== 'all') {
-            $sql .= " AND c.status = :status";
-            $params[':status'] = strtoupper($filters['status']);
+            if ($filters['status'] === 'DEAL_AGREED' || $filters['status'] === 'DEALS_AGREED') {
+                $sql .= " AND c.status IN ('DEAL_AGREED', 'DEAL_COMPLETED')";
+            } else {
+                $sql .= " AND c.status = :status";
+                $params[':status'] = strtoupper($filters['status']);
+            }
         }
 
         if (!empty($filters['supplier_id'])) {

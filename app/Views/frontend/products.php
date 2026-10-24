@@ -166,7 +166,7 @@ $sort = $filters['sort'] ?? 'featured';
                 <!-- Sort Control -->
                 <div class="flex items-center gap-2 self-start sm:self-auto">
                     <label for="sortSelect" class="text-xs font-semibold text-outline text-nowrap">Sort By:</label>
-                    <select id="sortSelect" onchange="applySorting(this.value)" class="text-xs bg-white border border-outline-variant rounded-lg px-3 py-1.5 font-medium text-on-surface outline-none focus:border-primary">
+                    <select id="sortSelect" onchange="applySorting(this.value)" class="text-xs bg-white border border-outline-variant rounded-lg pl-3 pr-8 py-2 font-medium text-on-surface outline-none focus:border-primary min-w-[200px] sm:min-w-[220px] cursor-pointer shadow-xs">
                         <option value="featured" <?= $sort === 'featured' ? 'selected' : '' ?>>Featured Highlights</option>
                         <option value="price_low" <?= $sort === 'price_low' ? 'selected' : '' ?>>Price: Low to High</option>
                         <option value="price_high" <?= $sort === 'price_high' ? 'selected' : '' ?>>Price: High to Low</option>
@@ -178,6 +178,19 @@ $sort = $filters['sort'] ?? 'featured';
 
             <!-- Products Grid -->
             <?php if (!empty($products)): ?>
+                <?php
+                    $currentUser = \App\Helpers\Session::get('auth_user');
+                    $buyerSortIds = [];
+                    if ($currentUser && ($currentUser['role'] ?? '') === 'BUYER') {
+                        try {
+                            $buyerSortIds = \App\Models\BuyerFavourite::getBuyerSortProductIds((int)$currentUser['id']);
+                        } catch (\Throwable $e) {
+                            $buyerSortIds = [];
+                        }
+                    } else {
+                        $buyerSortIds = [];
+                    }
+                ?>
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                     <?php foreach ($products as $prod): ?>
                         <?php 
@@ -211,10 +224,20 @@ $sort = $filters['sort'] ?? 'featured';
                                     </div>
                                 <?php endif; ?>
 
-                                <div class="absolute top-3 right-3">
+                                <div class="absolute top-3 right-3 flex items-center gap-1.5 z-10">
                                     <span class="px-2 py-0.5 rounded-md bg-blue-700 text-white font-mono text-[10px] font-bold shadow-sm">
                                         OEM / ODM
                                     </span>
+                                    <?php 
+                                        $inSort = in_array((int)$prod['id'], $buyerSortIds, true);
+                                    ?>
+                                    <button type="button" 
+                                        data-product-sort-id="<?= (int)$prod['id'] ?>"
+                                        onclick="toggleSortProduct(<?= (int)$prod['id'] ?>, this)" 
+                                        class="sort-btn w-7 h-7 rounded-full bg-white/95 backdrop-blur-md shadow-xs border <?= $inSort ? 'text-blue-900 border-blue-500 bg-blue-50' : 'text-slate-600 border-slate-200 hover:text-blue-900 hover:border-blue-400' ?> flex items-center justify-center transition-all cursor-pointer" 
+                                        title="<?= $inSort ? 'In Sort List' : 'Add to Sort' ?>">
+                                        <span class="material-symbols-outlined text-[16px] <?= $inSort ? 'fill-1' : '' ?>">checklist</span>
+                                    </button>
                                 </div>
                             </div>
 
@@ -244,7 +267,7 @@ $sort = $filters['sort'] ?? 'featured';
                                     </div>
                                 </div>
 
-                                <!-- Card Footer CTAs (50% Specs & Samples / 50% Chat) -->
+                                <!-- Card Footer CTAs (50% Shortlist / 50% Chat Now) -->
                                 <div class="pt-3 border-t border-surface-container grid grid-cols-2 gap-2">
                                     <?php 
                                     $isOwnProd = \App\Models\Supplier::isOwnedByCurrentSupplier($prod);
@@ -259,9 +282,17 @@ $sort = $filters['sort'] ?? 'featured';
                                             <span>View Public</span>
                                         </a>
                                     <?php else: ?>
-                                        <a href="<?= $prodUrl ?>" class="w-full py-2 text-center rounded-xl bg-surface-container-low hover:bg-surface-container-high text-blue-900 text-xs font-bold transition-colors inline-flex items-center justify-center">
-                                            Specs & Samples
-                                        </a>
+                                        <!-- Button 1: Shortlist -->
+                                        <button type="button" 
+                                            data-product-sort-id="<?= (int)$prod['id'] ?>"
+                                            onclick="toggleSortProduct(<?= (int)$prod['id'] ?>, this)" 
+                                            class="sort-footer-btn w-full py-2 text-center rounded-xl <?= $inSort ? 'bg-blue-50 text-blue-900 border border-blue-400' : 'bg-surface-container-low hover:bg-surface-container-high text-blue-900 border border-slate-200/80' ?> text-xs font-bold transition-colors inline-flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs" 
+                                            title="<?= $inSort ? 'In Sort List' : 'Add to Sort' ?>">
+                                            <span class="material-symbols-outlined text-[15px] <?= $inSort ? 'text-blue-900 font-bold' : 'text-blue-900' ?>"><?= $inSort ? 'check' : 'playlist_add' ?></span>
+                                            <span class="sort-btn-text"><?= $inSort ? 'In Sort List' : 'Shortlist' ?></span>
+                                        </button>
+
+                                        <!-- Button 2: Chat Now -->
                                         <button type="button" onclick="openProductChat(<?= htmlspecialchars(json_encode([
                                             'id' => (int)$prod['id'],
                                             'product_id' => (int)$prod['id'],
@@ -275,7 +306,7 @@ $sort = $filters['sort'] ?? 'featured';
                                             'supplier_name' => $prod['supplier_name'] ?? 'Verified Factory'
                                         ])) ?>)" class="w-full py-2 text-center rounded-xl bg-blue-900 hover:bg-blue-950 text-white text-xs font-bold transition-colors inline-flex items-center justify-center gap-1.5 cursor-pointer shadow-xs">
                                             <span class="material-symbols-outlined text-[16px]">chat</span>
-                                            <span>Chat</span>
+                                            <span>Chat Now</span>
                                         </button>
                                     <?php endif; ?>
                                 </div>

@@ -44,7 +44,15 @@ class Response
         $url = $path;
         if (!str_starts_with($path, 'http://') && !str_starts_with($path, 'https://')) {
             $base = self::baseUrl();
-            $url = rtrim($base, '/') . '/' . ltrim($path, '/');
+            if ($base !== '' && $base !== '/') {
+                if (str_starts_with($path, $base . '/') || $path === $base) {
+                    $url = $path;
+                } else {
+                    $url = rtrim($base, '/') . '/' . ltrim($path, '/');
+                }
+            } else {
+                $url = '/' . ltrim($path, '/');
+            }
         }
 
         http_response_code(302);

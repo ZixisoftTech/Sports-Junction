@@ -129,6 +129,9 @@ use App\Controllers\CmsPageController;
 use App\Controllers\ProductCertificateController;
 use App\Controllers\CertificationTagController;
 use App\Controllers\AdminImpersonationController;
+use App\Controllers\AdminAuditTrailController;
+use App\Controllers\AdminNotificationController;
+use App\Controllers\AdminBulkEnquiryController;
 
 $request = new Request();
 $response = new Response();
@@ -138,6 +141,7 @@ $router = new Router($request, $response);
 // PUBLIC MARKETPLACE ROUTES (Driven 100% by Database)
 // -------------------------------------------------------------
 $router->get('/', [HomeController::class, 'index']);
+$router->get('/categories', [ShopController::class, 'allCategories']);
 $router->get('/products', [ShopController::class, 'products']);
 $router->get('/category/{catSlug}', [ShopController::class, 'categoryProducts']);
 $router->get('/category/{catSlug}/{subSlug}', [ShopController::class, 'subcategoryProducts']);
@@ -148,10 +152,57 @@ $router->post('/api/inquiries', [ShopController::class, 'submitInquiry']);
 $router->get('/contact', [ShopController::class, 'contact']);
 $router->post('/contact', [ShopController::class, 'submitContact']);
 $router->post('/api/contact', [ShopController::class, 'submitContact']);
+// -------------------------------------------------------------
+// PUBLIC CMS & DYNAMIC FOOTER PAGES (21 Dedicated Pages)
+// -------------------------------------------------------------
+$dedicatedCmsPages = [
+    // Column 1: About Sports Junction
+    '/about-sports-junction'              => 'about-sports-junction',
+    '/why-choose-sports-junction'         => 'why-choose-sports-junction',
+    '/corporate-responsibility'           => 'corporate-responsibility',
+    '/feedback-suggestions'               => 'feedback-suggestions',
+    '/careers'                            => 'careers',
+
+    // Column 2: Buyer & Seller Protection
+    '/secure-payments'                    => 'secure-payments',
+    '/order-protection-policies'          => 'order-protection-policies',
+    '/guaranteed-delivery'                => 'guaranteed-delivery',
+    '/production-monitoring-inspection'   => 'production-monitoring-inspection',
+
+    // Column 3: Help & Support
+    '/buyer-help-centre'                  => 'buyer-help-centre',
+    '/seller-help-centre'                 => 'seller-help-centre',
+    '/live-chat'                          => 'live-chat',
+    '/become-verified-supplier'           => 'become-verified-supplier',
+    '/contact-us'                         => 'contact-us',
+
+    // Column 4: Sourcing & Logistics
+    '/sourcing-solutions'                 => 'sourcing-solutions',
+    '/container-freight-logistics'        => 'container-freight-logistics',
+    '/sitemap'                            => 'sitemap',
+    '/xml-sitemap'                        => 'sitemap',
+
+    // Column 5: Legal & Platform Policies
+    '/terms-and-conditions'               => 'terms-and-conditions',
+    '/privacy-policy'                     => 'privacy-policy',
+    '/manufacturing-sla'                  => 'manufacturing-sla',
+    '/terms-manufacturing-sla'            => 'terms-manufacturing-sla',
+    '/seller-manufacturer-agreement'      => 'seller-manufacturer-agreement',
+    '/seller-agreement'                   => 'seller-agreement',
+];
+
+foreach ($dedicatedCmsPages as $routePath => $cmsSlug) {
+    $router->get($routePath, function (Request $req, Response $res) use ($cmsSlug) {
+        (new CmsPageController($req, $res))->show(['slug' => $cmsSlug]);
+    });
+}
+
+// User Feedback & Suggestions API / Form Submission
+$router->post('/api/feedback', [CmsPageController::class, 'submitFeedback']);
+$router->post('/feedback-suggestions', [CmsPageController::class, 'submitFeedback']);
+$router->post('/contact-us', [ShopController::class, 'submitContact']);
+
 $router->get('/page/{slug}', [CmsPageController::class, 'show']);
-$router->get('/seller-agreement', function (Request $req, Response $res) {
-    (new CmsPageController($req, $res))->show(['slug' => 'seller-agreement']);
-});
 $router->get('/sitemap.xml', [ShopController::class, 'sitemap']);
 
 // -------------------------------------------------------------
@@ -228,10 +279,24 @@ $router->get('/buyer/enquiries', [BuyerPortalController::class, 'enquiries'], [B
 $router->get('/buyer/sample-enquiries', [BuyerPortalController::class, 'sampleEnquiries'], [BuyerAuthMiddleware::class]);
 $router->get('/buyer/enquiries/{id}', [BuyerPortalController::class, 'enquiryDetail'], [BuyerAuthMiddleware::class]);
 $router->post('/buyer/enquiries/{id}/reply', [BuyerPortalController::class, 'replyEnquiry'], [BuyerAuthMiddleware::class]);
+// Protected Buyer Sort List (Role: BUYER Mandatory)
 $router->get('/buyer/favourites', [BuyerPortalController::class, 'favourites'], [BuyerAuthMiddleware::class]);
 $router->post('/api/buyer/favourites/toggle', [BuyerPortalController::class, 'toggleFavourite'], [BuyerAuthMiddleware::class]);
 $router->delete('/buyer/favourites/{id}', [BuyerPortalController::class, 'removeFavourite'], [BuyerAuthMiddleware::class]);
 $router->post('/buyer/favourites/{id}/delete', [BuyerPortalController::class, 'removeFavourite'], [BuyerAuthMiddleware::class]);
+
+$router->get('/buyer/sort-list', [BuyerPortalController::class, 'sortList'], [BuyerAuthMiddleware::class]);
+$router->get('/sort-list', [BuyerPortalController::class, 'sortList'], [BuyerAuthMiddleware::class]);
+$router->post('/api/buyer/sort-list/toggle', [BuyerPortalController::class, 'toggleSortList'], [BuyerAuthMiddleware::class]);
+$router->post('/api/sort-list/toggle', [BuyerPortalController::class, 'toggleSortList'], [BuyerAuthMiddleware::class]);
+$router->delete('/buyer/sort-list/{id}', [BuyerPortalController::class, 'removeSortItem'], [BuyerAuthMiddleware::class]);
+$router->post('/buyer/sort-list/{id}/delete', [BuyerPortalController::class, 'removeSortItem'], [BuyerAuthMiddleware::class]);
+$router->post('/api/buyer/sort-list/remove-selected', [BuyerPortalController::class, 'removeSelectedSortItems'], [BuyerAuthMiddleware::class]);
+$router->post('/api/buyer/sort-list/clear', [BuyerPortalController::class, 'clearSortList'], [BuyerAuthMiddleware::class]);
+$router->post('/api/buyer/bulk-enquiry/submit', [BuyerPortalController::class, 'submitBulkEnquiry'], [BuyerAuthMiddleware::class]);
+$router->get('/buyer/bulk-enquiries', [BuyerPortalController::class, 'bulkEnquiries'], [BuyerAuthMiddleware::class]);
+$router->get('/buyer/bulk-enquiries/{id}', [BuyerPortalController::class, 'bulkEnquiryDetail'], [BuyerAuthMiddleware::class]);
+$router->get('/api/buyer/bulk-enquiries/{id}', [BuyerPortalController::class, 'bulkEnquiryDetail'], [BuyerAuthMiddleware::class]);
 $router->get('/buyer/recently-viewed', [BuyerPortalController::class, 'recentlyViewed'], [BuyerAuthMiddleware::class]);
 $router->post('/buyer/recently-viewed/clear', [BuyerPortalController::class, 'clearRecentViews'], [BuyerAuthMiddleware::class]);
 $router->get('/buyer/profile', [BuyerPortalController::class, 'profile'], [BuyerAuthMiddleware::class]);
@@ -307,10 +372,26 @@ $router->post('/api/admin/enquiries/{id}/status', [EnquiryManagementController::
 $router->post('/api/admin/enquiries/{id}/notes', [EnquiryManagementController::class, 'updateNotes'], [AuthMiddleware::class]);
 $router->post('/api/admin/enquiries/{id}/reply', [EnquiryManagementController::class, 'reply'], [AuthMiddleware::class]);
 
+// Super Admin Centralized Bulk Product Enquiries
+$router->get('/admin/bulk-enquiries', [AdminBulkEnquiryController::class, 'index'], [AuthMiddleware::class]);
+$router->get('/admin/bulk-enquiries/{id}', [AdminBulkEnquiryController::class, 'show'], [AuthMiddleware::class]);
+$router->post('/api/admin/bulk-enquiries/{id}/status', [AdminBulkEnquiryController::class, 'updateStatus'], [AuthMiddleware::class]);
+$router->get('/admin/bulk-enquiries/attachment/{id}', [AdminBulkEnquiryController::class, 'downloadAttachment']);
+$router->get('/admin/bulk-enquiries/item-attachment/{id}', [AdminBulkEnquiryController::class, 'downloadItemAttachment']);
+
 // Super Admin Communication & Negotiation Monitoring Center
 $router->get('/admin/communication', [AdminCommunicationController::class, 'index'], [AuthMiddleware::class]);
 $router->get('/admin/communication/{id}', [AdminCommunicationController::class, 'show'], [AuthMiddleware::class]);
 $router->post('/admin/communication/reports/{id}/resolve', [AdminCommunicationController::class, 'resolveReport'], [AuthMiddleware::class]);
+
+// Super Admin Notification Center
+$router->get('/admin/notifications', [AdminNotificationController::class, 'index'], [AuthMiddleware::class]);
+$router->get('/admin/notifications/{id}/go', [AdminNotificationController::class, 'go'], [AuthMiddleware::class]);
+$router->get('/api/admin/notifications/poll', [AdminNotificationController::class, 'poll'], [AuthMiddleware::class]);
+$router->post('/api/admin/notifications/poll', [AdminNotificationController::class, 'poll'], [AuthMiddleware::class]);
+$router->post('/api/admin/notifications/{id}/read', [AdminNotificationController::class, 'markRead'], [AuthMiddleware::class]);
+$router->post('/api/admin/notifications/{id}/unread', [AdminNotificationController::class, 'markUnread'], [AuthMiddleware::class]);
+$router->post('/api/admin/notifications/mark-all-read', [AdminNotificationController::class, 'markAllRead'], [AuthMiddleware::class]);
 
 // Super Admin Site Settings & Footer CMS Management
 $router->get('/admin/settings', [AdminSettingsController::class, 'index'], [AuthMiddleware::class]);
@@ -326,6 +407,8 @@ $router->put('/admin/pages/{id}', [AdminSettingsController::class, 'updatePage']
 $router->post('/admin/pages/delete/{id}', [AdminSettingsController::class, 'deletePage'], [AuthMiddleware::class]);
 $router->post('/admin/pages/{id}/delete', [AdminSettingsController::class, 'deletePage'], [AuthMiddleware::class]);
 $router->delete('/admin/pages/{id}', [AdminSettingsController::class, 'deletePage'], [AuthMiddleware::class]);
+$router->post('/api/admin/pages/{id}/toggle-status', [AdminSettingsController::class, 'togglePageStatus'], [AuthMiddleware::class]);
+$router->post('/api/admin/pages/{id}/toggle-footer', [AdminSettingsController::class, 'togglePageFooter'], [AuthMiddleware::class]);
 
 // Super Admin Hero Banner Management
 $router->get('/admin/banners', [AdminHeroBannerController::class, 'index'], [AuthMiddleware::class]);
@@ -348,6 +431,12 @@ $router->put('/api/admin/popups/{id}', [AdminPopupController::class, 'update'], 
 $router->delete('/api/admin/popups/{id}', [AdminPopupController::class, 'delete'], [AuthMiddleware::class]);
 $router->post('/api/admin/popups/{id}/delete', [AdminPopupController::class, 'delete'], [AuthMiddleware::class]);
 $router->post('/api/admin/popups/{id}/toggle-status', [AdminPopupController::class, 'toggleStatus'], [AuthMiddleware::class]);
+
+// Super Admin Dedicated Audit Trail
+$router->get('/admin/audit-trail', [AdminAuditTrailController::class, 'index'], [AuthMiddleware::class]);
+$router->get('/api/admin/audit-trail/data', [AdminAuditTrailController::class, 'data'], [AuthMiddleware::class]);
+$router->post('/api/admin/audit-trail/data', [AdminAuditTrailController::class, 'data'], [AuthMiddleware::class]);
+$router->get('/api/admin/audit-trail/export', [AdminAuditTrailController::class, 'export'], [AuthMiddleware::class]);
 
 // Super Admin Dedicated Seller Agreement Management
 $router->get('/admin/seller-agreement', [AdminSettingsController::class, 'sellerAgreement'], [AuthMiddleware::class]);

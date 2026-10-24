@@ -33,6 +33,7 @@ class EnquiryManagementController extends Controller
             'suppliers'   => $suppliers,
             'categories'  => $categories,
             'filterBuyer' => $filterBuyer,
+            'activeMenu'  => 'enquiries',
         ], 'admin');
     }
 

@@ -20,6 +20,17 @@ foreach ($sampleEnquiries as $s) {
     elseif ($st === 'SAMPLE_SHIPPED') $shippedCount++;
     elseif ($st === 'DELIVERED') $deliveredCount++;
 }
+
+if (!empty($sampleEnquiries)) {
+    usort($sampleEnquiries, function ($a, $b) {
+        $tA = !empty($a['created_at']) ? strtotime($a['created_at']) : 0;
+        $tB = !empty($b['created_at']) ? strtotime($b['created_at']) : 0;
+        if ($tA === $tB) {
+            return (int)($b['id'] ?? 0) <=> (int)($a['id'] ?? 0);
+        }
+        return $tB <=> $tA;
+    });
+}
 ?>
 
 <div>
@@ -60,11 +71,11 @@ foreach ($sampleEnquiries as $s) {
                 <thead class="bg-slate-50 border-b border-slate-200/80 text-slate-500 font-bold uppercase tracking-wider">
                     <tr>
                         <th class="py-3.5 px-4">Sample ID</th>
+                        <th class="py-3.5 px-4">Created Date</th>
                         <th class="py-3.5 px-4">Product Name</th>
                         <th class="py-3.5 px-4">Buyer / Brand</th>
                         <th class="py-3.5 px-4">Sample Qty</th>
                         <th class="py-3.5 px-4">Courier Delivery Address</th>
-                        <th class="py-3.5 px-4">Date</th>
                         <th class="py-3.5 px-4">Status</th>
                         <th class="py-3.5 px-4 text-right">Actions</th>
                     </tr>
@@ -100,6 +111,10 @@ foreach ($sampleEnquiries as $s) {
                                 <td class="py-4 px-4 font-bold text-slate-900 font-mono">
                                     #SMP-<?= str_pad((string)(int)$inq['id'], 5, '0', STR_PAD_LEFT) ?>
                                 </td>
+                                <td class="py-4 px-4 whitespace-nowrap">
+                                    <div class="font-semibold text-slate-800 text-xs"><?= date('d M Y', strtotime($inq['created_at'])) ?></div>
+                                    <div class="text-[11px] text-slate-400 font-medium"><?= date('h:i A', strtotime($inq['created_at'])) ?></div>
+                                </td>
                                 <td class="py-4 px-4 font-bold text-slate-900 flex items-center gap-3">
                                     <img src="<?= htmlspecialchars(\App\Helpers\Uploader::imageUrl($inq['primary_image'])) ?>" onerror="this.onerror=null;this.src='<?= htmlspecialchars($baseUrl) ?>/assets/images/logo.jpg';" class="w-10 h-10 rounded-xl object-cover border border-slate-200 shrink-0">
                                     <div>
@@ -130,9 +145,6 @@ foreach ($sampleEnquiries as $s) {
                                     <?php if (!empty($inq['country_name'])): ?>
                                         <div class="text-[10px] text-slate-400"><?= htmlspecialchars($inq['country_name']) ?></div>
                                     <?php endif; ?>
-                                </td>
-                                <td class="py-4 px-4 text-slate-500 whitespace-nowrap text-[11px]">
-                                    <?= date('d M Y, h:i A', strtotime($inq['created_at'])) ?>
                                 </td>
                                 <td class="py-4 px-4">
                                     <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold border <?= $badgeClass ?>">

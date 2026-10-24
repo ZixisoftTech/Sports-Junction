@@ -40,7 +40,7 @@ $baseUrl = Response::baseUrl();
 <!-- Stat Metrics Cards Row -->
 <div class="row g-3 mb-4">
     <div class="col-12 col-sm-6 col-lg-3">
-        <div class="stat-card h-100">
+        <div class="stat-card h-100 cursor-pointer clickable-card" id="cardProdTotal" data-card="total" role="button" tabindex="0" title="Click to show all products">
             <div class="d-flex justify-content-between align-items-center">
                 <div>
                     <div class="stat-title">Total Products</div>
@@ -53,7 +53,7 @@ $baseUrl = Response::baseUrl();
         </div>
     </div>
     <div class="col-12 col-sm-6 col-lg-3">
-        <div class="stat-card h-100">
+        <div class="stat-card h-100 cursor-pointer clickable-card" id="cardProdLive" data-card="live" role="button" tabindex="0" title="Click to filter published & live products">
             <div class="d-flex justify-content-between align-items-center">
                 <div>
                     <div class="stat-title">Published &amp; Live</div>
@@ -66,7 +66,7 @@ $baseUrl = Response::baseUrl();
         </div>
     </div>
     <div class="col-12 col-sm-6 col-lg-3">
-        <div class="stat-card h-100">
+        <div class="stat-card h-100 cursor-pointer clickable-card" id="cardProdPending" data-card="pending" role="button" tabindex="0" title="Click to filter audit pending products">
             <div class="d-flex justify-content-between align-items-center">
                 <div>
                     <div class="stat-title">Audit Pending</div>
@@ -79,7 +79,7 @@ $baseUrl = Response::baseUrl();
         </div>
     </div>
     <div class="col-12 col-sm-6 col-lg-3">
-        <div class="stat-card h-100">
+        <div class="stat-card h-100 cursor-pointer clickable-card" id="cardProdFeatured" data-card="featured" role="button" tabindex="0" title="Click to filter featured highlights">
             <div class="d-flex justify-content-between align-items-center">
                 <div>
                     <div class="stat-title">Featured Highlights</div>
@@ -92,6 +92,39 @@ $baseUrl = Response::baseUrl();
         </div>
     </div>
 </div>
+
+<style>
+.clickable-card {
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 2px solid transparent !important;
+    position: relative;
+    user-select: none;
+}
+.clickable-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 40, 142, 0.12) !important;
+}
+.clickable-card.active-card {
+    border-color: #00288e !important;
+    background-color: #f0f4ff !important;
+    box-shadow: 0 0 0 3px rgba(0, 40, 142, 0.18), 0 6px 16px rgba(0, 40, 142, 0.12) !important;
+    transform: translateY(-2px);
+}
+.clickable-card.active-card::after {
+    content: "ACTIVE FILTER";
+    position: absolute;
+    top: 6px;
+    right: 8px;
+    font-size: 9px;
+    font-weight: 700;
+    color: #00288e;
+    background: #dbeafe;
+    padding: 1px 6px;
+    border-radius: 999px;
+    letter-spacing: 0.5px;
+}
+</style>
 
 <!-- Dedicated Filter Toolbar Card -->
 <div class="card card-premium mb-4">
@@ -179,6 +212,7 @@ window.SJ_BASE_URL = '<?= htmlspecialchars($baseUrl) ?>';
 document.addEventListener('DOMContentLoaded', function () {
     const baseUrl = window.SportsJunction?.baseUrl || window.SJ_BASE_URL;
     let productsDataTable = null;
+    let activeProductCardFilter = null;
 
     // Helper: HTML Escaping
     function escapeHtml(str) {
@@ -236,6 +270,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 d.category_id = $('#prodCategoryFilter').val();
                 d.status = $('#prodStatusFilter').val();
                 d.is_featured = $('#prodFeaturedFilter').val();
+                if (activeProductCardFilter === 'pending') {
+                    d.audit_pending = '1';
+                }
             },
             error: function (xhr, error, thrown) {
                 console.error("Products table AJAX error:", xhr.status, thrown);
@@ -405,11 +442,69 @@ document.addEventListener('DOMContentLoaded', function () {
     });
     window.productsDataTable = productsDataTable;
 
-    $('#prodCategoryFilter, #prodStatusFilter, #prodFeaturedFilter').on('change', function () {
+    function setProductCardHighlight(cardKey) {
+        $('.clickable-card').removeClass('active-card');
+        if (cardKey) {
+            $(`.clickable-card[data-card="${cardKey}"]`).addClass('active-card');
+        }
+    }
+
+    $('.clickable-card').on('click', function () {
+        const clickedCard = $(this).data('card');
+
+        // Toggle off if clicking the currently active card
+        if (activeProductCardFilter === clickedCard) {
+            activeProductCardFilter = null;
+            setProductCardHighlight(null);
+            $('#prodStatusFilter').val('');
+            $('#prodFeaturedFilter').val('');
+            productsDataTable.ajax.reload();
+            return;
+        }
+
+        activeProductCardFilter = clickedCard;
+        setProductCardHighlight(clickedCard);
+
+        if (clickedCard === 'total') {
+            $('#prodStatusFilter').val('');
+            $('#prodFeaturedFilter').val('');
+        } else if (clickedCard === 'live') {
+            $('#prodStatusFilter').val('PUBLISHED');
+            $('#prodFeaturedFilter').val('');
+        } else if (clickedCard === 'pending') {
+            $('#prodStatusFilter').val('');
+            $('#prodFeaturedFilter').val('');
+        } else if (clickedCard === 'featured') {
+            $('#prodStatusFilter').val('');
+            $('#prodFeaturedFilter').val('1');
+        }
+
+        productsDataTable.ajax.reload();
+    });
+
+    $('#prodStatusFilter, #prodFeaturedFilter').on('change', function () {
+        const status = $('#prodStatusFilter').val();
+        const feat = $('#prodFeaturedFilter').val();
+        if (status === 'PUBLISHED' && feat === '') {
+            activeProductCardFilter = 'live';
+            setProductCardHighlight('live');
+        } else if (feat === '1' && status === '') {
+            activeProductCardFilter = 'featured';
+            setProductCardHighlight('featured');
+        } else if (activeProductCardFilter !== 'pending') {
+            activeProductCardFilter = null;
+            setProductCardHighlight(null);
+        }
+        productsDataTable.ajax.reload();
+    });
+
+    $('#prodCategoryFilter').on('change', function () {
         productsDataTable.ajax.reload();
     });
 
     $('#btnResetFilters').on('click', function () {
+        activeProductCardFilter = null;
+        setProductCardHighlight(null);
         $('#prodCategoryFilter').val('');
         $('#prodStatusFilter').val('');
         $('#prodFeaturedFilter').val('');

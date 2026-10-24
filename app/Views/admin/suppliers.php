@@ -1190,12 +1190,12 @@ function showCredentialsModal(id, nameOrCompany, type) {
         collapseEl.classList.remove('show');
     }
 
-    // Reset password visibility
+    // Default password visibility to plain text so Admin immediately sees the password
     const passInput = document.getElementById('credPassword');
-    passInput.type = 'password';
+    passInput.type = 'text';
     const passIcon = document.getElementById('toggleCredPassIcon');
     if (passIcon) {
-        passIcon.className = 'bi bi-eye';
+        passIcon.className = 'bi bi-eye-slash';
     }
 
     modal.show();

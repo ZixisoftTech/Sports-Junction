@@ -54,10 +54,35 @@ class AdminPopupController extends Controller
     public function store(): void
     {
         $input = $this->request->all();
+        $contentType = strtoupper(trim((string)($input['content_type'] ?? 'IMAGE')));
+        if (!in_array($contentType, ['IMAGE', 'TEXT'], true)) {
+            $contentType = 'IMAGE';
+        }
+        $input['content_type'] = $contentType;
 
-        // 1. Handle uploaded image file if present
+        // Handle uploaded image file if present
         $uploadedPath = null;
-        if (!empty($_FILES['image_file']['name']) && empty($_FILES['image_file']['error'])) {
+        if (!empty($_FILES['image_file']['name'])) {
+            if (!empty($_FILES['image_file']['error']) && $_FILES['image_file']['error'] !== UPLOAD_ERR_OK) {
+                $uploadErrMap = [
+                    UPLOAD_ERR_INI_SIZE   => 'The uploaded image exceeds upload_max_filesize limit.',
+                    UPLOAD_ERR_FORM_SIZE  => 'The uploaded image exceeds MAX_FILE_SIZE limit.',
+                    UPLOAD_ERR_PARTIAL    => 'The image was only partially uploaded.',
+                    UPLOAD_ERR_NO_TMP_DIR => 'Missing temporary upload directory on server.',
+                    UPLOAD_ERR_CANT_WRITE => 'Failed to write image file to disk.',
+                    UPLOAD_ERR_EXTENSION  => 'A PHP extension stopped the image upload.',
+                ];
+                $errMsg = $uploadErrMap[$_FILES['image_file']['error']] ?? 'Error occurred during image upload.';
+                $this->json(['success' => false, 'message' => $errMsg, 'errors' => ['image_file' => [$errMsg]]], 422);
+                return;
+            }
+
+            // Check file size (max 10MB)
+            if ($_FILES['image_file']['size'] > 10 * 1024 * 1024) {
+                $this->json(['success' => false, 'message' => 'Image exceeds maximum 10MB file size limit.', 'errors' => ['image_file' => ['Image exceeds maximum 10MB file size limit.']]], 422);
+                return;
+            }
+
             try {
                 $uploadedPath = Uploader::uploadImage($_FILES['image_file'], 'popups');
                 $input['image'] = $uploadedPath;
@@ -72,15 +97,24 @@ class AdminPopupController extends Controller
         }
 
         $validator = Validator::make($input);
-        $rules = [
-            'title' => 'required|max:255',
-            'image' => 'required|max:500',
-        ];
+        if ($contentType === 'TEXT') {
+            $rules = [
+                'title'        => 'required|max:255',
+                'content_html' => 'required|min:5',
+            ];
+            $errorMsg = 'Please provide a valid popup title and description content.';
+        } else {
+            $rules = [
+                'title' => 'required|max:255',
+                'image' => 'required|max:500',
+            ];
+            $errorMsg = 'Please provide a valid popup title and banner image.';
+        }
 
         if (!$validator->validate($rules)) {
             $this->json([
                 'success' => false,
-                'message' => 'Please provide a valid popup title and image.',
+                'message' => $errorMsg,
                 'errors'  => $validator->errors()
             ], 422);
             return;
@@ -90,7 +124,7 @@ class AdminPopupController extends Controller
             $id = SitePopup::create($input);
             $this->json([
                 'success' => true,
-                'message' => 'Site popup created successfully.',
+                'message' => "Site {$contentType} popup created successfully.",
                 'id'      => $id
             ], 201);
         } catch (\Throwable $e) {
@@ -111,9 +145,33 @@ class AdminPopupController extends Controller
         }
 
         $input = $this->request->all();
+        $contentType = strtoupper(trim((string)($input['content_type'] ?? ($existing['content_type'] ?? 'IMAGE'))));
+        if (!in_array($contentType, ['IMAGE', 'TEXT'], true)) {
+            $contentType = 'IMAGE';
+        }
+        $input['content_type'] = $contentType;
 
         // Handle file upload if supplied
-        if (!empty($_FILES['image_file']['name']) && empty($_FILES['image_file']['error'])) {
+        if (!empty($_FILES['image_file']['name'])) {
+            if (!empty($_FILES['image_file']['error']) && $_FILES['image_file']['error'] !== UPLOAD_ERR_OK) {
+                $uploadErrMap = [
+                    UPLOAD_ERR_INI_SIZE   => 'The uploaded image exceeds upload_max_filesize limit.',
+                    UPLOAD_ERR_FORM_SIZE  => 'The uploaded image exceeds MAX_FILE_SIZE limit.',
+                    UPLOAD_ERR_PARTIAL    => 'The image was only partially uploaded.',
+                    UPLOAD_ERR_NO_TMP_DIR => 'Missing temporary upload directory on server.',
+                    UPLOAD_ERR_CANT_WRITE => 'Failed to write image file to disk.',
+                    UPLOAD_ERR_EXTENSION  => 'A PHP extension stopped the image upload.',
+                ];
+                $errMsg = $uploadErrMap[$_FILES['image_file']['error']] ?? 'Error occurred during image upload.';
+                $this->json(['success' => false, 'message' => $errMsg, 'errors' => ['image_file' => [$errMsg]]], 422);
+                return;
+            }
+
+            if ($_FILES['image_file']['size'] > 10 * 1024 * 1024) {
+                $this->json(['success' => false, 'message' => 'Image exceeds maximum 10MB file size limit.', 'errors' => ['image_file' => ['Image exceeds maximum 10MB file size limit.']]], 422);
+                return;
+            }
+
             try {
                 $uploadedPath = Uploader::uploadImage($_FILES['image_file'], 'popups');
                 $input['image'] = $uploadedPath;
@@ -125,20 +183,29 @@ class AdminPopupController extends Controller
                 ], 422);
                 return;
             }
-        } elseif (empty($input['image'])) {
+        } elseif (empty($input['image']) && $contentType === 'IMAGE') {
             $input['image'] = $existing['image'];
         }
 
         $validator = Validator::make($input);
-        $rules = [
-            'title' => 'required|max:255',
-            'image' => 'required|max:500',
-        ];
+        if ($contentType === 'TEXT') {
+            $rules = [
+                'title'        => 'required|max:255',
+                'content_html' => 'required|min:5',
+            ];
+            $errorMsg = 'Please provide a valid popup title and description content.';
+        } else {
+            $rules = [
+                'title' => 'required|max:255',
+                'image' => 'required|max:500',
+            ];
+            $errorMsg = 'Please provide a valid popup title and banner image.';
+        }
 
         if (!$validator->validate($rules)) {
             $this->json([
                 'success' => false,
-                'message' => 'Please provide a valid popup title and image.',
+                'message' => $errorMsg,
                 'errors'  => $validator->errors()
             ], 422);
             return;
@@ -148,7 +215,7 @@ class AdminPopupController extends Controller
             $success = SitePopup::update($id, $input);
             $this->json([
                 'success' => $success,
-                'message' => $success ? 'Site popup updated successfully.' : 'No changes were saved.'
+                'message' => $success ? "Site {$contentType} popup updated successfully." : 'No changes were saved.'
             ]);
         } catch (\Throwable $e) {
             $this->json([

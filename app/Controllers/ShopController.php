@@ -61,6 +61,20 @@ class ShopController extends Controller
     }
 
     /**
+     * All Categories Directory (/categories)
+     */
+    public function allCategories(): void
+    {
+        $categories = Category::allActive();
+
+        $this->render('frontend/categories', [
+            'pageTitle'       => 'All Sports Categories & Industrial Sourcing Sectors | Sports Junction B2B',
+            'metaDescription' => 'Explore all verified Indian sports manufacturing categories, subcategories, and athletic equipment sectors.',
+            'categories'      => $categories,
+        ], 'frontend');
+    }
+
+    /**
      * Category Products listing (/category/{catSlug})
      */
     public function categoryProducts(array $params): void
@@ -179,6 +193,7 @@ class ShopController extends Controller
             'categories'      => $categories,
             'relatedProducts' => $relatedProducts,
             'isFavourite'     => $isFavourite,
+            'isInSortList'    => $isFavourite,
         ], 'frontend');
     }
 
