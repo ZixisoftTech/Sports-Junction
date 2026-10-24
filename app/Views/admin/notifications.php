@@ -45,10 +45,10 @@ function buildTabUrl(string $tab, array $filters, string $baseUrl): string {
         </div>
     </div>
 
-    <!-- Quick Metrics Cards -->
+    <!-- Quick Metrics Cards (Active tab filters) -->
     <div class="row g-3 mb-4">
         <div class="col-6 col-md-3">
-            <a href="<?= buildTabUrl('all', $filters, $baseUrl) ?>" class="card border-0 shadow-2xs rounded-3 p-3 text-decoration-none text-dark h-100 hover-lift <?= $currentTab === 'all' ? 'border-primary border-2 border' : '' ?>">
+            <a href="<?= buildTabUrl('all', $filters, $baseUrl) ?>" class="card border-0 shadow-2xs rounded-3 p-3 text-decoration-none text-dark h-100 hover-lift <?= $currentTab === 'all' ? 'border-primary border-2 border bg-primary bg-opacity-10' : 'bg-white' ?>">
                 <div class="d-flex align-items-center justify-content-between mb-2">
                     <span class="text-muted small fw-bold text-uppercase">Total Alerts</span>
                     <span class="rounded-circle bg-light d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
@@ -60,7 +60,7 @@ function buildTabUrl(string $tab, array $filters, string $baseUrl): string {
             </a>
         </div>
         <div class="col-6 col-md-3">
-            <a href="<?= buildTabUrl('unread', $filters, $baseUrl) ?>" class="card border-0 shadow-2xs rounded-3 p-3 text-decoration-none text-dark h-100 hover-lift <?= $currentTab === 'unread' ? 'border-danger border-2 border' : '' ?>">
+            <a href="<?= buildTabUrl('unread', $filters, $baseUrl) ?>" class="card border-0 shadow-2xs rounded-3 p-3 text-decoration-none text-dark h-100 hover-lift <?= $currentTab === 'unread' ? 'border-danger border-2 border bg-danger bg-opacity-10' : 'bg-white' ?>">
                 <div class="d-flex align-items-center justify-content-between mb-2">
                     <span class="text-danger small fw-bold text-uppercase">Unread</span>
                     <span class="rounded-circle bg-danger-subtle d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
@@ -72,7 +72,7 @@ function buildTabUrl(string $tab, array $filters, string $baseUrl): string {
             </a>
         </div>
         <div class="col-6 col-md-3">
-            <a href="<?= buildTabUrl('enquiries', $filters, $baseUrl) ?>" class="card border-0 shadow-2xs rounded-3 p-3 text-decoration-none text-dark h-100 hover-lift <?= $currentTab === 'enquiries' ? 'border-primary border-2 border' : '' ?>">
+            <a href="<?= buildTabUrl('enquiries', $filters, $baseUrl) ?>" class="card border-0 shadow-2xs rounded-3 p-3 text-decoration-none text-dark h-100 hover-lift <?= $currentTab === 'enquiries' ? 'border-primary border-2 border bg-primary bg-opacity-10' : 'bg-white' ?>">
                 <div class="d-flex align-items-center justify-content-between mb-2">
                     <span class="text-primary small fw-bold text-uppercase">Enquiries &amp; RFQs</span>
                     <span class="rounded-circle bg-primary-subtle d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
@@ -84,7 +84,7 @@ function buildTabUrl(string $tab, array $filters, string $baseUrl): string {
             </a>
         </div>
         <div class="col-6 col-md-3">
-            <a href="<?= buildTabUrl('messages', $filters, $baseUrl) ?>" class="card border-0 shadow-2xs rounded-3 p-3 text-decoration-none text-dark h-100 hover-lift <?= $currentTab === 'messages' ? 'border-success border-2 border' : '' ?>">
+            <a href="<?= buildTabUrl('messages', $filters, $baseUrl) ?>" class="card border-0 shadow-2xs rounded-3 p-3 text-decoration-none text-dark h-100 hover-lift <?= $currentTab === 'messages' ? 'border-success border-2 border bg-success bg-opacity-10' : 'bg-white' ?>">
                 <div class="d-flex align-items-center justify-content-between mb-2">
                     <span class="text-success small fw-bold text-uppercase">Chat Messages</span>
                     <span class="rounded-circle bg-success-subtle d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
@@ -99,59 +99,9 @@ function buildTabUrl(string $tab, array $filters, string $baseUrl): string {
 
     <!-- Main Card -->
     <div class="card border-0 shadow-sm rounded-3 overflow-hidden">
-        <!-- Filter Tabs -->
-        <div class="border-bottom bg-light px-3 pt-3">
-            <ul class="nav nav-tabs border-0 flex-nowrap overflow-x-auto gap-1" id="notifTabs">
-                <li class="nav-item">
-                    <a class="nav-link <?= $currentTab === 'all' ? 'active fw-bold' : 'text-muted' ?>" href="<?= buildTabUrl('all', $filters, $baseUrl) ?>">
-                        <i class="bi bi-grid me-1"></i>All Notifications
-                        <span class="badge bg-secondary rounded-pill ms-1"><?= (int)($counts['total'] ?? 0) ?></span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link <?= $currentTab === 'unread' ? 'active fw-bold' : 'text-muted' ?>" href="<?= buildTabUrl('unread', $filters, $baseUrl) ?>">
-                        <i class="bi bi-envelope me-1"></i>Unread
-                        <span class="badge bg-danger rounded-pill ms-1"><?= (int)($counts['unread'] ?? 0) ?></span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link <?= $currentTab === 'enquiries' ? 'active fw-bold' : 'text-muted' ?>" href="<?= buildTabUrl('enquiries', $filters, $baseUrl) ?>">
-                        <i class="bi bi-chat-left-quote me-1"></i>Enquiries &amp; RFQs
-                        <span class="badge bg-primary rounded-pill ms-1"><?= (int)($counts['enquiries'] ?? 0) ?></span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link <?= $currentTab === 'messages' ? 'active fw-bold' : 'text-muted' ?>" href="<?= buildTabUrl('messages', $filters, $baseUrl) ?>">
-                        <i class="bi bi-chat-dots me-1"></i>Messages
-                        <span class="badge bg-success rounded-pill ms-1"><?= (int)($counts['messages'] ?? 0) ?></span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link <?= $currentTab === 'products' ? 'active fw-bold' : 'text-muted' ?>" href="<?= buildTabUrl('products', $filters, $baseUrl) ?>">
-                        <i class="bi bi-patch-check me-1"></i>Product Approvals
-                        <span class="badge bg-warning text-dark rounded-pill ms-1"><?= (int)($counts['products'] ?? 0) ?></span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link <?= $currentTab === 'suppliers' ? 'active fw-bold' : 'text-muted' ?>" href="<?= buildTabUrl('suppliers', $filters, $baseUrl) ?>">
-                        <i class="bi bi-person-check me-1"></i>Supplier Approvals
-                        <span class="badge bg-info text-dark rounded-pill ms-1"><?= (int)($counts['suppliers'] ?? 0) ?></span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link <?= $currentTab === 'reports' ? 'active fw-bold' : 'text-muted' ?>" href="<?= buildTabUrl('reports', $filters, $baseUrl) ?>">
-                        <i class="bi bi-shield-exclamation me-1"></i>Reports
-                        <span class="badge bg-danger rounded-pill ms-1"><?= (int)($counts['reports'] ?? 0) ?></span>
-                    </a>
-                </li>
-            </ul>
-        </div>
-
         <!-- Filter & Search Toolbar -->
         <div class="p-3 border-bottom bg-white">
             <form method="GET" action="<?= htmlspecialchars($baseUrl) ?>/admin/notifications" class="row g-2 align-items-center">
-                <input type="hidden" name="tab" value="<?= htmlspecialchars($currentTab) ?>">
-
                 <div class="col-12 col-md-4">
                     <div class="input-group input-group-sm">
                         <span class="input-group-text bg-light border-end-0 text-muted">
@@ -162,20 +112,32 @@ function buildTabUrl(string $tab, array $filters, string $baseUrl): string {
                 </div>
 
                 <div class="col-6 col-md-2.5">
+                    <select name="tab" class="form-select form-select-sm">
+                        <option value="all" <?= $currentTab === 'all' ? 'selected' : '' ?>>All Notifications (<?= (int)($counts['total'] ?? 0) ?>)</option>
+                        <option value="unread" <?= $currentTab === 'unread' ? 'selected' : '' ?>>Unread (<?= (int)($counts['unread'] ?? 0) ?>)</option>
+                        <option value="enquiries" <?= $currentTab === 'enquiries' ? 'selected' : '' ?>>Enquiries &amp; RFQs (<?= (int)($counts['enquiries'] ?? 0) ?>)</option>
+                        <option value="messages" <?= $currentTab === 'messages' ? 'selected' : '' ?>>Chat Messages (<?= (int)($counts['messages'] ?? 0) ?>)</option>
+                        <option value="products" <?= $currentTab === 'products' ? 'selected' : '' ?>>Product Approvals (<?= (int)($counts['products'] ?? 0) ?>)</option>
+                        <option value="suppliers" <?= $currentTab === 'suppliers' ? 'selected' : '' ?>>Supplier Approvals (<?= (int)($counts['suppliers'] ?? 0) ?>)</option>
+                        <option value="reports" <?= $currentTab === 'reports' ? 'selected' : '' ?>>Reports (<?= (int)($counts['reports'] ?? 0) ?>)</option>
+                    </select>
+                </div>
+
+                <div class="col-3 col-md-1.5">
                     <div class="input-group input-group-sm">
                         <span class="input-group-text bg-light text-muted small">From</span>
                         <input type="date" name="date_from" class="form-control" value="<?= htmlspecialchars($dateFrom) ?>">
                     </div>
                 </div>
 
-                <div class="col-6 col-md-2.5">
+                <div class="col-3 col-md-1.5">
                     <div class="input-group input-group-sm">
                         <span class="input-group-text bg-light text-muted small">To</span>
                         <input type="date" name="date_to" class="form-control" value="<?= htmlspecialchars($dateTo) ?>">
                     </div>
                 </div>
 
-                <div class="col-12 col-md-3 d-flex gap-2">
+                <div class="col-12 col-md-2.5 d-flex gap-2 justify-content-end">
                     <button type="submit" class="btn btn-primary btn-sm px-3 fw-semibold">
                         <i class="bi bi-funnel me-1"></i>Filter
                     </button>
@@ -188,93 +150,119 @@ function buildTabUrl(string $tab, array $filters, string $baseUrl): string {
             </form>
         </div>
 
-        <!-- Notifications Feed List -->
-        <div class="list-group list-group-flush" id="notificationListGroup">
-            <?php if (empty($notifications)): ?>
-                <div class="text-center py-5 my-3">
-                    <div class="rounded-circle bg-light d-inline-flex align-items-center justify-content-center p-4 mb-3 text-secondary">
-                        <i class="bi bi-bell-slash fs-1 opacity-50"></i>
-                    </div>
-                    <h5 class="fw-bold text-dark mb-1">No notifications found</h5>
-                    <p class="text-muted small mb-3">No activity logs or messages match your current filter criteria.</p>
-                    <a href="<?= htmlspecialchars($baseUrl) ?>/admin/notifications" class="btn btn-outline-primary btn-sm px-3 rounded-pill fw-semibold">
-                        View All Notifications
-                    </a>
-                </div>
-                <?php foreach ($notifications as $n): 
-                    $targetUrl = htmlspecialchars($baseUrl) . '/admin/notifications/' . (int)$n['id'] . '/go';
-                    $btnLabel = 'View Record';
-                    if (str_contains($n['type'], 'CHAT')) {
-                        $btnLabel = 'Reply in Chat';
-                    } elseif (str_contains($n['type'], 'ENQUIRY')) {
-                        $btnLabel = 'View Enquiry';
-                    } elseif (str_contains($n['type'], 'PRODUCT')) {
-                        $btnLabel = 'Review Product';
-                    } elseif (str_contains($n['type'], 'SUPPLIER')) {
-                        $btnLabel = 'Review Supplier';
-                    } elseif (str_contains($n['type'], 'REPORT')) {
-                        $btnLabel = 'Inspect Report';
-                    }
-                ?>
-                    <div class="list-group-item p-3.5 transition-colors border-bottom notif-clickable-row <?= $n['is_read'] ? 'bg-white' : 'bg-primary-subtle bg-opacity-10' ?>" 
-                         id="notif-row-<?= (int)$n['id'] ?>" 
-                         data-target-url="<?= $targetUrl ?>"
-                         style="cursor: pointer;">
-                        <div class="d-flex align-items-start gap-3">
-                            <!-- Type Icon -->
-                            <div class="rounded-circle d-flex align-items-center justify-content-center shrink-0 mt-0.5 <?= $n['badge_class'] ?>" style="width: 40px; height: 40px;">
-                                <i class="bi <?= htmlspecialchars($n['icon']) ?> fs-5"></i>
-                            </div>
+        <!-- Notifications Data Table -->
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0" id="notificationTable" style="font-size: 13.5px;">
+                <thead class="table-light text-uppercase text-secondary" style="font-size: 11.5px; letter-spacing: 0.5px;">
+                    <tr>
+                        <th style="width: 175px;" class="ps-3 py-3">Type &amp; Event</th>
+                        <th class="py-3">Notification Details</th>
+                        <th style="width: 100px;" class="text-center py-3">Status</th>
+                        <th style="width: 165px;" class="py-3">Date &amp; Time</th>
+                        <th style="width: 200px;" class="text-end pe-3 py-3">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php if (empty($notifications)): ?>
+                        <tr>
+                            <td colspan="5" class="text-center py-5">
+                                <div class="rounded-circle bg-light d-inline-flex align-items-center justify-content-center p-4 mb-3 text-secondary">
+                                    <i class="bi bi-bell-slash fs-1 opacity-50"></i>
+                                </div>
+                                <h5 class="fw-bold text-dark mb-1">No notifications found</h5>
+                                <p class="text-muted small mb-3">No activity logs or messages match your current filter criteria.</p>
+                                <a href="<?= htmlspecialchars($baseUrl) ?>/admin/notifications" class="btn btn-outline-primary btn-sm px-3 rounded-pill fw-semibold">
+                                    View All Notifications
+                                </a>
+                            </td>
+                        </tr>
+                    <?php else: ?>
+                        <?php foreach ($notifications as $n): 
+                            $targetUrl = htmlspecialchars($baseUrl) . '/admin/notifications/' . (int)$n['id'] . '/go';
+                            $btnLabel = 'View Record';
+                            if (str_contains($n['type'], 'CHAT')) {
+                                $btnLabel = 'Reply in Chat';
+                            } elseif (str_contains($n['type'], 'ENQUIRY')) {
+                                $btnLabel = 'View Enquiry';
+                            } elseif (str_contains($n['type'], 'PRODUCT')) {
+                                $btnLabel = 'Review Product';
+                            } elseif (str_contains($n['type'], 'SUPPLIER')) {
+                                $btnLabel = 'Review Supplier';
+                            } elseif (str_contains($n['type'], 'REPORT')) {
+                                $btnLabel = 'Inspect Report';
+                            }
+                        ?>
+                            <tr class="notif-clickable-row <?= $n['is_read'] ? 'bg-white' : 'table-light' ?>" 
+                                id="notif-row-<?= (int)$n['id'] ?>" 
+                                data-target-url="<?= $targetUrl ?>"
+                                style="cursor: pointer;">
+                                <!-- Type & Event -->
+                                <td class="ps-3 align-middle">
+                                    <span class="badge <?= $n['badge_class'] ?> rounded-pill small fw-bold d-inline-flex align-items-center gap-1.5 px-2.5 py-1.5">
+                                        <i class="bi <?= htmlspecialchars($n['icon']) ?>"></i>
+                                        <span><?= htmlspecialchars($n['type_label']) ?></span>
+                                    </span>
+                                </td>
 
-                            <!-- Notification Content -->
-                            <div class="flex-grow-1 min-w-0">
-                                <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-1.5">
-                                    <div class="d-flex align-items-center gap-2">
-                                        <span class="badge <?= $n['badge_class'] ?> rounded-pill small fw-bold">
-                                            <?= htmlspecialchars($n['type_label']) ?>
+                                <!-- Details -->
+                                <td class="align-middle">
+                                    <div class="fw-bold mb-1">
+                                        <a href="<?= $targetUrl ?>" class="text-dark text-decoration-none hover-primary">
+                                            <?= htmlspecialchars($n['title']) ?>
+                                        </a>
+                                    </div>
+                                    <div class="text-secondary small text-break" style="line-height: 1.45; max-width: 650px;">
+                                        <?= nl2br(htmlspecialchars($n['message'])) ?>
+                                    </div>
+                                </td>
+
+                                <!-- Status -->
+                                <td class="text-center align-middle">
+                                    <?php if (!$n['is_read']): ?>
+                                        <span class="badge bg-danger rounded-pill fw-semibold px-2 py-1 small" id="badge-unread-<?= (int)$n['id'] ?>">
+                                            <i class="bi bi-circle-fill me-1" style="font-size: 6px;"></i>Unread
                                         </span>
-                                        <?php if (!$n['is_read']): ?>
-                                            <span class="badge bg-danger rounded-pill small fw-semibold" id="badge-unread-<?= (int)$n['id'] ?>">New</span>
+                                    <?php else: ?>
+                                        <span class="badge bg-light text-muted border rounded-pill fw-normal px-2 py-1 small">
+                                            Read
+                                        </span>
+                                    <?php endif; ?>
+                                </td>
+
+                                <!-- Date & Time -->
+                                <td class="align-middle">
+                                    <div class="fw-semibold text-dark small">
+                                        <i class="bi bi-clock me-1 text-muted"></i><?= htmlspecialchars($n['time_ago']) ?>
+                                    </div>
+                                    <div class="text-muted" style="font-size: 11.5px;">
+                                        <?= date('d M Y, h:i A', strtotime($n['created_at'])) ?>
+                                    </div>
+                                </td>
+
+                                <!-- Actions -->
+                                <td class="text-end pe-3 align-middle notif-row-actions">
+                                    <div class="d-inline-flex align-items-center gap-1.5">
+                                        <a href="<?= $targetUrl ?>" class="btn btn-sm btn-primary fw-semibold px-2.5 py-1 rounded-2 d-inline-flex align-items-center gap-1 shadow-2xs">
+                                            <span><?= $btnLabel ?></span>
+                                            <i class="bi bi-arrow-right"></i>
+                                        </a>
+
+                                        <?php if ($n['is_read']): ?>
+                                            <button type="button" class="btn btn-sm btn-light border fw-semibold px-2 py-1 text-muted btn-toggle-read" title="Mark as unread" onclick="toggleReadStatus(event, <?= (int)$n['id'] ?>, false)">
+                                                <i class="bi bi-envelope"></i>
+                                            </button>
+                                        <?php else: ?>
+                                            <button type="button" class="btn btn-sm btn-light border fw-semibold px-2 py-1 text-success btn-toggle-read" title="Mark as read" onclick="toggleReadStatus(event, <?= (int)$n['id'] ?>, true)">
+                                                <i class="bi bi-check-lg"></i>
+                                            </button>
                                         <?php endif; ?>
                                     </div>
-                                    <div class="d-flex align-items-center gap-2 text-muted small">
-                                        <i class="bi bi-clock"></i>
-                                        <span><?= htmlspecialchars($n['time_ago']) ?></span>
-                                        <span class="d-none d-sm-inline opacity-50">&bull;</span>
-                                        <span class="d-none d-sm-inline"><?= date('d M Y, h:i A', strtotime($n['created_at'])) ?></span>
-                                    </div>
-                                </div>
-
-                                <h6 class="fw-bold mb-1">
-                                    <a href="<?= $targetUrl ?>" class="text-dark text-decoration-none hover-primary d-inline-block">
-                                        <?= htmlspecialchars($n['title']) ?>
-                                    </a>
-                                </h6>
-                                <p class="text-secondary small mb-2 text-break" style="line-height: 1.5;">
-                                    <?= nl2br(htmlspecialchars($n['message'])) ?>
-                                </p>
-
-                                <div class="d-flex flex-wrap align-items-center gap-2 mt-2 notif-row-actions">
-                                    <a href="<?= $targetUrl ?>" class="btn btn-sm btn-primary fw-semibold px-3 py-1 rounded-2 d-inline-flex align-items-center gap-1 shadow-2xs">
-                                        <span><?= $btnLabel ?></span>
-                                        <i class="bi bi-arrow-right"></i>
-                                    </a>
-
-                                    <?php if ($n['is_read']): ?>
-                                        <button type="button" class="btn btn-sm btn-light border fw-semibold px-2.5 py-1 text-muted btn-toggle-read" onclick="toggleReadStatus(event, <?= (int)$n['id'] ?>, false)">
-                                            <i class="bi bi-envelope me-1"></i>Mark Unread
-                                        </button>
-                                    <?php else: ?>
-                                        <button type="button" class="btn btn-sm btn-light border fw-semibold px-2.5 py-1 text-dark btn-toggle-read" onclick="toggleReadStatus(event, <?= (int)$n['id'] ?>, true)">
-                                            <i class="bi bi-check-lg text-success me-1"></i>Mark as Read
-                                        </button>
-                                    <?php endif; ?>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                <?php endforeach; ?>
-            <?php endif; ?>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </tbody>
+            </table>
         </div>
 
         <!-- Pagination Footer -->
@@ -342,7 +330,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Clickable notification rows: navigate to target source page
     document.querySelectorAll('.notif-clickable-row').forEach(row => {
         row.addEventListener('click', (e) => {
-            if (e.target.closest('button') || e.target.closest('.btn-toggle-read')) {
+            if (e.target.closest('button') || e.target.closest('.btn-toggle-read') || e.target.closest('a')) {
                 return;
             }
             const targetUrl = row.getAttribute('data-target-url');

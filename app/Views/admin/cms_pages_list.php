@@ -334,22 +334,38 @@ foreach ($pages as $p) {
 .nav-pills .nav-link:not(.active):hover {
     background-color: #f1f5f9;
 }
+#createPageModal .modal-dialog,
+#editPageModal .modal-dialog {
+    max-height: calc(100vh - 2rem);
+}
+#createPageModal .modal-content,
+#editPageModal .modal-content {
+    max-height: calc(100vh - 2rem);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+#createPageModal .modal-body,
+#editPageModal .modal-body {
+    overflow-y: auto !important;
+    max-height: calc(100vh - 170px) !important;
+    -webkit-overflow-scrolling: touch;
+}
 </style>
 
 <!-- Modal: Create New Page -->
 <div class="modal fade" id="createPageModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
-        <div class="modal-content rounded-4 border-0 shadow-lg">
-            <form id="createPageForm" method="POST" action="<?= $baseUrl ?>/admin/pages/create">
-                <div class="modal-header border-bottom py-3">
-                    <h5 class="modal-title fw-bold text-slate-900 d-flex align-items-center gap-2">
-                        <i class="bi bi-file-earmark-plus text-primary"></i>
-                        Create Footer & CMS Page
-                    </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body p-4">
-                    <div class="row g-3">
+        <form id="createPageForm" method="POST" action="<?= $baseUrl ?>/admin/pages/create" class="modal-content rounded-4 border-0 shadow-lg">
+            <div class="modal-header border-bottom py-3 flex-shrink-0">
+                <h5 class="modal-title fw-bold text-slate-900 d-flex align-items-center gap-2">
+                    <i class="bi bi-file-earmark-plus text-primary"></i>
+                    Create Footer & CMS Page
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="row g-3">
                         <div class="col-md-7">
                             <label class="form-label fw-bold small text-slate-800">Page Title *</label>
                             <input type="text" name="title" id="createPageTitle" required placeholder="e.g. Production Monitoring & Inspection" class="form-control form-control-sm">
@@ -433,7 +449,7 @@ foreach ($pages as $p) {
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer border-top py-2.5">
+                <div class="modal-footer border-top py-2.5 flex-shrink-0">
                     <button type="button" class="btn btn-light btn-sm fw-bold" data-bs-dismiss="modal">Cancel</button>
                     <button type="submit" class="btn btn-primary btn-sm fw-bold px-4">
                         <i class="bi bi-check-lg me-1"></i> Save New Page
@@ -441,21 +457,19 @@ foreach ($pages as $p) {
                 </div>
             </form>
         </div>
-    </div>
 </div>
 
 <!-- Modal: Edit Existing Page -->
 <div class="modal fade" id="editPageModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
-        <div class="modal-content rounded-4 border-0 shadow-lg">
-            <form id="editPageForm" method="POST" action="">
-                <div class="modal-header border-bottom py-3">
-                    <h5 class="modal-title fw-bold text-slate-900 d-flex align-items-center gap-2">
-                        <i class="bi bi-pencil-square text-primary"></i>
-                        Edit Footer & CMS Page
-                    </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
+        <form id="editPageForm" method="POST" action="" class="modal-content rounded-4 border-0 shadow-lg">
+            <div class="modal-header border-bottom py-3 flex-shrink-0">
+                <h5 class="modal-title fw-bold text-slate-900 d-flex align-items-center gap-2">
+                    <i class="bi bi-pencil-square text-primary"></i>
+                    Edit Footer & CMS Page
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
                 <div class="modal-body p-4">
                     <div class="row g-3">
                         <div class="col-md-7">
@@ -541,7 +555,7 @@ foreach ($pages as $p) {
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer border-top py-2.5 d-flex justify-content-between">
+                <div class="modal-footer border-top py-2.5 d-flex justify-content-between flex-shrink-0">
                     <div>
                         <button type="button" class="btn btn-outline-info btn-sm fw-bold" id="btnLivePreview">
                             <i class="bi bi-box-arrow-up-right me-1"></i> Preview Live
@@ -556,7 +570,6 @@ foreach ($pages as $p) {
                 </div>
             </form>
         </div>
-    </div>
 </div>
 
 <!-- Include Quill Rich Text Editor Script -->
