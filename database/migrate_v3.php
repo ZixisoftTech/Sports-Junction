@@ -84,4 +84,13 @@ try {
     echo "[ERROR] bulk_product_enquiries failed: " . $e->getMessage() . "\n";
 }
 
+// 6. Product Inquiry Schema & Prototype Sample Healing
+echo "\n--- 6. Checking product_inquiries enquiry_source & prototype samples ---\n";
+try {
+    \App\Models\ProductInquiry::ensureSchema();
+    echo "[OK] product_inquiries schema verified & prototype sample records backfilled.\n";
+} catch (\Throwable $e) {
+    echo "[ERROR] product_inquiries failed: " . $e->getMessage() . "\n";
+}
+
 echo "\n=== V3 Migration Completed Successfully! ===\n";

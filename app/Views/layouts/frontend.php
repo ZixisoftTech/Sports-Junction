@@ -1212,6 +1212,7 @@ if ($authUser && ($authUser['role'] ?? '') === 'BUYER') {
             submitBtn.innerHTML = '<span class="material-symbols-outlined text-[18px] animate-spin">refresh</span> Submitting Sample Order...';
 
             const formData = new FormData(form);
+            formData.set('enquiry_source', 'SAMPLE');
             const countrySelect = document.getElementById('sample-modal-country-id');
             if (countrySelect && countrySelect.selectedIndex >= 0) {
                 const opt = countrySelect.options[countrySelect.selectedIndex];

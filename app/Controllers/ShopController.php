@@ -249,8 +249,17 @@ class ShopController extends Controller
 
         // Auto-resolve supplier_id and source from product if product_id is passed
         $reqSource = strtoupper(trim((string)($input['enquiry_source'] ?? '')));
+        $incomingSubject = trim((string)($input['subject'] ?? ''));
+        $isSampleRequest = ($reqSource === 'SAMPLE' || stripos($incomingSubject, 'Prototype Sample') !== false || stripos($incomingSubject, 'Sample Order') !== false);
+
+        if ($isSampleRequest) {
+            $input['enquiry_source'] = 'SAMPLE';
+        }
+
         if (!empty($input['product_id'])) {
-            $input['enquiry_source'] = ($reqSource === 'SAMPLE') ? 'SAMPLE' : 'PRODUCT_PAGE';
+            if (!$isSampleRequest) {
+                $input['enquiry_source'] = 'PRODUCT_PAGE';
+            }
             $prod = Product::findById((int)$input['product_id']);
             if ($prod) {
                 if (empty($input['supplier_id']) && !empty($prod['supplier_id'])) {
@@ -269,7 +278,9 @@ class ShopController extends Controller
                 }
             }
         } else {
-            if (empty($input['enquiry_source']) || !in_array($input['enquiry_source'], ['GENERAL', 'CONTACT_US', 'RFQ', 'FAST_OEM', 'SAMPLE'], true)) {
+            if ($isSampleRequest) {
+                $input['enquiry_source'] = 'SAMPLE';
+            } elseif (empty($input['enquiry_source']) || !in_array($input['enquiry_source'], ['GENERAL', 'CONTACT_US', 'RFQ', 'FAST_OEM', 'SAMPLE'], true)) {
                 $input['enquiry_source'] = 'GENERAL';
             }
             if (empty($input['subject'])) {

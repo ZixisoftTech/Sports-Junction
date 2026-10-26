@@ -267,8 +267,11 @@ function escapeHtml(str) {
     return String(str).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
 }
 
-function renderSourceBadge(src) {
-    if (src === 'PRODUCT_PAGE') {
+function renderSourceBadge(src, subject) {
+    const isSample = (src === 'SAMPLE') || (subject && /prototype sample|sample order/i.test(subject));
+    if (isSample) {
+        return `<span class="badge rounded-pill" style="background:#ccfbf1;color:#0f766e;border:1px solid #99f6e4;"><i class="bi bi-box-seam me-1"></i>Prototype Sample</span>`;
+    } else if (src === 'PRODUCT_PAGE') {
         return `<span class="badge rounded-pill" style="background:#dbeafe;color:#1d4ed8;"><i class="bi bi-box-seam me-1"></i>Product Page</span>`;
     } else if (src === 'CONTACT_US') {
         return `<span class="badge rounded-pill" style="background:#f3e8ff;color:#7e22ce;"><i class="bi bi-envelope-paper me-1"></i>Contact Us</span>`;
@@ -276,8 +279,6 @@ function renderSourceBadge(src) {
         return `<span class="badge rounded-pill" style="background:#fef3c7;color:#b45309;"><i class="bi bi-clipboard2-check me-1"></i>RFQ Request</span>`;
     } else if (src === 'FAST_OEM') {
         return `<span class="badge rounded-pill" style="background:#ccfbf1;color:#0f766e;"><i class="bi bi-gear-wide-connected me-1"></i>Fast OEM</span>`;
-    } else if (src === 'SAMPLE') {
-        return `<span class="badge rounded-pill" style="background:#ccfbf1;color:#0f766e;border:1px solid #99f6e4;"><i class="bi bi-box-seam me-1"></i>Prototype Sample</span>`;
     }
     return `<span class="badge rounded-pill" style="background:#e0f2fe;color:#0369a1;"><i class="bi bi-megaphone me-1"></i>General Enquiry</span>`;
 }
@@ -345,7 +346,7 @@ $(document).ready(function() {
             },
             {
                 data: 'enquiry_source',
-                render: src => renderSourceBadge(src)
+                render: (src, type, row) => renderSourceBadge(src, row.subject)
             },
             {
                 data: 'buyer_name',

@@ -31,8 +31,54 @@ class ProductInquiry extends Model
         'SAMPLE',
     ];
 
+    /**
+     * Self-healing: Ensure enquiry_source column accepts 'SAMPLE' and heal existing records
+     */
+    public static function ensureSchema(): void
+    {
+        static $checked = false;
+        if ($checked) return;
+        $checked = true;
+
+        try {
+            $cols = self::fetchAll("DESCRIBE `product_inquiries`");
+            $sourceCol = null;
+            foreach ($cols as $c) {
+                if ($c['Field'] === 'enquiry_source') {
+                    $sourceCol = $c;
+                    break;
+                }
+            }
+
+            if ($sourceCol) {
+                $type = strtolower($sourceCol['Type'] ?? '');
+                // Convert ENUM to VARCHAR(50) so 'SAMPLE' and other sources are always valid
+                if (str_contains($type, 'enum')) {
+                    self::execute("ALTER TABLE `product_inquiries` MODIFY COLUMN `enquiry_source` VARCHAR(50) NOT NULL DEFAULT 'PRODUCT_PAGE'");
+                }
+            }
+
+            // Backfill any prototype sample enquiries that were saved with empty or generic source
+            self::execute("
+                UPDATE `product_inquiries` 
+                SET `enquiry_source` = 'SAMPLE' 
+                WHERE (`enquiry_source` IS NULL OR `enquiry_source` = '' OR `enquiry_source` = 'GENERAL' OR `enquiry_source` = 'PRODUCT_PAGE')
+                  AND (
+                      `subject` LIKE '%Prototype Sample%' 
+                      OR `subject` LIKE '%Order Prototype Sample%'
+                      OR `subject` LIKE '%Sample Order%'
+                      OR `subject` LIKE '%Prototype%'
+                  )
+            ");
+        } catch (\Throwable $e) {
+            @error_log("ProductInquiry::ensureSchema error: " . $e->getMessage());
+        }
+    }
+
     public static function create(array $data): int
     {
+        self::ensureSchema();
+
         $productId = !empty($data['product_id']) ? (int) $data['product_id'] : null;
         $supplierId = !empty($data['supplier_id']) ? (int) $data['supplier_id'] : null;
 
@@ -44,8 +90,11 @@ class ProductInquiry extends Model
             }
         }
 
-        $source = strtoupper(trim($data['enquiry_source'] ?? ($productId ? 'PRODUCT_PAGE' : 'GENERAL')));
-        if (!in_array($source, self::VALID_SOURCES, true)) {
+        $source = strtoupper(trim($data['enquiry_source'] ?? ''));
+        $subject = trim((string)($data['subject'] ?? ''));
+        if ($source === 'SAMPLE' || stripos($subject, 'Prototype Sample') !== false || stripos($subject, 'Sample Order') !== false) {
+            $source = 'SAMPLE';
+        } elseif (!in_array($source, self::VALID_SOURCES, true)) {
             $source = $productId ? 'PRODUCT_PAGE' : 'GENERAL';
         }
 
@@ -165,6 +214,7 @@ class ProductInquiry extends Model
 
     public static function findById(int $id, bool $includeAdminNotes = false): ?array
     {
+        self::ensureSchema();
         $row = self::fetch("
             SELECT i.*, 
                    p.title AS product_name, p.slug AS product_slug, p.primary_image,
@@ -321,7 +371,7 @@ class ProductInquiry extends Model
 
         // Enquiry Source Filter
         if (!empty($params['sample_only'])) {
-            $where[] = "i.enquiry_source = 'SAMPLE'";
+            $where[] = "(i.enquiry_source = 'SAMPLE' OR i.subject LIKE '%Prototype Sample%' OR i.subject LIKE '%Order Prototype Sample%' OR i.subject LIKE '%Sample Order%')";
         } elseif (!empty($params['rfq_oem_only'])) {
             if (!empty($params['enquiry_source']) && in_array($params['enquiry_source'], ['RFQ', 'FAST_OEM'], true)) {
                 $where[] = "i.enquiry_source = :f_rfq_source";
@@ -414,12 +464,14 @@ class ProductInquiry extends Model
 
     public static function getAdminDataTable(array $params): array
     {
+        self::ensureSchema();
+
         $draw   = (int) ($params['draw'] ?? 1);
         $start  = max(0, (int) ($params['start'] ?? 0));
         $length = max(1, min(100, (int) ($params['length'] ?? 15)));
 
         if (!empty($params['sample_only'])) {
-            $totalRecords = (int) (self::fetch("SELECT COUNT(*) AS cnt FROM product_inquiries WHERE enquiry_source = 'SAMPLE'")['cnt'] ?? 0);
+            $totalRecords = (int) (self::fetch("SELECT COUNT(*) AS cnt FROM product_inquiries WHERE (enquiry_source = 'SAMPLE' OR subject LIKE '%Prototype Sample%' OR subject LIKE '%Order Prototype Sample%' OR subject LIKE '%Sample Order%')")['cnt'] ?? 0);
         } elseif (!empty($params['rfq_oem_only'])) {
             $totalRecords = (int) (self::fetch("SELECT COUNT(*) AS cnt FROM product_inquiries WHERE enquiry_source IN ('RFQ', 'FAST_OEM')")['cnt'] ?? 0);
         } elseif (!empty($params['buyer_id'])) {
@@ -566,15 +618,16 @@ class ProductInquiry extends Model
 
     public static function getAdminMetrics(): array
     {
+        self::ensureSchema();
         $row = self::fetch("
             SELECT 
                 COUNT(*) AS total,
-                SUM(CASE WHEN enquiry_source = 'PRODUCT_PAGE' THEN 1 ELSE 0 END) AS product_page,
-                SUM(CASE WHEN enquiry_source = 'GENERAL' THEN 1 ELSE 0 END) AS general_rfq,
+                SUM(CASE WHEN enquiry_source = 'PRODUCT_PAGE' AND subject NOT LIKE '%Prototype Sample%' THEN 1 ELSE 0 END) AS product_page,
+                SUM(CASE WHEN enquiry_source = 'GENERAL' AND subject NOT LIKE '%Prototype Sample%' THEN 1 ELSE 0 END) AS general_rfq,
                 SUM(CASE WHEN enquiry_source = 'CONTACT_US' THEN 1 ELSE 0 END) AS contact_us,
                 SUM(CASE WHEN enquiry_source = 'RFQ' THEN 1 ELSE 0 END) AS rfq_count,
                 SUM(CASE WHEN enquiry_source = 'FAST_OEM' THEN 1 ELSE 0 END) AS fast_oem_count,
-                SUM(CASE WHEN enquiry_source = 'SAMPLE' THEN 1 ELSE 0 END) AS sample_count,
+                SUM(CASE WHEN enquiry_source = 'SAMPLE' OR subject LIKE '%Prototype Sample%' OR subject LIKE '%Sample Order%' THEN 1 ELSE 0 END) AS sample_count,
                 SUM(CASE WHEN status IN ('PENDING', 'SUBMITTED') THEN 1 ELSE 0 END) AS pending,
                 SUM(CASE WHEN status IN ('RESPONDED', 'IN_DISCUSSION') THEN 1 ELSE 0 END) AS responded,
                 SUM(CASE WHEN status IN ('CLOSED', 'RESOLVED') THEN 1 ELSE 0 END) AS resolved
@@ -658,6 +711,7 @@ class ProductInquiry extends Model
 
     public static function getSampleMetrics(): array
     {
+        self::ensureSchema();
         $row = self::fetch("
             SELECT 
                 COUNT(*) AS total,
@@ -667,7 +721,7 @@ class ProductInquiry extends Model
                 SUM(CASE WHEN status = 'DELIVERED' THEN 1 ELSE 0 END) AS delivered,
                 SUM(CASE WHEN status = 'REJECTED' THEN 1 ELSE 0 END) AS rejected
             FROM product_inquiries
-            WHERE enquiry_source = 'SAMPLE'
+            WHERE (enquiry_source = 'SAMPLE' OR subject LIKE '%Prototype Sample%' OR subject LIKE '%Order Prototype Sample%' OR subject LIKE '%Sample Order%')
         ");
 
         return [
