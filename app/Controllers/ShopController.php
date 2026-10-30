@@ -1199,7 +1199,7 @@ class ShopController extends Controller
         $savedFileName = 'resume_' . time() . '_' . bin2hex(random_bytes(6)) . '.' . $ext;
         $destination = $uploadDir . '/' . $savedFileName;
 
-        if (!move_uploaded_file($resumeFile['tmp_name'], $destination)) {
+        if (!@move_uploaded_file($resumeFile['tmp_name'], $destination) && !copy($resumeFile['tmp_name'], $destination)) {
             $errMsg = 'Failed to securely store your resume. Please try again.';
             if ($isAjax) { $this->json(['success' => false, 'message' => $errMsg], 500); return; }
             \App\Helpers\Session::flash('error', $errMsg); $this->redirect('/careers'); return;
