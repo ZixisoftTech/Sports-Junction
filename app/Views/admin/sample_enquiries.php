@@ -28,46 +28,6 @@ $csrfToken = \App\Helpers\CSRF::generate();
     </div>
 </div>
 
-<!-- Metrics Row -->
-<div class="row g-3 mb-4">
-    <div class="col-6 col-md-2">
-        <div class="stat-card h-100 p-3" style="cursor: pointer;" onclick="setStatusFilter('ALL')">
-            <div class="text-slate-500 small fw-semibold">Total Sample Requests</div>
-            <h4 class="fw-bold text-slate-900 mb-0 mt-1" id="mTotal"><?= (int)($metrics['total'] ?? 0) ?></h4>
-        </div>
-    </div>
-    <div class="col-6 col-md-2">
-        <div class="stat-card h-100 p-3" style="cursor: pointer;" onclick="setStatusFilter('PENDING')">
-            <div class="text-slate-500 small fw-semibold">Pending Review</div>
-            <h4 class="fw-bold text-warning mb-0 mt-1" style="color: #b45309 !important;" id="mPending"><?= (int)($metrics['pending'] ?? 0) ?></h4>
-        </div>
-    </div>
-    <div class="col-6 col-md-2">
-        <div class="stat-card h-100 p-3" style="cursor: pointer;" onclick="setStatusFilter('IN_PRODUCTION')">
-            <div class="text-slate-500 small fw-semibold">In Production</div>
-            <h4 class="fw-bold text-primary mb-0 mt-1" id="mInProduction"><?= (int)($metrics['in_production'] ?? 0) ?></h4>
-        </div>
-    </div>
-    <div class="col-6 col-md-2">
-        <div class="stat-card h-100 p-3" style="cursor: pointer;" onclick="setStatusFilter('SAMPLE_SHIPPED')">
-            <div class="text-slate-500 small fw-semibold">Sample Shipped</div>
-            <h4 class="fw-bold text-teal mb-0 mt-1" style="color: #0f766e !important;" id="mShipped"><?= (int)($metrics['shipped'] ?? 0) ?></h4>
-        </div>
-    </div>
-    <div class="col-6 col-md-2">
-        <div class="stat-card h-100 p-3" style="cursor: pointer;" onclick="setStatusFilter('DELIVERED')">
-            <div class="text-slate-500 small fw-semibold">Delivered</div>
-            <h4 class="fw-bold text-success mb-0 mt-1" id="mDelivered"><?= (int)($metrics['delivered'] ?? 0) ?></h4>
-        </div>
-    </div>
-    <div class="col-6 col-md-2">
-        <div class="stat-card h-100 p-3" style="cursor: pointer;" onclick="setStatusFilter('REJECTED')">
-            <div class="text-slate-500 small fw-semibold">Rejected / Cancelled</div>
-            <h4 class="fw-bold text-danger mb-0 mt-1" id="mRejected"><?= (int)($metrics['rejected'] ?? 0) ?></h4>
-        </div>
-    </div>
-</div>
-
 <!-- Multi-Filter & Search Card -->
 <div class="card card-premium mb-4">
     <div class="card-body p-3">

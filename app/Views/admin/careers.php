@@ -27,36 +27,6 @@ $csrfToken = \App\Helpers\CSRF::generate();
     </div>
 </div>
 
-<!-- KPI Metrics Row -->
-<div class="row g-3 mb-4">
-    <div class="col-6 col-md-3">
-        <div class="stat-card h-100 p-3">
-            <div class="text-slate-500 small fw-semibold">Total Submissions</div>
-            <h4 class="fw-bold text-slate-900 mb-0 mt-1" id="mTotal"><?= (int)($metrics['total'] ?? 0) ?></h4>
-        </div>
-    </div>
-    <div class="col-6 col-md-3">
-        <div class="stat-card h-100 p-3">
-            <div class="text-slate-500 small fw-semibold">New Submissions</div>
-            <h4 class="fw-bold text-warning mb-0 mt-1" style="color: #b45309 !important;" id="mNew"><?= (int)($metrics['new'] ?? 0) ?></h4>
-        </div>
-    </div>
-    <div class="col-6 col-md-3">
-        <div class="stat-card h-100 p-3">
-            <div class="text-slate-500 small fw-semibold">Reviewed / Contacted</div>
-            <h4 class="fw-bold text-primary mb-0 mt-1" style="color: #0284c7 !important;">
-                <?= (int)(($metrics['shortlisted'] ?? 0) + ($metrics['interview_scheduled'] ?? 0) + ($metrics['selected'] ?? 0)) ?>
-            </h4>
-        </div>
-    </div>
-    <div class="col-6 col-md-3">
-        <div class="stat-card h-100 p-3">
-            <div class="text-slate-500 small fw-semibold">Total Resumes Attached</div>
-            <h4 class="fw-bold text-success mb-0 mt-1" style="color: #16a34a !important;"><?= (int)($metrics['total'] ?? 0) ?></h4>
-        </div>
-    </div>
-</div>
-
 <!-- Filter Bar -->
 <div class="card card-premium mb-4">
     <div class="card-body p-3">

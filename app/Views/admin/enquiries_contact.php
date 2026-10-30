@@ -28,40 +28,6 @@ $csrfToken = \App\Helpers\CSRF::generate();
     </div>
 </div>
 
-<!-- Metrics Row -->
-<div class="row g-3 mb-4">
-    <div class="col-6 col-md-2-4" style="flex: 0 0 20%; max-width: 20%;">
-        <div class="stat-card h-100 p-3" style="cursor: pointer;" onclick="setStatusFilter('ALL')">
-            <div class="text-slate-500 small fw-semibold">Total Messages</div>
-            <h4 class="fw-bold text-slate-900 mb-0 mt-1" id="mTotal"><?= (int)($metrics['total'] ?? 0) ?></h4>
-        </div>
-    </div>
-    <div class="col-6 col-md-2-4" style="flex: 0 0 20%; max-width: 20%;">
-        <div class="stat-card h-100 p-3" style="cursor: pointer;" onclick="setStatusFilter('PENDING')">
-            <div class="text-slate-500 small fw-semibold">Pending Review</div>
-            <h4 class="fw-bold text-warning mb-0 mt-1" style="color: #b45309 !important;" id="mPending"><?= (int)($metrics['pending'] ?? 0) ?></h4>
-        </div>
-    </div>
-    <div class="col-6 col-md-2-4" style="flex: 0 0 20%; max-width: 20%;">
-        <div class="stat-card h-100 p-3" style="cursor: pointer;" onclick="setStatusFilter('IN_DISCUSSION')">
-            <div class="text-slate-500 small fw-semibold">In Discussion</div>
-            <h4 class="fw-bold text-primary mb-0 mt-1" id="mInProgress"><?= (int)($metrics['in_progress'] ?? 0) ?></h4>
-        </div>
-    </div>
-    <div class="col-6 col-md-2-4" style="flex: 0 0 20%; max-width: 20%;">
-        <div class="stat-card h-100 p-3" style="cursor: pointer;" onclick="setStatusFilter('RESOLVED')">
-            <div class="text-slate-500 small fw-semibold">Resolved / Replied</div>
-            <h4 class="fw-bold text-success mb-0 mt-1" id="mResolved"><?= (int)($metrics['resolved'] ?? 0) ?></h4>
-        </div>
-    </div>
-    <div class="col-6 col-md-2-4" style="flex: 0 0 20%; max-width: 20%;">
-        <div class="stat-card h-100 p-3" style="cursor: pointer;" onclick="setStatusFilter('REJECTED')">
-            <div class="text-slate-500 small fw-semibold">Spam / Closed</div>
-            <h4 class="fw-bold text-danger mb-0 mt-1" id="mRejected"><?= (int)($metrics['rejected'] ?? 0) ?></h4>
-        </div>
-    </div>
-</div>
-
 <!-- Filters Card (No Irrelevant Product or Supplier Dropdowns) -->
 <div class="card card-premium mb-4">
     <div class="card-body p-3">
@@ -125,7 +91,6 @@ $csrfToken = \App\Helpers\CSRF::generate();
     </div>
 </div>
 
-<?php ob_start(); ?>
 <script>
 const BASE_URL = <?= json_encode($baseUrl) ?>;
 const CSRF_TOKEN = <?= json_encode($csrfToken) ?>;
@@ -273,6 +238,3 @@ function exportContactEnquiries(format) {
     window.location.href = `${BASE_URL}/api/admin/contact-us-enquiries/export?${params.toString()}`;
 }
 </script>
-<?php
-$adminScripts = ob_get_clean();
-?>

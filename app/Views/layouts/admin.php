@@ -42,6 +42,13 @@ if (!empty($user['id']) && ($user['role'] ?? '') === 'SUPER_ADMIN') {
     <link href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.bootstrap5.min.css" rel="stylesheet">
     <!-- Custom Admin CSS -->
     <link href="<?= htmlspecialchars($baseUrl) ?>/assets/css/admin.css" rel="stylesheet">
+    <!-- Core Scripts: jQuery, Bootstrap 5, DataTables (Loaded in head so all view scripts run safely) -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+    <script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
+    <script src="https://cdn.datatables.net/responsive/2.5.0/js/responsive.bootstrap5.min.js"></script>
     <script>
         window.SportsJunction = window.SportsJunction || {};
         window.SportsJunction.baseUrl = '<?= htmlspecialchars($baseUrl) ?>';
@@ -533,14 +540,6 @@ if (!empty($user['id']) && ($user['role'] ?? '') === 'SUPER_ADMIN') {
     </div>
 </div>
 
-<!-- Core Scripts: jQuery, Bootstrap 5, DataTables -->
-<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
-<script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
-<script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
-<script src="https://cdn.datatables.net/responsive/2.5.0/js/responsive.bootstrap5.min.js"></script>
-
 <!-- Mobile Sidebar Backdrop -->
 <div class="sj-sidebar-backdrop" id="sidebarBackdrop"></div>
 
@@ -810,5 +809,7 @@ if (!empty($user['id']) && ($user['role'] ?? '') === 'SUPER_ADMIN') {
 <script src="<?= htmlspecialchars($baseUrl) ?>/assets/js/master-module.js"></script>
 <?= $pageScripts ?? '' ?>
 <?= $scripts ?? '' ?>
+<?= $adminScripts ?? '' ?>
+<?= $extraScripts ?? '' ?>
 </body>
 </html>
