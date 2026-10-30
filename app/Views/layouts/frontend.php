@@ -378,61 +378,168 @@ if ($authUser && ($authUser['role'] ?? '') === 'BUYER') {
                     </a>
                 <?php endif; ?>
                 <!-- Google Website Translation Dropdown -->
+                <?php
+                $worldLanguages = [
+                    ['code' => 'en', 'native' => 'English', 'name' => 'English', 'country' => 'United States, UK, Global'],
+                    ['code' => 'af', 'native' => 'Afrikaans', 'name' => 'Afrikaans', 'country' => 'South Africa, Namibia'],
+                    ['code' => 'sq', 'native' => 'Shqip', 'name' => 'Albanian', 'country' => 'Albania, Kosovo'],
+                    ['code' => 'am', 'native' => 'አማርኛ', 'name' => 'Amharic', 'country' => 'Ethiopia'],
+                    ['code' => 'ar', 'native' => 'العربية', 'name' => 'Arabic', 'country' => 'Saudi Arabia, UAE, Egypt, MENA'],
+                    ['code' => 'hy', 'native' => 'Հայերեն', 'name' => 'Armenian', 'country' => 'Armenia'],
+                    ['code' => 'az', 'native' => 'Azərbaycan dili', 'name' => 'Azerbaijani', 'country' => 'Azerbaijan'],
+                    ['code' => 'eu', 'native' => 'Euskara', 'name' => 'Basque', 'country' => 'Spain, France'],
+                    ['code' => 'be', 'native' => 'Беларуская', 'name' => 'Belarusian', 'country' => 'Belarus'],
+                    ['code' => 'bn', 'native' => 'বাংলা', 'name' => 'Bengali', 'country' => 'Bangladesh, India'],
+                    ['code' => 'bs', 'native' => 'Bosanski', 'name' => 'Bosnian', 'country' => 'Bosnia & Herzegovina'],
+                    ['code' => 'bg', 'native' => 'Български', 'name' => 'Bulgarian', 'country' => 'Bulgaria'],
+                    ['code' => 'my', 'native' => 'မြန်မာစာ', 'name' => 'Burmese', 'country' => 'Myanmar'],
+                    ['code' => 'ca', 'native' => 'Català', 'name' => 'Catalan', 'country' => 'Spain, Andorra'],
+                    ['code' => 'ceb', 'native' => 'Sinugboanon', 'name' => 'Cebuano', 'country' => 'Philippines'],
+                    ['code' => 'ny', 'native' => 'Chichewa', 'name' => 'Chichewa', 'country' => 'Malawi, Zambia'],
+                    ['code' => 'zh-CN', 'native' => '简体中文', 'name' => 'Chinese (Simplified)', 'country' => 'China, Singapore'],
+                    ['code' => 'zh-TW', 'native' => '繁體中文', 'name' => 'Chinese (Traditional)', 'country' => 'Taiwan, Hong Kong'],
+                    ['code' => 'co', 'native' => 'Corsu', 'name' => 'Corsican', 'country' => 'France'],
+                    ['code' => 'hr', 'native' => 'Hrvatski', 'name' => 'Croatian', 'country' => 'Croatia'],
+                    ['code' => 'cs', 'native' => 'Čeština', 'name' => 'Czech', 'country' => 'Czech Republic'],
+                    ['code' => 'da', 'native' => 'Dansk', 'name' => 'Danish', 'country' => 'Denmark'],
+                    ['code' => 'nl', 'native' => 'Nederlands', 'name' => 'Dutch', 'country' => 'Netherlands, Belgium, Suriname'],
+                    ['code' => 'eo', 'native' => 'Esperanto', 'name' => 'Esperanto', 'country' => 'International'],
+                    ['code' => 'et', 'native' => 'Eesti', 'name' => 'Estonian', 'country' => 'Estonia'],
+                    ['code' => 'tl', 'native' => 'Wikang Filipino', 'name' => 'Filipino (Tagalog)', 'country' => 'Philippines'],
+                    ['code' => 'fi', 'native' => 'Suomi', 'name' => 'Finnish', 'country' => 'Finland'],
+                    ['code' => 'fr', 'native' => 'Français', 'name' => 'French', 'country' => 'France, Canada, Africa, Belgium'],
+                    ['code' => 'fy', 'native' => 'Frysk', 'name' => 'Frisian', 'country' => 'Netherlands'],
+                    ['code' => 'gl', 'native' => 'Galego', 'name' => 'Galician', 'country' => 'Spain'],
+                    ['code' => 'ka', 'native' => 'ქართული', 'name' => 'Georgian', 'country' => 'Georgia'],
+                    ['code' => 'de', 'native' => 'Deutsch', 'name' => 'German', 'country' => 'Germany, Austria, Switzerland'],
+                    ['code' => 'el', 'native' => 'Ελληνικά', 'name' => 'Greek', 'country' => 'Greece, Cyprus'],
+                    ['code' => 'gu', 'native' => 'ગુજરાતી', 'name' => 'Gujarati', 'country' => 'India'],
+                    ['code' => 'ht', 'native' => 'Kreyòl Ayisyen', 'name' => 'Haitian Creole', 'country' => 'Haiti'],
+                    ['code' => 'ha', 'native' => 'Hausa', 'name' => 'Hausa', 'country' => 'Nigeria, Niger, Ghana'],
+                    ['code' => 'haw', 'native' => 'ʻŌlelo Hawaiʻi', 'name' => 'Hawaiian', 'country' => 'United States (Hawaii)'],
+                    ['code' => 'iw', 'native' => 'עברית', 'name' => 'Hebrew', 'country' => 'Israel'],
+                    ['code' => 'hi', 'native' => 'हिन्दी', 'name' => 'Hindi', 'country' => 'India'],
+                    ['code' => 'hmn', 'native' => 'Hmoob', 'name' => 'Hmong', 'country' => 'China, Southeast Asia'],
+                    ['code' => 'hu', 'native' => 'Magyar', 'name' => 'Hungarian', 'country' => 'Hungary'],
+                    ['code' => 'is', 'native' => 'Íslenska', 'name' => 'Icelandic', 'country' => 'Iceland'],
+                    ['code' => 'ig', 'native' => 'Asụsụ Igbo', 'name' => 'Igbo', 'country' => 'Nigeria'],
+                    ['code' => 'id', 'native' => 'Bahasa Indonesia', 'name' => 'Indonesian', 'country' => 'Indonesia'],
+                    ['code' => 'ga', 'native' => 'Gaeilge', 'name' => 'Irish', 'country' => 'Ireland'],
+                    ['code' => 'it', 'native' => 'Italiano', 'name' => 'Italian', 'country' => 'Italy, Switzerland'],
+                    ['code' => 'ja', 'native' => '日本語', 'name' => 'Japanese', 'country' => 'Japan'],
+                    ['code' => 'jw', 'native' => 'Basa Jawa', 'name' => 'Javanese', 'country' => 'Indonesia'],
+                    ['code' => 'kn', 'native' => 'ಕನ್ನಡ', 'name' => 'Kannada', 'country' => 'India'],
+                    ['code' => 'kk', 'native' => 'Қазақ тілі', 'name' => 'Kazakh', 'country' => 'Kazakhstan'],
+                    ['code' => 'km', 'native' => 'ភាសាខ្មែរ', 'name' => 'Khmer', 'country' => 'Cambodia'],
+                    ['code' => 'rw', 'native' => 'Ikinyarwanda', 'name' => 'Kinyarwanda', 'country' => 'Rwanda'],
+                    ['code' => 'ko', 'native' => '한국어', 'name' => 'Korean', 'country' => 'South Korea'],
+                    ['code' => 'ku', 'native' => 'Kurdî', 'name' => 'Kurdish', 'country' => 'Middle East'],
+                    ['code' => 'ky', 'native' => 'Кыргызча', 'name' => 'Kyrgyz', 'country' => 'Kyrgyzstan'],
+                    ['code' => 'lo', 'native' => 'ພາສາລາວ', 'name' => 'Lao', 'country' => 'Laos'],
+                    ['code' => 'la', 'native' => 'Latina', 'name' => 'Latin', 'country' => 'Vatican City'],
+                    ['code' => 'lv', 'native' => 'Latviešu', 'name' => 'Latvian', 'country' => 'Latvia'],
+                    ['code' => 'lt', 'native' => 'Lietuvių', 'name' => 'Lithuanian', 'country' => 'Lithuania'],
+                    ['code' => 'lb', 'native' => 'Lëtzebuergesch', 'name' => 'Luxembourgish', 'country' => 'Luxembourg'],
+                    ['code' => 'mk', 'native' => 'Македонски', 'name' => 'Macedonian', 'country' => 'North Macedonia'],
+                    ['code' => 'mg', 'native' => 'Malagasy', 'name' => 'Malagasy', 'country' => 'Madagascar'],
+                    ['code' => 'ms', 'native' => 'Bahasa Melayu', 'name' => 'Malay', 'country' => 'Malaysia, Singapore, Brunei'],
+                    ['code' => 'ml', 'native' => 'മലയാളം', 'name' => 'Malayalam', 'country' => 'India'],
+                    ['code' => 'mt', 'native' => 'Malti', 'name' => 'Maltese', 'country' => 'Malta'],
+                    ['code' => 'mi', 'native' => 'Te Reo Māori', 'name' => 'Maori', 'country' => 'New Zealand'],
+                    ['code' => 'mr', 'native' => 'मराठी', 'name' => 'Marathi', 'country' => 'India'],
+                    ['code' => 'mn', 'native' => 'Монгол хэл', 'name' => 'Mongolian', 'country' => 'Mongolia'],
+                    ['code' => 'ne', 'native' => 'नेपाली', 'name' => 'Nepali', 'country' => 'Nepal, India'],
+                    ['code' => 'no', 'native' => 'Norsk', 'name' => 'Norwegian', 'country' => 'Norway'],
+                    ['code' => 'or', 'native' => 'ଓଡ଼ିଆ', 'name' => 'Odia', 'country' => 'India'],
+                    ['code' => 'ps', 'native' => 'پښتو', 'name' => 'Pashto', 'country' => 'Afghanistan, Pakistan'],
+                    ['code' => 'fa', 'native' => 'فارسی', 'name' => 'Persian (Farsi)', 'country' => 'Iran, Afghanistan, Tajikistan'],
+                    ['code' => 'pl', 'native' => 'Polski', 'name' => 'Polish', 'country' => 'Poland'],
+                    ['code' => 'pt', 'native' => 'Português', 'name' => 'Portuguese', 'country' => 'Portugal, Brazil, Angola, Mozambique'],
+                    ['code' => 'pa', 'native' => 'ਪੰਜਾਬੀ', 'name' => 'Punjabi', 'country' => 'India, Pakistan'],
+                    ['code' => 'ro', 'native' => 'Română', 'name' => 'Romanian', 'country' => 'Romania, Moldova'],
+                    ['code' => 'ru', 'native' => 'Русский', 'name' => 'Russian', 'country' => 'Russia, CIS countries'],
+                    ['code' => 'sm', 'native' => 'Gagana Sāmoa', 'name' => 'Samoan', 'country' => 'Samoa'],
+                    ['code' => 'gd', 'native' => 'Gàidhlig', 'name' => 'Scots Gaelic', 'country' => 'Scotland (UK)'],
+                    ['code' => 'sr', 'native' => 'Српски', 'name' => 'Serbian', 'country' => 'Serbia, Bosnia, Montenegro'],
+                    ['code' => 'st', 'native' => 'Sesotho', 'name' => 'Sesotho', 'country' => 'Lesotho, South Africa'],
+                    ['code' => 'sn', 'native' => 'chiShona', 'name' => 'Shona', 'country' => 'Zimbabwe'],
+                    ['code' => 'sd', 'native' => 'سنڌي', 'name' => 'Sindhi', 'country' => 'Pakistan, India'],
+                    ['code' => 'si', 'native' => 'සිංහල', 'name' => 'Sinhala', 'country' => 'Sri Lanka'],
+                    ['code' => 'sk', 'native' => 'Slovenčina', 'name' => 'Slovak', 'country' => 'Slovakia'],
+                    ['code' => 'sl', 'native' => 'Slovenščina', 'name' => 'Slovenian', 'country' => 'Slovenia'],
+                    ['code' => 'so', 'native' => 'Soomaaliga', 'name' => 'Somali', 'country' => 'Somalia, Djibouti, Kenya'],
+                    ['code' => 'es', 'native' => 'Español', 'name' => 'Spanish', 'country' => 'Spain, Mexico, Latin America'],
+                    ['code' => 'su', 'native' => 'Basa Sunda', 'name' => 'Sundanese', 'country' => 'Indonesia'],
+                    ['code' => 'sw', 'native' => 'Kiswahili', 'name' => 'Swahili', 'country' => 'Kenya, Tanzania, Uganda, East Africa'],
+                    ['code' => 'sv', 'native' => 'Svenska', 'name' => 'Swedish', 'country' => 'Sweden, Finland'],
+                    ['code' => 'tg', 'native' => 'Тоҷикӣ', 'name' => 'Tajik', 'country' => 'Tajikistan'],
+                    ['code' => 'ta', 'native' => 'தமிழ்', 'name' => 'Tamil', 'country' => 'India, Sri Lanka, Singapore, Malaysia'],
+                    ['code' => 'tt', 'native' => 'Татарча', 'name' => 'Tatar', 'country' => 'Russia'],
+                    ['code' => 'te', 'native' => 'తెలుగు', 'name' => 'Telugu', 'country' => 'India'],
+                    ['code' => 'th', 'native' => 'ไทย', 'name' => 'Thai', 'country' => 'Thailand'],
+                    ['code' => 'tr', 'native' => 'Türkçe', 'name' => 'Turkish', 'country' => 'Turkey, Cyprus'],
+                    ['code' => 'tk', 'native' => 'Türkmençe', 'name' => 'Turkmen', 'country' => 'Turkmenistan'],
+                    ['code' => 'uk', 'native' => 'Українська', 'name' => 'Ukrainian', 'country' => 'Ukraine'],
+                    ['code' => 'ur', 'native' => 'اردو', 'name' => 'Urdu', 'country' => 'Pakistan, India'],
+                    ['code' => 'ug', 'native' => 'ئۇيغۇرچە', 'name' => 'Uyghur', 'country' => 'China'],
+                    ['code' => 'uz', 'native' => 'Oʻzbekcha', 'name' => 'Uzbek', 'country' => 'Uzbekistan'],
+                    ['code' => 'vi', 'native' => 'Tiếng Việt', 'name' => 'Vietnamese', 'country' => 'Vietnam'],
+                    ['code' => 'cy', 'native' => 'Cymraeg', 'name' => 'Welsh', 'country' => 'Wales (UK)'],
+                    ['code' => 'xh', 'native' => 'isiXhosa', 'name' => 'Xhosa', 'country' => 'South Africa'],
+                    ['code' => 'yi', 'native' => 'ייִדיש', 'name' => 'Yiddish', 'country' => 'Global Jewish communities'],
+                    ['code' => 'yo', 'native' => 'Èdè Yorùbá', 'name' => 'Yoruba', 'country' => 'Nigeria, Benin'],
+                    ['code' => 'zu', 'native' => 'isiZulu', 'name' => 'Zulu', 'country' => 'South Africa']
+                ];
+                ?>
                 <div class="relative" id="googleTranslateWrapper">
                     <button type="button" id="btnGoogleTranslateToggle" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full border border-slate-200 hover:border-slate-300 bg-white text-on-surface-variant hover:text-on-surface text-xs font-semibold shadow-2xs transition-all cursor-pointer" title="Translate Website">
-                        <span class="material-symbols-outlined text-[17px] text-primary">translate</span>
-                        <span id="currentLangCode" class="font-bold">EN</span>
-                        <span class="material-symbols-outlined text-[13px] text-slate-400">expand_more</span>
+                        <span class="material-symbols-outlined text-[17px] text-primary notranslate" translate="no">translate</span>
+                        <span id="currentLangCode" class="font-bold notranslate" translate="no">EN</span>
+                        <span class="material-symbols-outlined text-[13px] text-slate-400 notranslate" translate="no">expand_more</span>
                     </button>
-                    <div id="googleTranslateDropdown" class="hidden absolute right-0 top-full mt-1.5 w-48 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 z-50 max-h-72 overflow-y-auto">
-                        <div class="px-3 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 mb-1">Translate Page</div>
-                        <button type="button" onclick="setSiteLanguage('en')" class="w-full text-left px-3 py-1.5 text-xs font-medium hover:bg-slate-50 flex items-center justify-between transition-colors lang-opt-btn" data-lang="en">
-                            <span>English (Default)</span>
-                            <span class="lang-check text-primary font-bold hidden">&check;</span>
-                        </button>
-                        <button type="button" onclick="setSiteLanguage('hi')" class="w-full text-left px-3 py-1.5 text-xs font-medium hover:bg-slate-50 flex items-center justify-between transition-colors lang-opt-btn" data-lang="hi">
-                            <span>हिन्दी (Hindi)</span>
-                            <span class="lang-check text-primary font-bold hidden">&check;</span>
-                        </button>
-                        <button type="button" onclick="setSiteLanguage('es')" class="w-full text-left px-3 py-1.5 text-xs font-medium hover:bg-slate-50 flex items-center justify-between transition-colors lang-opt-btn" data-lang="es">
-                            <span>Español (Spanish)</span>
-                            <span class="lang-check text-primary font-bold hidden">&check;</span>
-                        </button>
-                        <button type="button" onclick="setSiteLanguage('fr')" class="w-full text-left px-3 py-1.5 text-xs font-medium hover:bg-slate-50 flex items-center justify-between transition-colors lang-opt-btn" data-lang="fr">
-                            <span>Français (French)</span>
-                            <span class="lang-check text-primary font-bold hidden">&check;</span>
-                        </button>
-                        <button type="button" onclick="setSiteLanguage('de')" class="w-full text-left px-3 py-1.5 text-xs font-medium hover:bg-slate-50 flex items-center justify-between transition-colors lang-opt-btn" data-lang="de">
-                            <span>Deutsch (German)</span>
-                            <span class="lang-check text-primary font-bold hidden">&check;</span>
-                        </button>
-                        <button type="button" onclick="setSiteLanguage('ar')" class="w-full text-left px-3 py-1.5 text-xs font-medium hover:bg-slate-50 flex items-center justify-between transition-colors lang-opt-btn" data-lang="ar">
-                            <span>العربية (Arabic)</span>
-                            <span class="lang-check text-primary font-bold hidden">&check;</span>
-                        </button>
-                        <button type="button" onclick="setSiteLanguage('zh-CN')" class="w-full text-left px-3 py-1.5 text-xs font-medium hover:bg-slate-50 flex items-center justify-between transition-colors lang-opt-btn" data-lang="zh-CN">
-                            <span>中文 (Chinese)</span>
-                            <span class="lang-check text-primary font-bold hidden">&check;</span>
-                        </button>
-                        <button type="button" onclick="setSiteLanguage('ja')" class="w-full text-left px-3 py-1.5 text-xs font-medium hover:bg-slate-50 flex items-center justify-between transition-colors lang-opt-btn" data-lang="ja">
-                            <span>日本語 (Japanese)</span>
-                            <span class="lang-check text-primary font-bold hidden">&check;</span>
-                        </button>
-                        <button type="button" onclick="setSiteLanguage('ru')" class="w-full text-left px-3 py-1.5 text-xs font-medium hover:bg-slate-50 flex items-center justify-between transition-colors lang-opt-btn" data-lang="ru">
-                            <span>Русский (Russian)</span>
-                            <span class="lang-check text-primary font-bold hidden">&check;</span>
-                        </button>
-                        <button type="button" onclick="setSiteLanguage('pt')" class="w-full text-left px-3 py-1.5 text-xs font-medium hover:bg-slate-50 flex items-center justify-between transition-colors lang-opt-btn" data-lang="pt">
-                            <span>Português (Portuguese)</span>
-                            <span class="lang-check text-primary font-bold hidden">&check;</span>
-                        </button>
-                        <button type="button" onclick="setSiteLanguage('it')" class="w-full text-left px-3 py-1.5 text-xs font-medium hover:bg-slate-50 flex items-center justify-between transition-colors lang-opt-btn" data-lang="it">
-                            <span>Italiano (Italian)</span>
-                            <span class="lang-check text-primary font-bold hidden">&check;</span>
-                        </button>
-                        <div class="border-t border-slate-100 mt-1 pt-1">
-                            <button type="button" onclick="setSiteLanguage('en')" class="w-full text-left px-3 py-1.5 text-[11px] font-bold text-blue-900 hover:bg-blue-50 transition-colors flex items-center gap-1">
-                                <span class="material-symbols-outlined text-[14px]">restart_alt</span>
+                    <div id="googleTranslateDropdown" class="hidden absolute right-0 top-full mt-2 w-80 sm:w-96 max-w-[calc(100vw-24px)] bg-white rounded-2xl shadow-2xl border border-slate-200 z-50 flex flex-col overflow-hidden text-left">
+                        <!-- Dropdown Header -->
+                        <div class="px-4 py-3 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <span class="material-symbols-outlined text-primary text-[19px] notranslate" translate="no">public</span>
+                                <div>
+                                    <div class="text-xs font-bold text-slate-800">Select Mother Tongue</div>
+                                    <div class="text-[10px] text-slate-500 font-medium">105+ World Languages &amp; Regions</div>
+                                </div>
+                            </div>
+                            <button type="button" id="btnGoogleTranslateClose" class="text-slate-400 hover:text-slate-700 text-lg leading-none p-1 cursor-pointer" title="Close">&times;</button>
+                        </div>
+                        <!-- Search Bar -->
+                        <div class="p-2.5 bg-white border-b border-slate-100">
+                            <div class="relative">
+                                <span class="material-symbols-outlined absolute left-2.5 top-2 text-[16px] text-slate-400 notranslate" translate="no">search</span>
+                                <input type="text" id="langSearchInput" placeholder="Search language or country (e.g. Arabic, France, 日本語)..." class="w-full text-xs pl-8 pr-7 py-2 bg-slate-50 rounded-lg border border-slate-200 focus:outline-none focus:border-primary focus:bg-white text-slate-800 transition-colors placeholder:text-slate-400">
+                                <button type="button" id="langSearchClear" class="hidden absolute right-2.5 top-2 text-slate-400 hover:text-slate-600 text-sm font-bold cursor-pointer" title="Clear">&times;</button>
+                            </div>
+                        </div>
+                        <!-- Language List -->
+                        <div id="langOptionsList" class="max-h-72 overflow-y-auto divide-y divide-slate-50 overscroll-contain">
+                            <?php foreach ($worldLanguages as $l): ?>
+                                <button type="button" onclick="setSiteLanguage('<?= htmlspecialchars($l['code']) ?>')" class="w-full text-left px-3.5 py-2 hover:bg-blue-50/60 flex items-center justify-between transition-colors lang-opt-btn group" data-lang="<?= htmlspecialchars($l['code']) ?>" data-search="<?= strtolower(htmlspecialchars($l['name'] . ' ' . $l['native'] . ' ' . $l['country'] . ' ' . $l['code'])) ?>">
+                                    <div class="flex flex-col min-w-0 pr-2">
+                                        <div class="flex items-center gap-1.5">
+                                            <span class="text-xs font-bold text-slate-900 group-hover:text-primary transition-colors notranslate" translate="no"><?= htmlspecialchars($l['native']) ?></span>
+                                            <span class="text-[9px] px-1.5 py-0.2 rounded bg-slate-100 text-slate-500 font-mono uppercase notranslate" translate="no"><?= htmlspecialchars($l['code']) ?></span>
+                                        </div>
+                                        <span class="text-[11px] text-slate-500 truncate mt-0.5"><?= htmlspecialchars($l['name']) ?> <span class="text-slate-300">&bull;</span> <span class="text-slate-400"><?= htmlspecialchars($l['country']) ?></span></span>
+                                    </div>
+                                    <span class="lang-check text-primary font-bold text-sm hidden notranslate" translate="no">&check;</span>
+                                </button>
+                            <?php endforeach; ?>
+                            <div id="langNoResults" class="hidden py-8 text-center text-xs text-slate-400">
+                                <span class="material-symbols-outlined text-[24px] text-slate-300 block mb-1 notranslate" translate="no">search_off</span>
+                                No matching language or country found
+                            </div>
+                        </div>
+                        <!-- Reset to English -->
+                        <div class="p-2 bg-slate-50 border-t border-slate-100">
+                            <button type="button" onclick="setSiteLanguage('en')" class="w-full text-center px-3 py-1.5 text-xs font-bold text-primary hover:bg-white rounded-lg transition-colors flex items-center justify-center gap-1.5 border border-transparent hover:border-slate-200 shadow-2xs">
+                                <span class="material-symbols-outlined text-[15px] notranslate" translate="no">restart_alt</span>
                                 <span>Reset to Original (English)</span>
                             </button>
                         </div>
@@ -1475,18 +1582,19 @@ if ($authUser && ($authUser['role'] ?? '') === 'BUYER') {
         }
 
         function updateLangUI(lang) {
-            const upper = (lang || 'en').toUpperCase();
+            const rawLang = (lang || 'en').trim();
+            const upper = rawLang.toUpperCase();
             const labelEl = document.getElementById('currentLangCode');
             if (labelEl) labelEl.textContent = upper;
 
             document.querySelectorAll('.lang-opt-btn').forEach(btn => {
-                const blang = btn.getAttribute('data-lang');
+                const blang = (btn.getAttribute('data-lang') || '').toLowerCase();
                 const check = btn.querySelector('.lang-check');
-                if (blang === lang) {
-                    btn.classList.add('bg-blue-50', 'text-blue-900', 'font-bold');
+                if (blang === rawLang.toLowerCase()) {
+                    btn.classList.add('bg-blue-50/80', 'text-blue-900', 'font-semibold');
                     if (check) check.classList.remove('hidden');
                 } else {
-                    btn.classList.remove('bg-blue-50', 'text-blue-900', 'font-bold');
+                    btn.classList.remove('bg-blue-50/80', 'text-blue-900', 'font-semibold');
                     if (check) check.classList.add('hidden');
                 }
             });
@@ -1522,16 +1630,62 @@ if ($authUser && ($authUser['role'] ?? '') === 'BUYER') {
 
             const toggleBtn = document.getElementById('btnGoogleTranslateToggle');
             const dropdown = document.getElementById('googleTranslateDropdown');
+            const closeBtn = document.getElementById('btnGoogleTranslateClose');
+            const searchInput = document.getElementById('langSearchInput');
+            const searchClear = document.getElementById('langSearchClear');
+            const langButtons = document.querySelectorAll('.lang-opt-btn');
+            const noResults = document.getElementById('langNoResults');
+
             if (toggleBtn && dropdown) {
                 toggleBtn.addEventListener('click', (e) => {
                     e.stopPropagation();
+                    const willOpen = dropdown.classList.contains('hidden');
                     dropdown.classList.toggle('hidden');
+                    if (willOpen && searchInput) {
+                        setTimeout(() => searchInput.focus(), 80);
+                    }
                 });
+
+                if (closeBtn) {
+                    closeBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        dropdown.classList.add('hidden');
+                    });
+                }
+
                 document.addEventListener('click', (e) => {
                     if (!dropdown.contains(e.target) && !toggleBtn.contains(e.target)) {
                         dropdown.classList.add('hidden');
                     }
                 });
+            }
+
+            // Real-time language and country search filtering
+            if (searchInput) {
+                searchInput.addEventListener('input', function() {
+                    const query = this.value.trim().toLowerCase();
+                    if (searchClear) {
+                        searchClear.classList.toggle('hidden', !query);
+                    }
+                    let matchedCount = 0;
+                    langButtons.forEach(btn => {
+                        const searchTarget = (btn.getAttribute('data-search') || '').toLowerCase();
+                        const matches = !query || searchTarget.includes(query);
+                        btn.style.display = matches ? '' : 'none';
+                        if (matches) matchedCount++;
+                    });
+                    if (noResults) {
+                        noResults.classList.toggle('hidden', matchedCount > 0);
+                    }
+                });
+
+                if (searchClear) {
+                    searchClear.addEventListener('click', function() {
+                        searchInput.value = '';
+                        searchInput.dispatchEvent(new Event('input'));
+                        searchInput.focus();
+                    });
+                }
             }
         });
     </script>
@@ -1543,7 +1697,6 @@ if ($authUser && ($authUser['role'] ?? '') === 'BUYER') {
         }
         new google.translate.TranslateElement({
             pageLanguage: 'en',
-            includedLanguages: 'en,hi,es,fr,de,ar,zh-CN,ja,ru,pt,it',
             layout: google.translate.TranslateElement.InlineLayout.SIMPLE,
             autoDisplay: false
         }, 'google_translate_element');
