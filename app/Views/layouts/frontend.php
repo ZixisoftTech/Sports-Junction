@@ -132,6 +132,18 @@ if ($authUser && ($authUser['role'] ?? '') === 'BUYER') {
         .material-symbols-outlined {
             font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
             vertical-align: middle;
+            font-family: 'Material Symbols Outlined' !important;
+            font-style: normal;
+            font-weight: normal;
+            display: inline-block;
+            line-height: 1;
+            text-transform: none;
+            letter-spacing: normal;
+            word-wrap: normal;
+            white-space: nowrap;
+            direction: ltr;
+            -webkit-font-feature-settings: 'liga';
+            -webkit-font-smoothing: antialiased;
         }
         .material-symbols-outlined.fill-1 {
             font-variation-settings: 'FILL' 1;
@@ -142,6 +154,16 @@ if ($authUser && ($authUser['role'] ?? '') === 'BUYER') {
         .no-scrollbar {
             -ms-overflow-style: none;
             scrollbar-width: none;
+        }
+
+        /* Prevent Google Translate and browser translation tools from mangling icons and coding UI elements */
+        .notranslate,
+        [translate="no"],
+        .material-symbols-outlined,
+        .material-symbols,
+        [class*="material-symbols"] {
+            -webkit-user-select: none;
+            user-select: none;
         }
 
         /* Google Translate clean integration styles */
@@ -167,6 +189,107 @@ if ($authUser && ($authUser['role'] ?? '') === 'BUYER') {
             box-shadow: none !important;
         }
     </style>
+    <script>
+    // Bulletproof protection against translation tools corrupting icon ligatures or coding UI elements
+    (function() {
+        var ICON_SELECTOR = '.material-symbols-outlined, .material-symbols, [class*="material-symbols"], i[class*="bi-"], .bi, i[class*="fa-"], .fa, .fas, .far, .fab';
+        var CODE_SELECTOR = 'code, pre, kbd, var, samp, .font-mono';
+        var ALL_PROTECTED_SELECTOR = ICON_SELECTOR + ', ' + CODE_SELECTOR;
+
+        function tagElement(el) {
+            if (!el || el.nodeType !== 1) return;
+            el.setAttribute('translate', 'no');
+            if (!el.classList.contains('notranslate')) {
+                el.classList.add('notranslate');
+            }
+            if (el.matches && el.matches(ICON_SELECTOR)) {
+                var iconName = el.getAttribute('data-icon-name');
+                if (!iconName) {
+                    var txt = (el.textContent || '').trim();
+                    if (txt) {
+                        el.setAttribute('data-icon-name', txt);
+                    }
+                } else if (el.textContent && el.textContent.trim() !== iconName) {
+                    el.textContent = iconName;
+                }
+            }
+        }
+
+        function restoreIcon(el) {
+            if (!el || el.nodeType !== 1) return;
+            var iconEl = el.closest ? el.closest(ICON_SELECTOR) : null;
+            if (iconEl) {
+                var orig = iconEl.getAttribute('data-icon-name');
+                if (orig && iconEl.textContent.trim() !== orig) {
+                    iconEl.textContent = orig;
+                    iconEl.setAttribute('translate', 'no');
+                    if (!iconEl.classList.contains('notranslate')) {
+                        iconEl.classList.add('notranslate');
+                    }
+                }
+            }
+        }
+
+        function protectElements(root) {
+            try {
+                var els = (root || document).querySelectorAll(ALL_PROTECTED_SELECTOR);
+                for (var i = 0; i < els.length; i++) {
+                    tagElement(els[i]);
+                }
+            } catch (e) {}
+        }
+
+        if (document.documentElement) {
+            protectElements(document.documentElement);
+        }
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', function() { protectElements(document); });
+        } else {
+            protectElements(document);
+        }
+
+        if (window.MutationObserver) {
+            var obs = new MutationObserver(function(mutations) {
+                for (var i = 0; i < mutations.length; i++) {
+                    var m = mutations[i];
+                    if (m.type === 'childList') {
+                        // Check if the container itself is an icon being modified by translation wrappers (e.g. <font>)
+                        if (m.target && m.target.nodeType === 1) {
+                            restoreIcon(m.target);
+                        }
+                        for (var j = 0; j < m.addedNodes.length; j++) {
+                            var node = m.addedNodes[j];
+                            if (node && node.nodeType === 1) {
+                                restoreIcon(node);
+                                if (node.matches && node.matches(ALL_PROTECTED_SELECTOR)) {
+                                    tagElement(node);
+                                }
+                                protectElements(node);
+                            }
+                        }
+                    } else if (m.type === 'characterData') {
+                        if (m.target && m.target.parentElement) {
+                            restoreIcon(m.target.parentElement);
+                        }
+                    }
+                }
+            });
+            obs.observe(document.documentElement || document, { childList: true, subtree: true, characterData: true });
+        }
+
+        // Safety fallback checks during initial load and language switch passes
+        var intervalCount = 0;
+        var safetyInterval = setInterval(function() {
+            intervalCount++;
+            protectElements(document);
+            if (intervalCount > 25) { // Run for ~5 seconds
+                clearInterval(safetyInterval);
+            }
+        }, 200);
+
+        window.protectUiElementsFromTranslation = protectElements;
+    })();
+    </script>
 </head>
 <body class="bg-surface text-on-surface font-sans antialiased flex flex-col min-h-screen">
     <?php 
@@ -1415,6 +1538,9 @@ if ($authUser && ($authUser['role'] ?? '') === 'BUYER') {
     <div id="google_translate_element" style="display:none;"></div>
     <script type="text/javascript">
     function googleTranslateElementInit() {
+        if (window.protectUiElementsFromTranslation) {
+            window.protectUiElementsFromTranslation(document);
+        }
         new google.translate.TranslateElement({
             pageLanguage: 'en',
             includedLanguages: 'en,hi,es,fr,de,ar,zh-CN,ja,ru,pt,it',

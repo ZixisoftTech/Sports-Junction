@@ -219,9 +219,9 @@ $baseUrl = Response::baseUrl();
                     $catIcon = trim($cat['icon'] ?? 'sports_tennis');
                     $isImg = (str_starts_with($catIcon, '/') || str_starts_with($catIcon, 'http') || str_contains($catIcon, '.'));
                     if ($isImg): ?>
-                        <img src="<?= htmlspecialchars(\App\Core\Response::formatImageUrl($catIcon)) ?>" class="w-full h-full object-contain" alt="<?= htmlspecialchars($cat['name']) ?>" onerror="this.onerror=null;this.parentElement.innerHTML='<span class=\'material-symbols-outlined text-[24px]\'>sports_tennis</span>';">
+                        <img src="<?= htmlspecialchars(\App\Core\Response::formatImageUrl($catIcon)) ?>" class="w-full h-full object-contain" alt="<?= htmlspecialchars($cat['name']) ?>" onerror="this.onerror=null;this.parentElement.innerHTML='<span class=\'material-symbols-outlined notranslate text-[24px]\' translate=\'no\' data-icon-name=\'sports_tennis\'>sports_tennis</span>';">
                     <?php else: ?>
-                        <span class="material-symbols-outlined text-[24px]"><?= htmlspecialchars($catIcon) ?></span>
+                        <span class="material-symbols-outlined notranslate text-[24px]" translate="no" data-icon-name="<?= htmlspecialchars($catIcon) ?>"><?= htmlspecialchars($catIcon) ?></span>
                     <?php endif; ?>
                 </div>
                 <div class="min-w-0 flex-1">
@@ -243,9 +243,9 @@ $baseUrl = Response::baseUrl();
                     $catIcon = trim($cat['icon'] ?? 'sports_tennis');
                     $isImg = (str_starts_with($catIcon, '/') || str_starts_with($catIcon, 'http') || str_contains($catIcon, '.'));
                     if ($isImg): ?>
-                        <img src="<?= htmlspecialchars(\App\Core\Response::formatImageUrl($catIcon)) ?>" class="w-full h-full object-contain" alt="<?= htmlspecialchars($cat['name']) ?>" onerror="this.onerror=null;this.parentElement.innerHTML='<span class=\'material-symbols-outlined text-[24px]\'>sports_tennis</span>';">
+                        <img src="<?= htmlspecialchars(\App\Core\Response::formatImageUrl($catIcon)) ?>" class="w-full h-full object-contain" alt="<?= htmlspecialchars($cat['name']) ?>" onerror="this.onerror=null;this.parentElement.innerHTML='<span class=\'material-symbols-outlined notranslate text-[24px]\' translate=\'no\' data-icon-name=\'sports_tennis\'>sports_tennis</span>';">
                     <?php else: ?>
-                        <span class="material-symbols-outlined text-[24px]"><?= htmlspecialchars($catIcon) ?></span>
+                        <span class="material-symbols-outlined notranslate text-[24px]" translate="no" data-icon-name="<?= htmlspecialchars($catIcon) ?>"><?= htmlspecialchars($catIcon) ?></span>
                     <?php endif; ?>
                 </div>
                 <div class="min-w-0 flex-1">
