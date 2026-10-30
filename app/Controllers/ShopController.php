@@ -1083,26 +1083,37 @@ class ShopController extends Controller
         $phone          = trim((string)($input['phone'] ?? ''));
         $city           = trim((string)($input['city'] ?? ''));
         $countryId      = !empty($input['country_id']) ? (int)$input['country_id'] : null;
-        $countryName    = trim((string)($input['country_name'] ?? ''));
+        $countryName    = trim((string)($input['country_name'] ?? 'India'));
         $jobOpeningId   = !empty($input['job_opening_id']) ? (int)$input['job_opening_id'] : null;
-        $position       = trim((string)($input['position_applied'] ?? 'General Application'));
-        $experience     = trim((string)($input['total_experience'] ?? ''));
+        $position       = trim((string)($input['position_applied'] ?? ''));
+        $experience     = trim((string)($input['total_experience'] ?? 'Not specified'));
+        if (empty($experience)) $experience = 'Not specified';
         $currentCompany = trim((string)($input['current_company'] ?? ''));
         $currentJobTitle= trim((string)($input['current_job_title'] ?? ''));
         $expectedSalary = trim((string)($input['expected_salary'] ?? ''));
-        $noticePeriod   = trim((string)($input['notice_period'] ?? '30 Days'));
+        $noticePeriod   = trim((string)($input['notice_period'] ?? 'Immediate / Flexible'));
+        if (empty($noticePeriod)) $noticePeriod = 'Immediate / Flexible';
         $linkedinUrl    = trim((string)($input['linkedin_url'] ?? ''));
         $portfolioUrl   = trim((string)($input['portfolio_url'] ?? ''));
         $coverLetter    = trim((string)($input['cover_letter'] ?? ''));
-        $consent        = !empty($input['consent_privacy']);
+        $consent        = true;
 
         // Country resolution
         if ($countryId && empty($countryName)) {
             $c = \App\Models\Country::findById($countryId);
             if ($c) $countryName = $c['name'];
         }
+        if (empty($countryName)) {
+            $countryName = 'India';
+        }
 
-        // Required Validations
+        // Required Validations (Essential form fields only)
+        if (strlen($position) < 2) {
+            $errMsg = 'Please enter the Job Role / Position you are applying for.';
+            if ($isAjax) { $this->json(['success' => false, 'message' => $errMsg], 422); return; }
+            \App\Helpers\Session::flash('error', $errMsg); $this->redirect('/careers'); return;
+        }
+
         if (strlen($fullName) < 2) {
             $errMsg = 'Please provide your Full Name.';
             if ($isAjax) { $this->json(['success' => false, 'message' => $errMsg], 422); return; }
@@ -1122,37 +1133,7 @@ class ShopController extends Controller
         }
 
         if (empty($city)) {
-            $errMsg = 'Please provide your Current Location / City.';
-            if ($isAjax) { $this->json(['success' => false, 'message' => $errMsg], 422); return; }
-            \App\Helpers\Session::flash('error', $errMsg); $this->redirect('/careers'); return;
-        }
-
-        if (empty($countryId) && empty($countryName)) {
-            $errMsg = 'Please select your Country.';
-            if ($isAjax) { $this->json(['success' => false, 'message' => $errMsg], 422); return; }
-            \App\Helpers\Session::flash('error', $errMsg); $this->redirect('/careers'); return;
-        }
-
-        if (empty($position)) {
-            $errMsg = 'Please select the Position Applied For.';
-            if ($isAjax) { $this->json(['success' => false, 'message' => $errMsg], 422); return; }
-            \App\Helpers\Session::flash('error', $errMsg); $this->redirect('/careers'); return;
-        }
-
-        if (empty($experience)) {
-            $errMsg = 'Please select your Total Work Experience.';
-            if ($isAjax) { $this->json(['success' => false, 'message' => $errMsg], 422); return; }
-            \App\Helpers\Session::flash('error', $errMsg); $this->redirect('/careers'); return;
-        }
-
-        if (empty($noticePeriod)) {
-            $errMsg = 'Please specify your Notice Period / Availability.';
-            if ($isAjax) { $this->json(['success' => false, 'message' => $errMsg], 422); return; }
-            \App\Helpers\Session::flash('error', $errMsg); $this->redirect('/careers'); return;
-        }
-
-        if (!$consent) {
-            $errMsg = 'Please confirm consent to the Privacy Policy.';
+            $errMsg = 'Please provide your Location / City.';
             if ($isAjax) { $this->json(['success' => false, 'message' => $errMsg], 422); return; }
             \App\Helpers\Session::flash('error', $errMsg); $this->redirect('/careers'); return;
         }
