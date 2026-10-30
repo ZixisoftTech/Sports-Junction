@@ -9,6 +9,7 @@ use App\Helpers\CSRF;
 use App\Helpers\Exporter;
 use App\Helpers\Session;
 use App\Models\Category;
+use App\Models\Notification;
 use App\Models\ProductInquiry;
 use App\Models\Supplier;
 use App\Models\User;
@@ -77,6 +78,9 @@ class EnquiryManagementController extends Controller
         $replies   = ProductInquiry::getReplies($enquiryId);
         $suppliers = Supplier::allActive();
 
+        // Mark associated notifications as read immediately whenever admin opens or views this enquiry
+        Notification::markEnquiryAsRead($enquiryId);
+
         if ($this->request->isAjax() || $this->request->get('format') === 'json') {
             $this->json([
                 'success'   => true,
@@ -125,6 +129,7 @@ class EnquiryManagementController extends Controller
         }
 
         ProductInquiry::assignSupplier($enquiryId, $supplierId);
+        Notification::markEnquiryAsRead($enquiryId);
 
         AuditLogger::log(
             'ASSIGN_SUPPLIER',
@@ -167,6 +172,8 @@ class EnquiryManagementController extends Controller
             return;
         }
 
+        Notification::markEnquiryAsRead($enquiryId);
+
         AuditLogger::log(
             'STATUS_CHANGE',
             'ProductInquiry',
@@ -202,6 +209,7 @@ class EnquiryManagementController extends Controller
 
         $notes = (string) $this->request->post('admin_notes', '');
         ProductInquiry::updateAdminNotes($enquiryId, $notes);
+        Notification::markEnquiryAsRead($enquiryId);
 
         AuditLogger::log(
             'UPDATE_NOTES',
@@ -255,6 +263,7 @@ class EnquiryManagementController extends Controller
 
         $adminUser = $this->authUser();
         $replyId   = ProductInquiry::addReply($enquiryId, (int) ($adminUser['id'] ?? 1), 'SUPER_ADMIN', $message);
+        Notification::markEnquiryAsRead($enquiryId);
 
         AuditLogger::log('REPLY', 'ProductInquiry', $enquiryId, 'Super Admin posted reply #' . $replyId);
 

@@ -332,8 +332,9 @@ if (!empty($user['id']) && ($user['role'] ?? '') === 'SUPER_ADMIN') {
                             </div>
                         <?php else: ?>
                             <?php foreach ($adminRecentNotifs as $n): ?>
+                                <?php $isReadRow = ((int)($n['is_read'] ?? 0) === 1); ?>
                                 <a href="<?= htmlspecialchars($baseUrl) ?>/admin/notifications/<?= (int)$n['id'] ?>/go" 
-                                   class="d-flex align-items-start gap-2.5 p-3 border-bottom text-decoration-none text-dark transition-colors admin-notif-item <?= $n['is_read'] ? 'bg-white' : 'bg-primary-subtle bg-opacity-10' ?>"
+                                   class="d-flex align-items-start gap-2.5 p-3 border-bottom text-decoration-none text-dark transition-colors admin-notif-item <?= $isReadRow ? 'bg-white' : 'bg-primary-subtle bg-opacity-10' ?>"
                                    data-id="<?= (int)$n['id'] ?>">
                                     <div class="rounded-circle d-flex align-items-center justify-content-center shrink-0 mt-0.5 <?= $n['badge_class'] ?>" style="width: 32px; height: 32px;">
                                         <i class="bi <?= htmlspecialchars($n['icon']) ?> fs-6"></i>
@@ -354,7 +355,7 @@ if (!empty($user['id']) && ($user['role'] ?? '') === 'SUPER_ADMIN') {
                                             <?= htmlspecialchars($n['message']) ?>
                                         </div>
                                     </div>
-                                    <?php if (!$n['is_read']): ?>
+                                    <?php if (!$isReadRow): ?>
                                         <span class="rounded-circle bg-primary mt-2 shrink-0" style="width: 7px; height: 7px;" title="Unread"></span>
                                     <?php endif; ?>
                                 </a>
@@ -379,8 +380,8 @@ if (!empty($user['id']) && ($user['role'] ?? '') === 'SUPER_ADMIN') {
                 </button>
                 <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2">
                     <li class="px-3 py-2 border-bottom">
-                        <div class="fw-bold small"><?= htmlspecialchars($user['name']) ?></div>
-                        <div class="text-muted small"><?= htmlspecialchars($user['email']) ?></div>
+                        <div class="fw-bold small"><?= htmlspecialchars($user['name'] ?? 'Super Administrator') ?></div>
+                        <div class="text-muted small"><?= htmlspecialchars($user['email'] ?? 'sportjunctions@gmail.com') ?></div>
                     </li>
                     <li><a class="dropdown-item py-2 small" href="<?= htmlspecialchars($baseUrl) ?>/admin/dashboard"><i class="bi bi-speedometer2 me-2 text-muted"></i>Dashboard</a></li>
                     <li><hr class="dropdown-divider my-1"></li>
@@ -666,8 +667,9 @@ if (!empty($user['id']) && ($user['role'] ?? '') === 'SUPER_ADMIN') {
 
             let html = '';
             notifications.forEach(n => {
-                const bgClass = n.is_read ? 'bg-white' : 'bg-primary-subtle bg-opacity-10';
-                const unreadDot = !n.is_read ? '<span class="rounded-circle bg-primary mt-2 shrink-0" style="width: 7px; height: 7px;" title="Unread"></span>' : '';
+                const isRead = (Number(n.is_read) === 1 || n.is_read === true);
+                const bgClass = isRead ? 'bg-white' : 'bg-primary-subtle bg-opacity-10';
+                const unreadDot = !isRead ? '<span class="rounded-circle bg-primary mt-2 shrink-0" style="width: 7px; height: 7px;" title="Unread"></span>' : '';
                 const link = baseUrl + '/admin/notifications/' + n.id + '/go';
 
                 html += `
@@ -713,6 +715,8 @@ if (!empty($user['id']) && ($user['role'] ?? '') === 'SUPER_ADMIN') {
                 console.warn('Notification poll deferred:', err);
             }
         }
+
+        window.fetchAdminNotifications = fetchNotifications;
 
         // Setup polling every 30 seconds
         pollTimer = setInterval(fetchNotifications, 30000);

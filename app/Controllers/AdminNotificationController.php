@@ -104,6 +104,9 @@ class AdminNotificationController extends Controller
                 if ($raw) {
                     $dest = Notification::resolveAdminLink($raw);
                     Notification::markAsRead($adminId, $id);
+                    if (!empty($raw['related_id']) && in_array(strtoupper((string)($raw['related_type'] ?? '')), ['ENQUIRY', 'INQUIRY'])) {
+                        Notification::markEnquiryAsRead((int)$raw['related_id'], $adminId);
+                    }
                     $this->redirect($dest);
                     return;
                 }
@@ -111,6 +114,9 @@ class AdminNotificationController extends Controller
 
             if ($notif) {
                 Notification::markAsRead($adminId, $id);
+                if (!empty($notif['related_id']) && in_array(strtoupper((string)($notif['related_type'] ?? '')), ['ENQUIRY', 'INQUIRY'])) {
+                    Notification::markEnquiryAsRead((int)$notif['related_id'], $adminId);
+                }
                 $dest = Notification::resolveAdminLink($notif);
                 $this->redirect($dest);
                 return;
@@ -130,6 +136,12 @@ class AdminNotificationController extends Controller
         $id = (int) ($params['id'] ?? $this->request->get('id', 0));
 
         $ok = ($id > 0) ? Notification::markAsRead($adminId, $id) : false;
+        if ($id > 0) {
+            $notif = Notification::fetch("SELECT related_type, related_id FROM `notifications` WHERE `id` = :id LIMIT 1", [':id' => $id]);
+            if ($notif && !empty($notif['related_id']) && in_array(strtoupper((string)($notif['related_type'] ?? '')), ['ENQUIRY', 'INQUIRY'])) {
+                Notification::markEnquiryAsRead((int)$notif['related_id'], $adminId);
+            }
+        }
         $unreadCount = Notification::getUnreadCount($adminId);
 
         $this->json([

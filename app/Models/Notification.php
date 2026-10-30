@@ -493,12 +493,60 @@ class Notification extends Model
     }
 
     /**
+     * Mark all notifications linked to a specific enquiry as read across all admin recipients.
+     */
+    public static function markEnquiryAsRead(int $enquiryId, ?int $adminUserId = null): int
+    {
+        if ($enquiryId <= 0) {
+            return 0;
+        }
+
+        try {
+            $sql = "
+                UPDATE `notifications` 
+                SET `is_read` = 1, `read_at` = NOW() 
+                WHERE `is_read` = 0 
+                  AND (
+                    (`related_type` IN ('ENQUIRY', 'INQUIRY') AND `related_id` = :eid)
+                    OR `link` = :link1
+                    OR `link` LIKE :link2
+                    OR `link` LIKE :link3
+                  )
+            ";
+            $bindings = [
+                ':eid'   => $enquiryId,
+                ':link1' => "/admin/enquiries/{$enquiryId}",
+                ':link2' => "%/admin/enquiries/{$enquiryId}%",
+                ':link3' => "%id={$enquiryId}%",
+            ];
+
+            $stmt = self::execute($sql, $bindings);
+            return (int) $stmt->rowCount();
+        } catch (Throwable $e) {
+            error_log("Notification::markEnquiryAsRead error: " . $e->getMessage());
+            return 0;
+        }
+    }
+
+    /**
      * Mark all notifications as read for user (optionally scoped to a tab/category)
      */
     public static function markAllAsRead(int $userId, ?string $tab = null): int
     {
         try {
-            $where = ["user_id = :uid", "is_read = 0"];
+            $isSuperAdmin = false;
+            if ($userId > 0) {
+                $role = self::fetchColumn("SELECT role FROM users WHERE id = :uid LIMIT 1", [':uid' => $userId]);
+                if (strtoupper((string)$role) === 'SUPER_ADMIN') {
+                    $isSuperAdmin = true;
+                }
+            }
+
+            if ($isSuperAdmin) {
+                $where = ["(user_id = :uid OR user_id = 1)", "is_read = 0"];
+            } else {
+                $where = ["user_id = :uid", "is_read = 0"];
+            }
             $bindings = [':uid' => $userId];
 
             if ($tab === 'enquiries' || $tab === 'enquiry') {

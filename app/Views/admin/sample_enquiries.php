@@ -364,6 +364,9 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .then(res => res.json())
         .then(data => {
+            if (window.fetchAdminNotifications) {
+                window.fetchAdminNotifications();
+            }
             if (!data.success || !data.enquiry) {
                 modalBody.innerHTML = `<div class="alert alert-danger mb-0">${escapeHtml(data.message || 'Error loading sample order details.')}</div>`;
                 return;
