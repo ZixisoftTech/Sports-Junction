@@ -423,14 +423,31 @@ class Notification extends Model
     public static function markAsRead(int $userId, int $notificationId): bool
     {
         try {
-            self::execute("
-                UPDATE `notifications` 
-                SET `is_read` = 1, `read_at` = NOW() 
-                WHERE `id` = :id AND `user_id` = :uid
-            ", [
-                ':id'  => $notificationId,
-                ':uid' => $userId,
-            ]);
+            // If user is Super Admin, allow marking any notification as read
+            $isSuperAdmin = false;
+            if ($userId > 0) {
+                $role = self::fetchColumn("SELECT role FROM users WHERE id = :uid LIMIT 1", [':uid' => $userId]);
+                if (strtoupper((string)$role) === 'SUPER_ADMIN') {
+                    $isSuperAdmin = true;
+                }
+            }
+
+            if ($isSuperAdmin) {
+                self::execute("
+                    UPDATE `notifications` 
+                    SET `is_read` = 1, `read_at` = NOW() 
+                    WHERE `id` = :id
+                ", [':id' => $notificationId]);
+            } else {
+                self::execute("
+                    UPDATE `notifications` 
+                    SET `is_read` = 1, `read_at` = NOW() 
+                    WHERE `id` = :id AND `user_id` = :uid
+                ", [
+                    ':id'  => $notificationId,
+                    ':uid' => $userId,
+                ]);
+            }
             return true;
         } catch (Throwable $e) {
             error_log("Notification::markAsRead error: " . $e->getMessage());
@@ -444,14 +461,30 @@ class Notification extends Model
     public static function markAsUnread(int $userId, int $notificationId): bool
     {
         try {
-            self::execute("
-                UPDATE `notifications` 
-                SET `is_read` = 0, `read_at` = NULL 
-                WHERE `id` = :id AND `user_id` = :uid
-            ", [
-                ':id'  => $notificationId,
-                ':uid' => $userId,
-            ]);
+            $isSuperAdmin = false;
+            if ($userId > 0) {
+                $role = self::fetchColumn("SELECT role FROM users WHERE id = :uid LIMIT 1", [':uid' => $userId]);
+                if (strtoupper((string)$role) === 'SUPER_ADMIN') {
+                    $isSuperAdmin = true;
+                }
+            }
+
+            if ($isSuperAdmin) {
+                self::execute("
+                    UPDATE `notifications` 
+                    SET `is_read` = 0, `read_at` = NULL 
+                    WHERE `id` = :id
+                ", [':id' => $notificationId]);
+            } else {
+                self::execute("
+                    UPDATE `notifications` 
+                    SET `is_read` = 0, `read_at` = NULL 
+                    WHERE `id` = :id AND `user_id` = :uid
+                ", [
+                    ':id'  => $notificationId,
+                    ':uid' => $userId,
+                ]);
+            }
             return true;
         } catch (Throwable $e) {
             error_log("Notification::markAsUnread error: " . $e->getMessage());

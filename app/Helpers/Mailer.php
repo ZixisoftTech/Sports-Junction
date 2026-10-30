@@ -1164,6 +1164,103 @@ HTML;
     }
 
     // -------------------------------------------------------------------------
+    // Suggestions & Feedback Internal Notification to Super Admin
+    // -------------------------------------------------------------------------
+    public static function sendFeedbackNotificationToAdmin(array $feedback, ?string $adminEmail = null): bool
+    {
+        $targetEmail = $adminEmail ?? Env::get('SUPER_ADMIN_EMAIL', 'sportjunctions@gmail.com');
+        $ref = $feedback['reference_id'] ?? ('#SFB-' . str_pad((string)($feedback['id'] ?? 0), 5, '0', STR_PAD_LEFT));
+        $name = trim((string)($feedback['name'] ?? 'Website Visitor'));
+        $email = trim((string)($feedback['email'] ?? ''));
+        $type = trim((string)($feedback['feedback_type'] ?? 'General Feedback'));
+        $subject = trim((string)($feedback['subject'] ?? 'Website Suggestion & Feedback'));
+
+        $emailSubject = "New Feedback {$ref}: [{$type}] " . mb_substr($subject, 0, 50);
+
+        $content = "
+            <h2 style='margin:0 0 14px 0;color:#0f172a;font-size:20px;font-weight:700;'>New Suggestion &amp; Feedback Received</h2>
+            <p style='color:#475569;font-size:14px;margin-bottom:20px;'>A visitor has submitted new feedback on the Sports Junction marketplace.</p>
+            
+            <table style='width:100%;border-collapse:collapse;font-size:13px;color:#334155;margin-bottom:24px;'>
+                <tr style='border-bottom:1px solid #e2e8f0;'><td style='padding:8px 0;font-weight:600;width:140px;'>Reference ID</td><td><strong>{$ref}</strong></td></tr>
+                <tr style='border-bottom:1px solid #e2e8f0;'><td style='padding:8px 0;font-weight:600;'>Full Name</td><td>" . htmlspecialchars($name) . "</td></tr>
+                <tr style='border-bottom:1px solid #e2e8f0;'><td style='padding:8px 0;font-weight:600;'>Email</td><td><a href='mailto:" . htmlspecialchars($email) . "'>" . htmlspecialchars($email) . "</a></td></tr>
+                <tr style='border-bottom:1px solid #e2e8f0;'><td style='padding:8px 0;font-weight:600;'>Phone</td><td>" . htmlspecialchars($feedback['phone'] ?? 'N/A') . "</td></tr>
+                <tr style='border-bottom:1px solid #e2e8f0;'><td style='padding:8px 0;font-weight:600;'>Company</td><td>" . htmlspecialchars($feedback['company_name'] ?? 'N/A') . "</td></tr>
+                <tr style='border-bottom:1px solid #e2e8f0;'><td style='padding:8px 0;font-weight:600;'>Country</td><td>" . htmlspecialchars($feedback['country_name'] ?? 'N/A') . "</td></tr>
+                <tr style='border-bottom:1px solid #e2e8f0;'><td style='padding:8px 0;font-weight:600;'>Feedback Type</td><td><span style='background:#f1f5f9;padding:2px 8px;border-radius:4px;font-weight:600;'>" . htmlspecialchars($type) . "</span></td></tr>
+                <tr style='border-bottom:1px solid #e2e8f0;'><td style='padding:8px 0;font-weight:600;'>Subject</td><td>" . htmlspecialchars($subject) . "</td></tr>
+                <tr style='border-bottom:1px solid #e2e8f0;'><td style='padding:8px 0;font-weight:600;'>Feedback Details</td><td style='white-space:pre-wrap;padding:8px 0;'>" . htmlspecialchars($feedback['message'] ?? '') . "</td></tr>
+                <tr><td style='padding:8px 0;font-weight:600;'>Attachment</td><td>" . (!empty($feedback['attachment_path']) ? "Yes (" . htmlspecialchars($feedback['attachment_name'] ?? 'File') . ")" : "None") . "</td></tr>
+            </table>
+        ";
+
+        return self::send($targetEmail, "Sports Junction Product Desk", $emailSubject, self::renderTemplate("Suggestion & Feedback", "Marketplace Feedback", $content, "/admin/feedbacks", "Review in Super Admin", '#00288e', '#e0e7ff'));
+    }
+
+    // -------------------------------------------------------------------------
+    // Career Application Notification to Super Admin
+    // -------------------------------------------------------------------------
+    public static function sendCareerApplicationNotificationToAdmin(array $application, ?string $adminEmail = null): bool
+    {
+        $targetEmail = $adminEmail ?? Env::get('SUPER_ADMIN_EMAIL', 'sportjunctions@gmail.com');
+        $appNo = $application['application_no'] ?? ('#APP-' . str_pad((string)($application['id'] ?? 0), 5, '0', STR_PAD_LEFT));
+        $name = trim((string)($application['full_name'] ?? 'Candidate'));
+        $position = trim((string)($application['position_applied'] ?? 'General Application'));
+
+        $emailSubject = "New Candidate Application {$appNo}: {$name} — {$position}";
+
+        $content = "
+            <h2 style='margin:0 0 14px 0;color:#0f172a;font-size:20px;font-weight:700;'>New Job Application Submitted</h2>
+            <p style='color:#475569;font-size:14px;margin-bottom:20px;'>A candidate has submitted an application for <strong>" . htmlspecialchars($position) . "</strong>.</p>
+            
+            <table style='width:100%;border-collapse:collapse;font-size:13px;color:#334155;margin-bottom:24px;'>
+                <tr style='border-bottom:1px solid #e2e8f0;'><td style='padding:8px 0;font-weight:600;width:150px;'>Application No</td><td><strong>{$appNo}</strong></td></tr>
+                <tr style='border-bottom:1px solid #e2e8f0;'><td style='padding:8px 0;font-weight:600;'>Candidate Name</td><td>" . htmlspecialchars($name) . "</td></tr>
+                <tr style='border-bottom:1px solid #e2e8f0;'><td style='padding:8px 0;font-weight:600;'>Email</td><td><a href='mailto:" . htmlspecialchars($application['email'] ?? '') . "'>" . htmlspecialchars($application['email'] ?? '') . "</a></td></tr>
+                <tr style='border-bottom:1px solid #e2e8f0;'><td style='padding:8px 0;font-weight:600;'>Mobile Phone</td><td>" . htmlspecialchars($application['phone'] ?? '') . "</td></tr>
+                <tr style='border-bottom:1px solid #e2e8f0;'><td style='padding:8px 0;font-weight:600;'>Location / Country</td><td>" . htmlspecialchars(($application['city'] ?? '') . ', ' . ($application['country_name'] ?? '')) . "</td></tr>
+                <tr style='border-bottom:1px solid #e2e8f0;'><td style='padding:8px 0;font-weight:600;'>Position Applied</td><td><strong style='color:#00288e;'>" . htmlspecialchars($position) . "</strong></td></tr>
+                <tr style='border-bottom:1px solid #e2e8f0;'><td style='padding:8px 0;font-weight:600;'>Total Experience</td><td>" . htmlspecialchars($application['total_experience'] ?? 'N/A') . "</td></tr>
+                <tr style='border-bottom:1px solid #e2e8f0;'><td style='padding:8px 0;font-weight:600;'>Current Organization</td><td>" . htmlspecialchars($application['current_company'] ?? 'N/A') . " (" . htmlspecialchars($application['current_job_title'] ?? 'N/A') . ")</td></tr>
+                <tr style='border-bottom:1px solid #e2e8f0;'><td style='padding:8px 0;font-weight:600;'>Notice Period</td><td>" . htmlspecialchars($application['notice_period'] ?? 'Immediate') . "</td></tr>
+                <tr style='border-bottom:1px solid #e2e8f0;'><td style='padding:8px 0;font-weight:600;'>Resume File</td><td>" . htmlspecialchars($application['resume_name'] ?? 'Resume') . "</td></tr>
+            </table>
+        ";
+
+        return self::send($targetEmail, "Sports Junction Talent Acquisition", $emailSubject, self::renderTemplate("Career Application", "Recruitment Desk", $content, "/admin/careers", "Review Candidate Application", '#00288e', '#e0e7ff'));
+    }
+
+    // -------------------------------------------------------------------------
+    // Career Application Candidate Confirmation
+    // -------------------------------------------------------------------------
+    public static function sendCareerApplicationConfirmationToCandidate(array $application): bool
+    {
+        $toEmail = trim((string)($application['email'] ?? ''));
+        if (empty($toEmail) || !filter_var($toEmail, FILTER_VALIDATE_EMAIL)) return false;
+
+        $name = trim((string)($application['full_name'] ?? 'Applicant'));
+        $appNo = $application['application_no'] ?? ('#APP-' . str_pad((string)($application['id'] ?? 0), 5, '0', STR_PAD_LEFT));
+        $position = trim((string)($application['position_applied'] ?? 'General Application'));
+
+        $subject = "Application Received: {$position} — Sports Junction Careers";
+
+        $content = "
+            <h2 style='margin:0 0 14px 0;color:#0f172a;font-size:22px;font-weight:700;'>Thank You for Applying!</h2>
+            <p>Dear <strong>" . htmlspecialchars($name) . "</strong>,</p>
+            <p>We have successfully received your application for <strong>" . htmlspecialchars($position) . "</strong> at Sports Junction. Your application reference number is <strong>{$appNo}</strong>.</p>
+            
+            <p>Our talent acquisition and category hiring teams review all submissions carefully. If your background and experience align with our requirements, a member of our team will contact you to schedule an initial discussion.</p>
+            
+            " . self::renderCalloutBox("Application Summary", "Position: {$position}<br>Reference ID: {$appNo}<br>Location: " . htmlspecialchars($application['city'] ?? '') . ", " . htmlspecialchars($application['country_name'] ?? 'India'), "info") . "
+            
+            <p style='font-size:13px;color:#64748b;margin-top:20px;'>Thank you for your interest in helping us power India's sports manufacturing future.</p>
+        ";
+
+        return self::send($toEmail, $name, $subject, self::renderTemplate("Application Acknowledged", "Sports Junction Careers", $content, "/", "Visit Sports Junction"));
+    }
+
+    // -------------------------------------------------------------------------
     // Template V: New Buyer Chat Notification to Supplier (1st message only)
     // -------------------------------------------------------------------------
     public static function sendBuyerChatNotificationToSupplier(

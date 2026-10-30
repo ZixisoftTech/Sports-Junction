@@ -577,7 +577,11 @@ class Product extends Model
                 ':shipping_info'        => !empty($data['shipping_info']) ? trim($data['shipping_info']) : null,
                 ':export_packaging'     => !empty($data['export_packaging']) ? trim($data['export_packaging']) : null,
                 ':status'               => in_array($data['status'] ?? '', ['PUBLISHED', 'DRAFT', 'INACTIVE', 'ACTIVE'], true) ? $data['status'] : 'PUBLISHED',
-                ':approval_status'      => in_array($data['approval_status'] ?? '', ['DRAFT', 'PENDING_APPROVAL', 'APPROVED', 'REJECTED'], true) ? $data['approval_status'] : 'APPROVED',
+                ':approval_status'      => (function() use ($data) {
+                    $raw = strtoupper(trim((string)($data['approval_status'] ?? '')));
+                    if ($raw === 'PENDING') $raw = 'PENDING_APPROVAL';
+                    return in_array($raw, ['DRAFT', 'PENDING_APPROVAL', 'APPROVED', 'REJECTED'], true) ? $raw : 'APPROVED';
+                })(),
                 ':is_featured'          => !empty($data['is_featured']) ? 1 : 0,
                 ':featured_order'       => (int) ($data['featured_order'] ?? 0),
             ]);

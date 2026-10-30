@@ -232,8 +232,11 @@ class Supplier extends Model
         $bindings = [];
 
         if ($searchValue !== '') {
-            $where[] = "(s.company_name LIKE :search OR s.contact_person LIKE :search OR s.email LIKE :search OR s.phone LIKE :search OR bt.name LIKE :search)";
-            $bindings[':search'] = "%{$searchValue}%";
+            $where[] = "(s.company_name LIKE :s1 OR s.contact_person LIKE :s2 OR s.email LIKE :s3 OR s.phone LIKE :s4 OR bt.name LIKE :s5)";
+            $term = "%{$searchValue}%";
+            for ($i = 1; $i <= 5; $i++) {
+                $bindings[":s{$i}"] = $term;
+            }
         }
 
         if ($statusFilter !== '') {

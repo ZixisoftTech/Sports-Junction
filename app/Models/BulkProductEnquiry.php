@@ -210,14 +210,14 @@ class BulkProductEnquiry extends Model
                     ':bulk_id'      => $bulkEnquiryId,
                     ':product_id'   => (int)$item['product_id'],
                     ':supplier_id'  => (int)$item['supplier_id'],
-                    ':prod_name'    => (string)$item['product_name'],
+                    ':prod_name'    => (string)($item['product_name'] ?? $item['title'] ?? 'Sports Product'),
                     ':supp_name'    => (string)($item['supplier_name'] ?? 'Verified Manufacturer'),
-                    ':qty'          => max(1, (int)$item['target_quantity']),
+                    ':qty'          => max(1, (int)($item['target_quantity'] ?? $item['quantity'] ?? 1)),
                     ':moq_qty'      => max(1, (int)($item['moq_quantity'] ?? 1)),
                     ':moq_unit'     => (string)($item['moq_unit_name'] ?? 'units'),
                     ':target_price' => !empty($item['target_price']) ? (float)$item['target_price'] : null,
                     ':currency'     => (string)($item['currency'] ?? 'USD'),
-                    ':specs'        => (string)$item['specifications'],
+                    ':specs'        => (string)($item['specifications'] ?? ''),
                     ':att_path'     => $item['attachment_path'] ?? null,
                     ':att_name'     => $item['attachment_name'] ?? null,
                     ':att_size'     => isset($item['attachment_size']) ? (int)$item['attachment_size'] : null,
@@ -263,6 +263,14 @@ class BulkProductEnquiry extends Model
             error_log("BulkProductEnquiry::createBulkEnquiry error: " . $e->getMessage());
             throw $e;
         }
+    }
+
+    /**
+     * Get parent enquiry by ID with items (ActiveRecord standard alias)
+     */
+    public static function findById(int $id): ?array
+    {
+        return self::getDetailForAdmin($id);
     }
 
     /**

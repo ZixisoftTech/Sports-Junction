@@ -76,11 +76,17 @@ $baseUrl = $baseUrl ?? Response::baseUrl();
 
                 <!-- Error Messages Box -->
                 <div id="supplierErrorsContainer" class="hidden p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-800">
-                    <div class="font-bold flex items-center gap-1.5 mb-1 text-xs">
-                        <span class="material-symbols-outlined text-[16px] text-red-600">error</span>
-                        <span>Validation Issues Found in Rows:</span>
+                    <div class="flex items-center justify-between mb-1.5 flex-wrap gap-2">
+                        <div class="font-bold flex items-center gap-1.5 text-xs">
+                            <span class="material-symbols-outlined text-[16px] text-red-600">error</span>
+                            <span>Validation Issues Found in Rows:</span>
+                        </div>
+                        <button type="button" id="btnDownloadErrorReport" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-red-700 hover:bg-red-800 text-white font-bold text-[11px] transition-colors shadow-2xs cursor-pointer">
+                            <span class="material-symbols-outlined text-[14px]">download</span>
+                            <span>Download Error Report (.txt)</span>
+                        </button>
                     </div>
-                    <ul id="supplierErrorsList" class="list-disc list-inside text-[11px] space-y-1 max-h-36 overflow-y-auto"></ul>
+                    <ul id="supplierErrorsList" class="list-disc list-inside text-[11px] space-y-1.5 max-h-48 overflow-y-auto pr-1"></ul>
                 </div>
 
                 <!-- Preview Table -->
@@ -270,9 +276,39 @@ document.addEventListener('DOMContentLoaded', function () {
                 const errors = data.errors || [];
                 if (errors.length > 0) {
                     errorsContainer.classList.remove('hidden');
-                    errorsList.innerHTML = errors.map(err => `
-                        <li><strong class="font-bold">Row ${err.row}:</strong> ${escapeHtml(err.message)}</li>
-                    `).join('');
+                    errorsList.innerHTML = errors.map(err => {
+                        const errorDetails = Array.isArray(err.errors) 
+                            ? err.errors.join('; ') 
+                            : (err.message || 'Validation error');
+                        const prodName = err.product ? ` [${escapeHtml(err.product)}]` : '';
+                        return `<li><strong class="font-bold text-red-950">Row ${err.row}${prodName}:</strong> <span class="text-red-900">${escapeHtml(errorDetails)}</span></li>`;
+                    }).join('');
+
+                    // Enable download of error report
+                    const btnDownload = document.getElementById('btnDownloadErrorReport');
+                    if (btnDownload) {
+                        btnDownload.onclick = function () {
+                            let textContent = "SPORTS JUNCTION — BULK PRODUCT IMPORT ERROR REPORT\n";
+                            textContent += "Generated At: " + new Date().toLocaleString() + "\n";
+                            textContent += "Total Rows: " + (stats.total || 0) + " | Valid: " + (stats.valid || 0) + " | Issues: " + errors.length + "\n";
+                            textContent += "--------------------------------------------------------\n\n";
+
+                            errors.forEach(err => {
+                                const details = Array.isArray(err.errors) ? err.errors.join('; ') : (err.message || 'Error');
+                                textContent += `Row ${err.row}` + (err.product ? ` [${err.product}]` : '') + `:\n  - ${details}\n\n`;
+                            });
+
+                            const blob = new Blob([textContent], { type: 'text/plain;charset=utf-8' });
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = `bulk_upload_errors_${new Date().toISOString().slice(0,10)}.txt`;
+                            document.body.appendChild(a);
+                            a.click();
+                            document.body.removeChild(a);
+                            URL.revokeObjectURL(url);
+                        };
+                    }
                 } else {
                     errorsContainer.classList.add('hidden');
                     errorsList.innerHTML = '';

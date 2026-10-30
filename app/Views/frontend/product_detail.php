@@ -517,7 +517,24 @@ $supplierCertificationTags = !empty($product['supplier_id']) ? \App\Models\Suppl
 
     <!-- RELATED PRODUCTS SECTION -->
     <?php if (!empty($relatedProducts)): ?>
-        <div class="space-y-6">
+        <?php
+            $currentUser = \App\Helpers\Session::get('auth_user');
+            $buyerSortIds = [];
+            if ($currentUser && ($currentUser['role'] ?? '') === 'BUYER') {
+                try {
+                    $buyerSortIds = \App\Models\BuyerFavourite::getBuyerSortProductIds((int)$currentUser['id']);
+                } catch (\Throwable $e) {
+                    $buyerSortIds = [];
+                }
+            } else {
+                try {
+                    $buyerSortIds = \App\Models\BuyerFavourite::getGuestSortIds();
+                } catch (\Throwable $e) {
+                    $buyerSortIds = [];
+                }
+            }
+        ?>
+        <div class="space-y-6 mt-12">
             <div class="flex items-center justify-between">
                 <div>
                     <span class="text-xs font-bold uppercase tracking-wider text-blue-800">Related Catalog</span>
@@ -533,62 +550,104 @@ $supplierCertificationTags = !empty($product['supplier_id']) ? \App\Models\Suppl
                     <?php 
                         $relUrl = htmlspecialchars($baseUrl) . '/product/' . htmlspecialchars($rel['slug'] ?? (string)$rel['id']);
                         $relImg = \App\Helpers\Uploader::imageUrl($rel['primary_image'] ?? null);
+                        $inSort = in_array((int)$rel['id'], $buyerSortIds, true);
                     ?>
                     <div class="bg-white rounded-2xl border border-surface-container shadow-sm hover:shadow-md transition-all overflow-hidden flex flex-col justify-between group">
-                        <div class="relative w-full h-44 bg-gray-100 overflow-hidden">
+                        <!-- Image Container -->
+                        <div class="relative w-full h-56 bg-gray-100 overflow-hidden">
                             <a href="<?= $relUrl ?>">
                                 <img src="<?= htmlspecialchars($relImg) ?>" alt="<?= htmlspecialchars($rel['name']) ?>" onerror="this.onerror=null;this.src='<?= htmlspecialchars($baseUrl) ?>/assets/images/logo.jpg';" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
                             </a>
+                            
                             <?php if (!empty($rel['certificates'])): ?>
-                                <div class="absolute top-2 left-2 flex flex-col gap-1 items-start max-w-[85%] pointer-events-none">
+                                <div class="absolute top-3 left-3 flex flex-col gap-1 items-start max-w-[80%] pointer-events-none">
                                     <?php foreach ($rel['certificates'] as $c): ?>
                                         <?php 
                                             $cIcon = trim($c['icon'] ?? 'verified');
                                             $isImg = (str_starts_with($cIcon, '/') || str_starts_with($cIcon, 'http') || str_contains($cIcon, '.'));
                                             $iconUrl = $isImg ? \App\Core\Response::formatImageUrl($cIcon) : '';
                                         ?>
-                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/95 backdrop-blur-md text-[9px] font-bold text-slate-800 shadow-sm border border-slate-200/80 max-w-full">
+                                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-white/95 backdrop-blur-md text-[10px] font-bold text-slate-800 shadow-sm border border-slate-200/80 max-w-full">
                                             <?php if ($isImg): ?>
-                                                <img src="<?= htmlspecialchars($iconUrl) ?>" alt="" class="w-3 h-3 object-contain rounded-xs shrink-0" onerror="this.style.display='none';">
+                                                <img src="<?= htmlspecialchars($iconUrl) ?>" alt="" class="w-3.5 h-3.5 object-contain rounded-xs shrink-0" onerror="this.style.display='none';">
                                             <?php else: ?>
-                                                <span class="material-symbols-outlined text-[11px] text-amber-500 shrink-0"><?= htmlspecialchars($cIcon ?: 'verified') ?></span>
+                                                <span class="material-symbols-outlined text-[13px] text-amber-500 shrink-0"><?= htmlspecialchars($cIcon ?: 'verified') ?></span>
                                             <?php endif; ?>
                                             <span class="truncate"><?= htmlspecialchars($c['name']) ?></span>
                                         </span>
                                     <?php endforeach; ?>
                                 </div>
                             <?php endif; ?>
+
+                            <div class="absolute top-3 right-3 flex items-center gap-1.5 z-10">
+                                <span class="px-2 py-0.5 rounded-md bg-blue-700 text-white font-mono text-[10px] font-bold shadow-sm">
+                                    OEM / ODM
+                                </span>
+                                <button type="button" 
+                                    data-product-sort-id="<?= (int)$rel['id'] ?>"
+                                    onclick="toggleSortProduct(<?= (int)$rel['id'] ?>, this)" 
+                                    class="sort-btn w-7 h-7 rounded-full bg-white/95 backdrop-blur-md shadow-xs border <?= $inSort ? 'text-blue-900 border-blue-500 bg-blue-50' : 'text-slate-600 border-slate-200 hover:text-blue-900 hover:border-blue-400' ?> flex items-center justify-center transition-all cursor-pointer" 
+                                    title="<?= $inSort ? 'In Sort List' : 'Add to Sort' ?>">
+                                    <span class="material-symbols-outlined text-[16px] <?= $inSort ? 'fill-1' : '' ?>">checklist</span>
+                                </button>
+                            </div>
                         </div>
-                        <div class="p-4 flex flex-col flex-1 justify-between">
+
+                        <!-- Content Body -->
+                        <div class="p-5 flex flex-col flex-1 justify-between">
                             <div>
-                                <h4 class="font-headline font-bold text-xs text-on-surface line-clamp-2 mb-1 group-hover:text-blue-700 transition-colors">
+                                <div class="text-[11px] text-outline font-semibold uppercase tracking-wider mb-1">
+                                    <?= htmlspecialchars($rel['category_name'] ?? $product['category_name'] ?? 'Sports Gear') ?>
+                                </div>
+                                <h4 class="font-headline font-bold text-sm text-on-surface line-clamp-2 mb-2 group-hover:text-blue-700 transition-colors">
                                     <a href="<?= $relUrl ?>"><?= htmlspecialchars($rel['name']) ?></a>
                                 </h4>
-                                <div class="font-headline font-bold text-sm text-blue-900 mt-1">
-                                    $<?= number_format((float)$rel['min_price'], 2) ?>
-                                </div>
-                                <div class="text-[11px] text-outline mt-0.5">
-                                    MOQ: <?= (int)$rel['moq_quantity'] ?> <?= htmlspecialchars($rel['moq_unit_name'] ?? 'units') ?>
+
+                                <!-- Price Range -->
+                                <div class="mt-2 mb-3">
+                                    <div class="font-headline font-extrabold text-base text-blue-900">
+                                        $<?= number_format((float)$rel['min_price'], 2) ?>
+                                        <?php if ((float)($rel['max_price'] ?? 0) > (float)$rel['min_price']): ?>
+                                            - $<?= number_format((float)$rel['max_price'], 2) ?>
+                                        <?php endif; ?>
+                                    </div>
+                                    <div class="flex items-center gap-3 text-xs text-outline mt-1 font-medium">
+                                        <span>MOQ: <strong class="text-on-surface"><?= (int)$rel['moq_quantity'] ?> <?= htmlspecialchars($rel['moq_unit_name'] ?? 'units') ?></strong></span>
+                                        <span>•</span>
+                                        <span><?= htmlspecialchars($rel['country_name'] ?? 'India') ?></span>
+                                    </div>
                                 </div>
                             </div>
-                            <div class="pt-3 border-t border-surface-container mt-3 grid grid-cols-2 gap-2">
-                                <a href="<?= $relUrl ?>" class="w-full py-1.5 text-center rounded-lg bg-surface-container-low hover:bg-surface-container-high text-blue-900 text-xs font-bold transition-colors inline-flex items-center justify-center">
-                                    Specs & Samples
-                                </a>
-                                <button type="button" onclick="openProductChat(<?= htmlspecialchars(json_encode([
-                                    'id' => (int)$rel['id'],
-                                    'product_id' => (int)$rel['id'],
-                                    'supplier_id' => (int)($rel['supplier_id'] ?? 1),
-                                    'title' => $rel['name'] ?? $rel['title'] ?? '',
-                                    'name' => $rel['name'] ?? $rel['title'] ?? '',
-                                    'primary_image' => $relImg,
-                                    'min_price' => (float)($rel['min_price'] ?? 0),
-                                    'max_price' => (float)($rel['max_price'] ?? 0),
-                                    'moq_quantity' => (int)($rel['moq_quantity'] ?? 1),
-                                    'supplier_name' => $rel['supplier_name'] ?? 'Verified Factory'
-                                ])) ?>)" class="w-full py-1.5 text-center rounded-lg bg-blue-900 hover:bg-blue-950 text-white text-xs font-bold transition-colors inline-flex items-center justify-center gap-1.5 cursor-pointer shadow-xs">
+
+                            <!-- Card Footer CTAs (50% Shortlist / 50% Chat Now) -->
+                            <div class="pt-3 border-t border-surface-container grid grid-cols-2 gap-2">
+                                <!-- Button 1: Shortlist -->
+                                <button type="button" 
+                                    data-product-sort-id="<?= (int)$rel['id'] ?>"
+                                    onclick="toggleSortProduct(<?= (int)$rel['id'] ?>, this)" 
+                                    class="sort-footer-btn w-full py-2 text-center rounded-xl <?= $inSort ? 'bg-blue-50 text-blue-900 border border-blue-400' : 'bg-surface-container-low hover:bg-surface-container-high text-blue-900 border border-slate-200/80' ?> text-xs font-bold transition-colors inline-flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs" 
+                                    title="<?= $inSort ? 'In Sort List' : 'Add to Sort' ?>">
+                                    <span class="material-symbols-outlined text-[15px] <?= $inSort ? 'text-blue-900 fill-1' : 'text-slate-600' ?>">checklist</span>
+                                    <span class="btn-sort-label"><?= $inSort ? 'Shortlisted' : 'Shortlist' ?></span>
+                                </button>
+
+                                <!-- Button 2: Chat Now -->
+                                <button type="button" 
+                                    onclick="openProductChat(<?= htmlspecialchars(json_encode([
+                                        'id' => (int)$rel['id'],
+                                        'product_id' => (int)$rel['id'],
+                                        'supplier_id' => (int)($rel['supplier_id'] ?? 1),
+                                        'title' => $rel['name'] ?? $rel['title'] ?? '',
+                                        'name' => $rel['name'] ?? $rel['title'] ?? '',
+                                        'primary_image' => $relImg,
+                                        'min_price' => (float)($rel['min_price'] ?? 0),
+                                        'max_price' => (float)($rel['max_price'] ?? 0),
+                                        'moq_quantity' => (int)($rel['moq_quantity'] ?? 1),
+                                        'supplier_name' => $rel['supplier_name'] ?? 'Verified Factory'
+                                    ])) ?>)" 
+                                    class="w-full py-2 text-center rounded-xl bg-blue-900 hover:bg-blue-950 text-white text-xs font-bold transition-colors inline-flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs">
                                     <span class="material-symbols-outlined text-[15px]">chat</span>
-                                    <span>Chat</span>
+                                    <span>Chat Now</span>
                                 </button>
                             </div>
                         </div>

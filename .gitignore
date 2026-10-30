@@ -13,3 +13,5 @@ storage/tmp/*
 !storage/tmp/.gitkeep
 storage/tmp_uploads/*
 !storage/tmp_uploads/.gitkeep
+storage/tmp_uploads_old/
+storage/uploads_old/

@@ -143,6 +143,29 @@ if ($authUser && ($authUser['role'] ?? '') === 'BUYER') {
             -ms-overflow-style: none;
             scrollbar-width: none;
         }
+
+        /* Google Translate clean integration styles */
+        .goog-te-banner-frame.skiptranslate,
+        iframe.goog-te-banner-frame,
+        .goog-te-banner-frame {
+            display: none !important;
+            visibility: hidden !important;
+            height: 0 !important;
+        }
+        body {
+            top: 0px !important;
+            position: static !important;
+        }
+        .skiptranslate:not(#google_translate_element) {
+            display: none !important;
+        }
+        #goog-gt-tt, .goog-te-balloon-frame {
+            display: none !important;
+        }
+        .goog-text-highlight {
+            background: none !important;
+            box-shadow: none !important;
+        }
     </style>
 </head>
 <body class="bg-surface text-on-surface font-sans antialiased flex flex-col min-h-screen">
@@ -231,9 +254,66 @@ if ($authUser && ($authUser['role'] ?? '') === 'BUYER') {
                         SELL
                     </a>
                 <?php endif; ?>
-                <div class="hidden md:flex items-center gap-1 text-on-surface-variant hover:text-on-surface cursor-pointer py-1 pl-2">
-                    <span class="material-symbols-outlined text-[18px]">language</span>
-                    <span class="text-xs font-semibold">USD ($)</span>
+                <!-- Google Website Translation Dropdown -->
+                <div class="relative" id="googleTranslateWrapper">
+                    <button type="button" id="btnGoogleTranslateToggle" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full border border-slate-200 hover:border-slate-300 bg-white text-on-surface-variant hover:text-on-surface text-xs font-semibold shadow-2xs transition-all cursor-pointer" title="Translate Website">
+                        <span class="material-symbols-outlined text-[17px] text-primary">translate</span>
+                        <span id="currentLangCode" class="font-bold">EN</span>
+                        <span class="material-symbols-outlined text-[13px] text-slate-400">expand_more</span>
+                    </button>
+                    <div id="googleTranslateDropdown" class="hidden absolute right-0 top-full mt-1.5 w-48 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 z-50 max-h-72 overflow-y-auto">
+                        <div class="px-3 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 mb-1">Translate Page</div>
+                        <button type="button" onclick="setSiteLanguage('en')" class="w-full text-left px-3 py-1.5 text-xs font-medium hover:bg-slate-50 flex items-center justify-between transition-colors lang-opt-btn" data-lang="en">
+                            <span>English (Default)</span>
+                            <span class="lang-check text-primary font-bold hidden">&check;</span>
+                        </button>
+                        <button type="button" onclick="setSiteLanguage('hi')" class="w-full text-left px-3 py-1.5 text-xs font-medium hover:bg-slate-50 flex items-center justify-between transition-colors lang-opt-btn" data-lang="hi">
+                            <span>हिन्दी (Hindi)</span>
+                            <span class="lang-check text-primary font-bold hidden">&check;</span>
+                        </button>
+                        <button type="button" onclick="setSiteLanguage('es')" class="w-full text-left px-3 py-1.5 text-xs font-medium hover:bg-slate-50 flex items-center justify-between transition-colors lang-opt-btn" data-lang="es">
+                            <span>Español (Spanish)</span>
+                            <span class="lang-check text-primary font-bold hidden">&check;</span>
+                        </button>
+                        <button type="button" onclick="setSiteLanguage('fr')" class="w-full text-left px-3 py-1.5 text-xs font-medium hover:bg-slate-50 flex items-center justify-between transition-colors lang-opt-btn" data-lang="fr">
+                            <span>Français (French)</span>
+                            <span class="lang-check text-primary font-bold hidden">&check;</span>
+                        </button>
+                        <button type="button" onclick="setSiteLanguage('de')" class="w-full text-left px-3 py-1.5 text-xs font-medium hover:bg-slate-50 flex items-center justify-between transition-colors lang-opt-btn" data-lang="de">
+                            <span>Deutsch (German)</span>
+                            <span class="lang-check text-primary font-bold hidden">&check;</span>
+                        </button>
+                        <button type="button" onclick="setSiteLanguage('ar')" class="w-full text-left px-3 py-1.5 text-xs font-medium hover:bg-slate-50 flex items-center justify-between transition-colors lang-opt-btn" data-lang="ar">
+                            <span>العربية (Arabic)</span>
+                            <span class="lang-check text-primary font-bold hidden">&check;</span>
+                        </button>
+                        <button type="button" onclick="setSiteLanguage('zh-CN')" class="w-full text-left px-3 py-1.5 text-xs font-medium hover:bg-slate-50 flex items-center justify-between transition-colors lang-opt-btn" data-lang="zh-CN">
+                            <span>中文 (Chinese)</span>
+                            <span class="lang-check text-primary font-bold hidden">&check;</span>
+                        </button>
+                        <button type="button" onclick="setSiteLanguage('ja')" class="w-full text-left px-3 py-1.5 text-xs font-medium hover:bg-slate-50 flex items-center justify-between transition-colors lang-opt-btn" data-lang="ja">
+                            <span>日本語 (Japanese)</span>
+                            <span class="lang-check text-primary font-bold hidden">&check;</span>
+                        </button>
+                        <button type="button" onclick="setSiteLanguage('ru')" class="w-full text-left px-3 py-1.5 text-xs font-medium hover:bg-slate-50 flex items-center justify-between transition-colors lang-opt-btn" data-lang="ru">
+                            <span>Русский (Russian)</span>
+                            <span class="lang-check text-primary font-bold hidden">&check;</span>
+                        </button>
+                        <button type="button" onclick="setSiteLanguage('pt')" class="w-full text-left px-3 py-1.5 text-xs font-medium hover:bg-slate-50 flex items-center justify-between transition-colors lang-opt-btn" data-lang="pt">
+                            <span>Português (Portuguese)</span>
+                            <span class="lang-check text-primary font-bold hidden">&check;</span>
+                        </button>
+                        <button type="button" onclick="setSiteLanguage('it')" class="w-full text-left px-3 py-1.5 text-xs font-medium hover:bg-slate-50 flex items-center justify-between transition-colors lang-opt-btn" data-lang="it">
+                            <span>Italiano (Italian)</span>
+                            <span class="lang-check text-primary font-bold hidden">&check;</span>
+                        </button>
+                        <div class="border-t border-slate-100 mt-1 pt-1">
+                            <button type="button" onclick="setSiteLanguage('en')" class="w-full text-left px-3 py-1.5 text-[11px] font-bold text-blue-900 hover:bg-blue-50 transition-colors flex items-center gap-1">
+                                <span class="material-symbols-outlined text-[14px]">restart_alt</span>
+                                <span>Reset to Original (English)</span>
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1264,7 +1344,86 @@ if ($authUser && ($authUser['role'] ?? '') === 'BUYER') {
                 alert('A network or server error occurred. Please try again.');
             });
         }
+
+        // Google Website Translation Controller
+        function getCookie(name) {
+            const v = document.cookie.match('(^|;) ?' + name + '=([^;]*)(;|$)');
+            return v ? v[2] : null;
+        }
+
+        function updateLangUI(lang) {
+            const upper = (lang || 'en').toUpperCase();
+            const labelEl = document.getElementById('currentLangCode');
+            if (labelEl) labelEl.textContent = upper;
+
+            document.querySelectorAll('.lang-opt-btn').forEach(btn => {
+                const blang = btn.getAttribute('data-lang');
+                const check = btn.querySelector('.lang-check');
+                if (blang === lang) {
+                    btn.classList.add('bg-blue-50', 'text-blue-900', 'font-bold');
+                    if (check) check.classList.remove('hidden');
+                } else {
+                    btn.classList.remove('bg-blue-50', 'text-blue-900', 'font-bold');
+                    if (check) check.classList.add('hidden');
+                }
+            });
+        }
+
+        function setSiteLanguage(lang) {
+            const domain = window.location.hostname;
+            if (lang === 'en') {
+                // Reset translation to original English
+                document.cookie = 'googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+                document.cookie = 'googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=' + domain + ';';
+                document.cookie = 'googtrans=/en/en; path=/;';
+                document.cookie = 'googtrans=/en/en; path=/; domain=' + domain + ';';
+            } else {
+                const val = '/en/' + lang;
+                document.cookie = 'googtrans=' + val + '; path=/;';
+                document.cookie = 'googtrans=' + val + '; path=/; domain=' + domain + ';';
+            }
+            updateLangUI(lang);
+            window.location.reload();
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const cookie = getCookie('googtrans');
+            let currentLang = 'en';
+            if (cookie) {
+                const parts = cookie.split('/');
+                if (parts.length >= 3 && parts[2]) {
+                    currentLang = parts[2];
+                }
+            }
+            updateLangUI(currentLang);
+
+            const toggleBtn = document.getElementById('btnGoogleTranslateToggle');
+            const dropdown = document.getElementById('googleTranslateDropdown');
+            if (toggleBtn && dropdown) {
+                toggleBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    dropdown.classList.toggle('hidden');
+                });
+                document.addEventListener('click', (e) => {
+                    if (!dropdown.contains(e.target) && !toggleBtn.contains(e.target)) {
+                        dropdown.classList.add('hidden');
+                    }
+                });
+            }
+        });
     </script>
+    <div id="google_translate_element" style="display:none;"></div>
+    <script type="text/javascript">
+    function googleTranslateElementInit() {
+        new google.translate.TranslateElement({
+            pageLanguage: 'en',
+            includedLanguages: 'en,hi,es,fr,de,ar,zh-CN,ja,ru,pt,it',
+            layout: google.translate.TranslateElement.InlineLayout.SIMPLE,
+            autoDisplay: false
+        }, 'google_translate_element');
+    }
+    </script>
+    <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit" async></script>
     <?php require_once dirname(__DIR__) . '/components/autoload_popup.php'; ?>
     <?php require_once dirname(__DIR__) . '/components/chat_popup.php'; ?>
 </body>

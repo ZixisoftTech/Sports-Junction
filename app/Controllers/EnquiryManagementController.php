@@ -476,6 +476,302 @@ class EnquiryManagementController extends Controller
     }
 
     /**
+     * 1. Product Page Enquiries (Strict Source: PRODUCT_PAGE)
+     */
+    public function productEnquiries(): void
+    {
+        $metrics    = ProductInquiry::getSourceMetrics('PRODUCT_PAGE');
+        $suppliers  = Supplier::allActive();
+        $categories = Category::allActive();
+
+        $this->render('admin/enquiries_product', [
+            'pageTitle'   => 'Product Page Enquiries — Sports Junction Admin',
+            'metrics'     => $metrics,
+            'suppliers'   => $suppliers,
+            'categories'  => $categories,
+            'activeMenu'  => 'enquiries_product',
+        ], 'admin');
+    }
+
+    public function productEnquiriesData(): void
+    {
+        $params = [
+            'draw'           => $this->request->get('draw', 1),
+            'start'          => $this->request->get('start', 0),
+            'length'         => $this->request->get('length', 15),
+            'search'         => $this->request->get('search', []),
+            'order'          => $this->request->get('order', []),
+            'supplier_id'    => $this->request->get('supplier_id', 'ALL'),
+            'status'         => $this->request->get('status', 'ALL'),
+            'category_id'    => $this->request->get('category_id', 'ALL'),
+            'start_date'     => $this->request->get('start_date', ''),
+            'end_date'       => $this->request->get('end_date', ''),
+            'strict_source'  => 'PRODUCT_PAGE',
+        ];
+
+        $result = ProductInquiry::getAdminDataTable($params);
+        $this->json($result);
+    }
+
+    public function productEnquiriesExport(): void
+    {
+        $this->exportForSource('PRODUCT_PAGE', 'Product Page Enquiries', 'sports_junction_product_enquiries');
+    }
+
+    /**
+     * 2. RFQ Enquiries (Strict Source: RFQ)
+     */
+    public function rfqEnquiries(): void
+    {
+        $metrics    = ProductInquiry::getSourceMetrics('RFQ');
+        $suppliers  = Supplier::allActive();
+        $categories = Category::allActive();
+
+        $this->render('admin/enquiries_rfq', [
+            'pageTitle'   => 'RFQ Enquiries (Request for Quotation) — Sports Junction Admin',
+            'metrics'     => $metrics,
+            'suppliers'   => $suppliers,
+            'categories'  => $categories,
+            'activeMenu'  => 'enquiries_rfq',
+        ], 'admin');
+    }
+
+    public function rfqEnquiriesData(): void
+    {
+        $params = [
+            'draw'           => $this->request->get('draw', 1),
+            'start'          => $this->request->get('start', 0),
+            'length'         => $this->request->get('length', 15),
+            'search'         => $this->request->get('search', []),
+            'order'          => $this->request->get('order', []),
+            'supplier_id'    => $this->request->get('supplier_id', 'ALL'),
+            'status'         => $this->request->get('status', 'ALL'),
+            'category_id'    => $this->request->get('category_id', 'ALL'),
+            'start_date'     => $this->request->get('start_date', ''),
+            'end_date'       => $this->request->get('end_date', ''),
+            'strict_source'  => 'RFQ',
+        ];
+
+        $result = ProductInquiry::getAdminDataTable($params);
+        $this->json($result);
+    }
+
+    public function rfqEnquiriesExport(): void
+    {
+        $this->exportForSource('RFQ', 'RFQ Enquiries', 'sports_junction_rfq_enquiries');
+    }
+
+    /**
+     * 3. Fast OEM Customization Enquiries (Strict Source: FAST_OEM)
+     */
+    public function fastOemEnquiries(): void
+    {
+        $metrics    = ProductInquiry::getSourceMetrics('FAST_OEM');
+        $suppliers  = Supplier::allActive();
+        $categories = Category::allActive();
+
+        $this->render('admin/enquiries_fast_oem', [
+            'pageTitle'   => 'Fast OEM Customization Enquiries — Sports Junction Admin',
+            'metrics'     => $metrics,
+            'suppliers'   => $suppliers,
+            'categories'  => $categories,
+            'activeMenu'  => 'enquiries_fast_oem',
+        ], 'admin');
+    }
+
+    public function fastOemEnquiriesData(): void
+    {
+        $params = [
+            'draw'           => $this->request->get('draw', 1),
+            'start'          => $this->request->get('start', 0),
+            'length'         => $this->request->get('length', 15),
+            'search'         => $this->request->get('search', []),
+            'order'          => $this->request->get('order', []),
+            'supplier_id'    => $this->request->get('supplier_id', 'ALL'),
+            'status'         => $this->request->get('status', 'ALL'),
+            'category_id'    => $this->request->get('category_id', 'ALL'),
+            'start_date'     => $this->request->get('start_date', ''),
+            'end_date'       => $this->request->get('end_date', ''),
+            'strict_source'  => 'FAST_OEM',
+        ];
+
+        $result = ProductInquiry::getAdminDataTable($params);
+        $this->json($result);
+    }
+
+    public function fastOemEnquiriesExport(): void
+    {
+        $this->exportForSource('FAST_OEM', 'Fast OEM Customization Enquiries', 'sports_junction_fast_oem_enquiries');
+    }
+
+    /**
+     * 5. General Enquiries (Strict Source: GENERAL)
+     */
+    public function generalEnquiries(): void
+    {
+        $metrics    = ProductInquiry::getSourceMetrics('GENERAL');
+        $suppliers  = Supplier::allActive();
+        $categories = Category::allActive();
+
+        $this->render('admin/enquiries_general', [
+            'pageTitle'   => 'General Sourcing Enquiries — Sports Junction Admin',
+            'metrics'     => $metrics,
+            'suppliers'   => $suppliers,
+            'categories'  => $categories,
+            'activeMenu'  => 'enquiries_general',
+        ], 'admin');
+    }
+
+    public function generalEnquiriesData(): void
+    {
+        $params = [
+            'draw'           => $this->request->get('draw', 1),
+            'start'          => $this->request->get('start', 0),
+            'length'         => $this->request->get('length', 15),
+            'search'         => $this->request->get('search', []),
+            'order'          => $this->request->get('order', []),
+            'supplier_id'    => $this->request->get('supplier_id', 'ALL'),
+            'status'         => $this->request->get('status', 'ALL'),
+            'start_date'     => $this->request->get('start_date', ''),
+            'end_date'       => $this->request->get('end_date', ''),
+            'strict_source'  => 'GENERAL',
+        ];
+
+        $result = ProductInquiry::getAdminDataTable($params);
+        $this->json($result);
+    }
+
+    public function generalEnquiriesExport(): void
+    {
+        $this->exportForSource('GENERAL', 'General Enquiries', 'sports_junction_general_enquiries');
+    }
+
+    /**
+     * 6. Contact Us Enquiries (Strict Source: CONTACT_US)
+     */
+    public function contactEnquiries(): void
+    {
+        $metrics   = ProductInquiry::getSourceMetrics('CONTACT_US');
+        $countries = \App\Models\Country::allActive();
+
+        $this->render('admin/enquiries_contact', [
+            'pageTitle'   => 'Contact Us Messages & Enquiries — Sports Junction Admin',
+            'metrics'     => $metrics,
+            'countries'   => $countries,
+            'activeMenu'  => 'enquiries_contact',
+        ], 'admin');
+    }
+
+    public function contactEnquiriesData(): void
+    {
+        $params = [
+            'draw'           => $this->request->get('draw', 1),
+            'start'          => $this->request->get('start', 0),
+            'length'         => $this->request->get('length', 15),
+            'search'         => $this->request->get('search', []),
+            'order'          => $this->request->get('order', []),
+            'status'         => $this->request->get('status', 'ALL'),
+            'start_date'     => $this->request->get('start_date', ''),
+            'end_date'       => $this->request->get('end_date', ''),
+            'strict_source'  => 'CONTACT_US',
+        ];
+
+        $result = ProductInquiry::getAdminDataTable($params);
+        $this->json($result);
+    }
+
+    public function contactEnquiriesExport(): void
+    {
+        $this->exportForSource('CONTACT_US', 'Contact Us Enquiries', 'sports_junction_contact_us_enquiries');
+    }
+
+    /**
+     * 7. Support Enquiries (Strict Source: SUPPORT)
+     */
+    public function supportEnquiries(): void
+    {
+        $metrics   = ProductInquiry::getSourceMetrics('SUPPORT');
+        $countries = \App\Models\Country::allActive();
+
+        $this->render('admin/enquiries_support', [
+            'pageTitle'   => 'Help Centre & Support Tickets — Sports Junction Admin',
+            'metrics'     => $metrics,
+            'countries'   => $countries,
+            'activeMenu'  => 'enquiries_support',
+        ], 'admin');
+    }
+
+    public function supportEnquiriesData(): void
+    {
+        $params = [
+            'draw'           => $this->request->get('draw', 1),
+            'start'          => $this->request->get('start', 0),
+            'length'         => $this->request->get('length', 15),
+            'search'         => $this->request->get('search', []),
+            'order'          => $this->request->get('order', []),
+            'status'         => $this->request->get('status', 'ALL'),
+            'start_date'     => $this->request->get('start_date', ''),
+            'end_date'       => $this->request->get('end_date', ''),
+            'strict_source'  => 'SUPPORT',
+        ];
+
+        $result = ProductInquiry::getAdminDataTable($params);
+        $this->json($result);
+    }
+
+    public function supportEnquiriesExport(): void
+    {
+        $this->exportForSource('SUPPORT', 'Support Enquiries', 'sports_junction_support_enquiries');
+    }
+
+    /**
+     * Shared export handler for dedicated source-specific pages
+     */
+    private function exportForSource(string $source, string $reportTitle, string $filenamePrefix): void
+    {
+        $format = strtolower((string) $this->request->get('format', 'csv'));
+        $params = [
+            'supplier_id'    => $this->request->get('supplier_id', 'ALL'),
+            'status'         => $this->request->get('status', 'ALL'),
+            'category_id'    => $this->request->get('category_id', 'ALL'),
+            'start_date'     => $this->request->get('start_date', ''),
+            'end_date'       => $this->request->get('end_date', ''),
+            'search_query'   => $this->request->get('search', ''),
+            'strict_source'  => $source,
+        ];
+
+        $rows = ProductInquiry::getAdminExportData($params);
+        $headers = [
+            'Enquiry ID',
+            'Enquiry Source',
+            'Buyer Name',
+            'Buyer Company',
+            'Buyer Email',
+            'Buyer Phone',
+            'Product Name / Requirement',
+            'Supplier Name',
+            'Quantity Required',
+            'Country',
+            'Delivery Location',
+            'Enquiry Subject',
+            'Message / Specifications',
+            'Enquiry Status',
+            'Enquiry Date',
+        ];
+
+        AuditLogger::log('EXPORT', 'ProductInquiry', null, "Exported " . count($rows) . " {$source} enquiries as " . strtoupper($format));
+
+        $filename = $filenamePrefix . '_' . date('Ymd_His');
+        if ($format === 'excel' || $format === 'xls') {
+            Exporter::exportExcelXml($filename, $headers, $rows);
+        } elseif ($format === 'pdf') {
+            Exporter::exportPdfView("Sports Junction — {$reportTitle}", $headers, $rows);
+        } else {
+            Exporter::exportCsv($filename, $headers, $rows);
+        }
+    }
+
+    /**
      * Secure Attachment Download (Task 13)
      * GET /admin/enquiries/attachment/{id}
      */

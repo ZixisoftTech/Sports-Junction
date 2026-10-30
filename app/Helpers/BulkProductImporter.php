@@ -894,6 +894,7 @@ class BulkProductImporter
                     'row'     => $rowNum,
                     'product' => $name ?: 'Unnamed Row #' . $rowNum,
                     'errors'  => $rowErrors,
+                    'message' => implode('; ', $rowErrors),
                 ];
             } else {
                 $validRecords[] = [
@@ -956,6 +957,11 @@ class BulkProductImporter
             'total_rows'       => count($rawRows),
             'valid_rows_count' => count($validRecords),
             'error_rows_count' => count($errors),
+            'stats'            => [
+                'total'  => count($rawRows),
+                'valid'  => count($validRecords),
+                'errors' => count($errors),
+            ],
             'errors'           => $errors,
             'preview_rows'     => $previewRows,
         ];
@@ -1079,7 +1085,7 @@ class BulkProductImporter
             }
         }
 
-        while (($data = fgetcsv($handle, 0, $bestDelimiter)) !== false) {
+        while (($data = fgetcsv($handle, 0, $bestDelimiter, '"', '\\')) !== false) {
             // Strip BOM from first cell if present
             if (empty($rows) && isset($data[0])) {
                 $data[0] = preg_replace('/^\xEF\xBB\xBF/', '', (string)$data[0]);

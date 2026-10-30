@@ -29,6 +29,7 @@ class ProductInquiry extends Model
         'RFQ',
         'FAST_OEM',
         'SAMPLE',
+        'SUPPORT',
     ];
 
     /**
@@ -92,10 +93,16 @@ class ProductInquiry extends Model
 
         $source = strtoupper(trim($data['enquiry_source'] ?? ''));
         $subject = trim((string)($data['subject'] ?? ''));
-        if ($source === 'SAMPLE' || stripos($subject, 'Prototype Sample') !== false || stripos($subject, 'Sample Order') !== false) {
+        if ($source === 'SAMPLE') {
+            // Explicitly set as SAMPLE
+        } elseif (empty($source) && (stripos($subject, 'Prototype Sample') !== false || stripos($subject, 'Sample Order') !== false)) {
             $source = 'SAMPLE';
         } elseif (!in_array($source, self::VALID_SOURCES, true)) {
-            $source = $productId ? 'PRODUCT_PAGE' : 'GENERAL';
+            if (stripos($subject, 'Prototype Sample') !== false || stripos($subject, 'Sample Order') !== false) {
+                $source = 'SAMPLE';
+            } else {
+                $source = $productId ? 'PRODUCT_PAGE' : 'GENERAL';
+            }
         }
 
         $status = strtoupper(trim($data['status'] ?? 'SUBMITTED'));
@@ -370,8 +377,17 @@ class ProductInquiry extends Model
         }
 
         // Enquiry Source Filter
-        if (!empty($params['sample_only'])) {
-            $where[] = "(i.enquiry_source = 'SAMPLE' OR i.subject LIKE '%Prototype Sample%' OR i.subject LIKE '%Order Prototype Sample%' OR i.subject LIKE '%Sample Order%')";
+        $strictSource = !empty($params['strict_source']) ? $params['strict_source'] : (!empty($params['source']) ? $params['source'] : '');
+        if (!empty($strictSource)) {
+            $src = strtoupper(trim($strictSource));
+            if ($src === 'SAMPLE') {
+                $where[] = "(i.enquiry_source = 'SAMPLE' OR (i.enquiry_source NOT IN ('SUPPORT', 'CONTACT_US') AND (i.subject LIKE '%Prototype Sample%' OR i.subject LIKE '%Order Prototype Sample%' OR i.subject LIKE '%Sample Order%')))";
+            } else {
+                $where[] = "i.enquiry_source = :f_strict_source";
+                $bindings[':f_strict_source'] = $src;
+            }
+        } elseif (!empty($params['sample_only'])) {
+            $where[] = "(i.enquiry_source = 'SAMPLE' OR (i.enquiry_source NOT IN ('SUPPORT', 'CONTACT_US') AND (i.subject LIKE '%Prototype Sample%' OR i.subject LIKE '%Order Prototype Sample%' OR i.subject LIKE '%Sample Order%')))";
         } elseif (!empty($params['rfq_oem_only'])) {
             if (!empty($params['enquiry_source']) && in_array($params['enquiry_source'], ['RFQ', 'FAST_OEM'], true)) {
                 $where[] = "i.enquiry_source = :f_rfq_source";
@@ -380,8 +396,12 @@ class ProductInquiry extends Model
                 $where[] = "i.enquiry_source IN ('RFQ', 'FAST_OEM')";
             }
         } elseif (!empty($params['enquiry_source']) && $params['enquiry_source'] !== 'ALL') {
-            $where[] = "i.enquiry_source = :f_source";
-            $bindings[':f_source'] = $params['enquiry_source'];
+            if ($params['enquiry_source'] === 'SAMPLE') {
+                $where[] = "(i.enquiry_source = 'SAMPLE' OR (i.enquiry_source NOT IN ('SUPPORT', 'CONTACT_US') AND (i.subject LIKE '%Prototype Sample%' OR i.subject LIKE '%Order Prototype Sample%' OR i.subject LIKE '%Sample Order%')))";
+            } else {
+                $where[] = "i.enquiry_source = :f_source";
+                $bindings[':f_source'] = $params['enquiry_source'];
+            }
         }
 
         // Enquiry Status Filter
@@ -470,8 +490,15 @@ class ProductInquiry extends Model
         $start  = max(0, (int) ($params['start'] ?? 0));
         $length = max(1, min(100, (int) ($params['length'] ?? 15)));
 
-        if (!empty($params['sample_only'])) {
-            $totalRecords = (int) (self::fetch("SELECT COUNT(*) AS cnt FROM product_inquiries WHERE (enquiry_source = 'SAMPLE' OR subject LIKE '%Prototype Sample%' OR subject LIKE '%Order Prototype Sample%' OR subject LIKE '%Sample Order%')")['cnt'] ?? 0);
+        if (!empty($params['strict_source'])) {
+            $src = strtoupper(trim($params['strict_source']));
+            if ($src === 'SAMPLE') {
+                $totalRecords = (int) (self::fetch("SELECT COUNT(*) AS cnt FROM product_inquiries WHERE (enquiry_source = 'SAMPLE' OR (enquiry_source NOT IN ('SUPPORT', 'CONTACT_US') AND (subject LIKE '%Prototype Sample%' OR subject LIKE '%Order Prototype Sample%' OR subject LIKE '%Sample Order%')))")['cnt'] ?? 0);
+            } else {
+                $totalRecords = (int) (self::fetch("SELECT COUNT(*) AS cnt FROM product_inquiries WHERE enquiry_source = :src", [':src' => $src])['cnt'] ?? 0);
+            }
+        } elseif (!empty($params['sample_only'])) {
+            $totalRecords = (int) (self::fetch("SELECT COUNT(*) AS cnt FROM product_inquiries WHERE (enquiry_source = 'SAMPLE' OR (enquiry_source NOT IN ('SUPPORT', 'CONTACT_US') AND (subject LIKE '%Prototype Sample%' OR subject LIKE '%Order Prototype Sample%' OR subject LIKE '%Sample Order%')))")['cnt'] ?? 0);
         } elseif (!empty($params['rfq_oem_only'])) {
             $totalRecords = (int) (self::fetch("SELECT COUNT(*) AS cnt FROM product_inquiries WHERE enquiry_source IN ('RFQ', 'FAST_OEM')")['cnt'] ?? 0);
         } elseif (!empty($params['buyer_id'])) {
@@ -503,7 +530,7 @@ class ProductInquiry extends Model
 
         $filteredRecords = (int) (self::fetch("SELECT COUNT(*) AS cnt {$fromJoins} WHERE {$whereSql}", $bindings)['cnt'] ?? 0);
 
-        if (!empty($params['sample_only'])) {
+        if (!empty($params['sample_only']) || (!empty($params['strict_source']) && strtoupper($params['strict_source']) === 'SAMPLE')) {
             $columns = [
                 0 => 'i.id',
                 1 => 'i.created_at',
@@ -591,6 +618,7 @@ class ProductInquiry extends Model
                     WHEN 'RFQ' THEN 'Request For Quotation (RFQ)'
                     WHEN 'FAST_OEM' THEN 'Fast OEM Customization'
                     WHEN 'SAMPLE' THEN 'Order Prototype Sample'
+                    WHEN 'SUPPORT' THEN 'Help & Support Enquiry'
                     ELSE i.enquiry_source
                 END AS 'Enquiry Source',
                 i.buyer_name AS 'Buyer Name',
@@ -669,6 +697,39 @@ class ProductInquiry extends Model
             'pending'        => (int) ($row['pending'] ?? 0),
             'responded'      => (int) ($row['responded'] ?? 0),
             'resolved'       => (int) ($row['resolved'] ?? 0),
+        ];
+    }
+
+    public static function getSourceMetrics(string $source): array
+    {
+        self::ensureSchema();
+        $source = strtoupper(trim($source));
+
+        if ($source === 'SAMPLE') {
+            $whereSource = "(enquiry_source = 'SAMPLE' OR (enquiry_source NOT IN ('SUPPORT', 'CONTACT_US') AND (subject LIKE '%Prototype Sample%' OR subject LIKE '%Order Prototype Sample%' OR subject LIKE '%Sample Order%')))";
+            $params = [];
+        } else {
+            $whereSource = "enquiry_source = :src";
+            $params = [':src' => $source];
+        }
+
+        $row = self::fetch("
+            SELECT 
+                COUNT(*) AS total,
+                SUM(CASE WHEN status IN ('PENDING', 'SUBMITTED') THEN 1 ELSE 0 END) AS pending,
+                SUM(CASE WHEN status IN ('RESPONDED', 'IN_DISCUSSION') THEN 1 ELSE 0 END) AS in_progress,
+                SUM(CASE WHEN status IN ('CLOSED', 'RESOLVED') THEN 1 ELSE 0 END) AS resolved,
+                SUM(CASE WHEN status = 'REJECTED' THEN 1 ELSE 0 END) AS rejected
+            FROM product_inquiries
+            WHERE {$whereSource}
+        ", $params);
+
+        return [
+            'total'       => (int) ($row['total'] ?? 0),
+            'pending'     => (int) ($row['pending'] ?? 0),
+            'in_progress' => (int) ($row['in_progress'] ?? 0),
+            'resolved'    => (int) ($row['resolved'] ?? 0),
+            'rejected'    => (int) ($row['rejected'] ?? 0),
         ];
     }
 

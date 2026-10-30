@@ -65,11 +65,13 @@ body {
     top: 0;
     bottom: 0;
     left: 0;
+    height: 100vh;
     z-index: 1000;
     display: flex;
     flex-direction: column;
     border-right: 1px solid rgba(255, 255, 255, 0.05);
     box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
 }
 
 .sj-sidebar-brand {
@@ -160,6 +162,8 @@ body {
     min-height: 100vh;
     display: flex;
     flex-direction: column;
+    min-width: 0;
+    overflow-x: hidden;
 }
 
 .sj-topbar {
@@ -178,6 +182,7 @@ body {
 .sj-content {
     flex: 1;
     padding: 28px;
+    min-width: 0;
 }
 
 .sj-footer {
@@ -712,6 +717,27 @@ body {
     border: 1px solid #E2E8F0;
     border-radius: 16px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+
+/* Global Responsive Modal Standards */
+.modal-dialog-scrollable .modal-body {
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+    max-height: calc(100vh - 170px);
+}
+.modal-dialog-scrollable .modal-content {
+    max-height: calc(100vh - 2rem);
+    display: flex;
+    flex-direction: column;
+}
+.modal-body {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+}
+@media (max-width: 576px) {
+    .modal-dialog {
+        margin: 0.5rem;
+    }
 }
 
 

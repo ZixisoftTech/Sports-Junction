@@ -1,0 +1,278 @@
+<?php
+$baseUrl = \App\Core\Response::baseUrl();
+$csrfToken = \App\Helpers\CSRF::generate();
+?>
+
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+    <div>
+        <div class="d-flex align-items-center gap-2 mb-1">
+            <span class="badge bg-purple bg-opacity-10 text-purple px-2 py-1 rounded-2 fw-bold" style="font-size: 11px; color: #7e22ce !important; background-color: #f3e8ff !important; border: 1px solid #e9d5ff;">PUBLIC COMMUNICATIONS</span>
+        </div>
+        <h3 class="fw-bold text-slate-900 mb-0">Contact Us Enquiries</h3>
+        <p class="text-slate-500 small mb-0">Messages and inquiries submitted through the public Contact Us desk.</p>
+    </div>
+    <div class="d-flex gap-2">
+        <div class="dropdown">
+            <button class="btn btn-outline-secondary btn-sm dropdown-toggle fw-semibold px-3 py-2 rounded-3" type="button" data-bs-toggle="dropdown">
+                <i class="bi bi-download me-1"></i> Export Filtered Results
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0">
+                <li><a class="dropdown-item py-2" href="#" onclick="exportContactEnquiries('csv'); return false;"><i class="bi bi-filetype-csv text-success me-2"></i>Export as CSV</a></li>
+                <li><a class="dropdown-item py-2" href="#" onclick="exportContactEnquiries('excel'); return false;"><i class="bi bi-file-earmark-excel text-primary me-2"></i>Export as Excel (.xls)</a></li>
+                <li><a class="dropdown-item py-2" href="#" onclick="exportContactEnquiries('pdf'); return false;"><i class="bi bi-file-earmark-pdf text-danger me-2"></i>Print / Save PDF</a></li>
+            </ul>
+        </div>
+        <a href="<?= $baseUrl ?>/admin/enquiries" class="btn btn-outline-primary btn-sm fw-semibold px-3 py-2 rounded-3">
+            <i class="bi bi-speedometer2 me-1"></i> All Enquiries Hub
+        </a>
+    </div>
+</div>
+
+<!-- Metrics Row -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-2-4" style="flex: 0 0 20%; max-width: 20%;">
+        <div class="stat-card h-100 p-3" style="cursor: pointer;" onclick="setStatusFilter('ALL')">
+            <div class="text-slate-500 small fw-semibold">Total Messages</div>
+            <h4 class="fw-bold text-slate-900 mb-0 mt-1" id="mTotal"><?= (int)($metrics['total'] ?? 0) ?></h4>
+        </div>
+    </div>
+    <div class="col-6 col-md-2-4" style="flex: 0 0 20%; max-width: 20%;">
+        <div class="stat-card h-100 p-3" style="cursor: pointer;" onclick="setStatusFilter('PENDING')">
+            <div class="text-slate-500 small fw-semibold">Pending Review</div>
+            <h4 class="fw-bold text-warning mb-0 mt-1" style="color: #b45309 !important;" id="mPending"><?= (int)($metrics['pending'] ?? 0) ?></h4>
+        </div>
+    </div>
+    <div class="col-6 col-md-2-4" style="flex: 0 0 20%; max-width: 20%;">
+        <div class="stat-card h-100 p-3" style="cursor: pointer;" onclick="setStatusFilter('IN_DISCUSSION')">
+            <div class="text-slate-500 small fw-semibold">In Discussion</div>
+            <h4 class="fw-bold text-primary mb-0 mt-1" id="mInProgress"><?= (int)($metrics['in_progress'] ?? 0) ?></h4>
+        </div>
+    </div>
+    <div class="col-6 col-md-2-4" style="flex: 0 0 20%; max-width: 20%;">
+        <div class="stat-card h-100 p-3" style="cursor: pointer;" onclick="setStatusFilter('RESOLVED')">
+            <div class="text-slate-500 small fw-semibold">Resolved / Replied</div>
+            <h4 class="fw-bold text-success mb-0 mt-1" id="mResolved"><?= (int)($metrics['resolved'] ?? 0) ?></h4>
+        </div>
+    </div>
+    <div class="col-6 col-md-2-4" style="flex: 0 0 20%; max-width: 20%;">
+        <div class="stat-card h-100 p-3" style="cursor: pointer;" onclick="setStatusFilter('REJECTED')">
+            <div class="text-slate-500 small fw-semibold">Spam / Closed</div>
+            <h4 class="fw-bold text-danger mb-0 mt-1" id="mRejected"><?= (int)($metrics['rejected'] ?? 0) ?></h4>
+        </div>
+    </div>
+</div>
+
+<!-- Filters Card (No Irrelevant Product or Supplier Dropdowns) -->
+<div class="card card-premium mb-4">
+    <div class="card-body p-3">
+        <div class="row g-3 align-items-end">
+            <!-- Status Filter -->
+            <div class="col-md-3">
+                <label class="form-label small fw-bold text-slate-600 mb-1">Message Status</label>
+                <select id="filterStatus" class="form-select form-select-sm">
+                    <option value="ALL">All Statuses</option>
+                    <option value="PENDING">Pending / Unread</option>
+                    <option value="VIEWED">Viewed</option>
+                    <option value="IN_DISCUSSION">In Discussion</option>
+                    <option value="RESPONDED">Responded</option>
+                    <option value="RESOLVED">Resolved</option>
+                    <option value="CLOSED">Closed</option>
+                    <option value="REJECTED">Spam / Rejected</option>
+                </select>
+            </div>
+
+            <!-- Date Range Filter -->
+            <div class="col-md-6">
+                <label class="form-label small fw-bold text-slate-600 mb-1">Date Range</label>
+                <div class="input-group input-group-sm">
+                    <input type="date" id="filterStartDate" class="form-control" title="Start Date">
+                    <span class="input-group-text bg-white text-muted">to</span>
+                    <input type="date" id="filterEndDate" class="form-control" title="End Date">
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="col-md-3 d-flex gap-2">
+                <button type="button" id="btnClearFilters" class="btn btn-outline-secondary btn-sm w-100 fw-semibold">
+                    <i class="bi bi-x-circle me-1"></i> Reset Filters
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Table Card -->
+<div class="card card-premium">
+    <div class="card-body p-0">
+        <div class="table-responsive p-3">
+            <table id="contactEnquiriesTable" class="table table-hover align-middle w-100 mb-0" style="font-size: 13px;">
+                <thead class="table-light">
+                    <tr>
+                        <th>Message ID</th>
+                        <th>Sender Name &amp; Contact</th>
+                        <th>Organization</th>
+                        <th>Country &amp; Location</th>
+                        <th>Subject</th>
+                        <th>Message Preview</th>
+                        <th>Date</th>
+                        <th>Status</th>
+                        <th class="text-end" style="min-width:110px;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<?php ob_start(); ?>
+<script>
+const BASE_URL = <?= json_encode($baseUrl) ?>;
+const CSRF_TOKEN = <?= json_encode($csrfToken) ?>;
+let table;
+
+function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+}
+
+function renderStatusBadge(st) {
+    const map = {
+        'PENDING':       { bg: '#fef3c7', color: '#b45309', label: 'Unread' },
+        'SUBMITTED':     { bg: '#fef3c7', color: '#b45309', label: 'Submitted' },
+        'VIEWED':        { bg: '#e0e7ff', color: '#4338ca', label: 'Viewed' },
+        'RESPONDED':     { bg: '#dcfce7', color: '#15803d', label: 'Responded' },
+        'IN_DISCUSSION': { bg: '#dbeafe', color: '#1d4ed8', label: 'In Discussion' },
+        'RESOLVED':      { bg: '#d1fae5', color: '#065f46', label: 'Resolved' },
+        'CLOSED':        { bg: '#f1f5f9', color: '#475569', label: 'Closed' },
+        'REJECTED':      { bg: '#fee2e2', color: '#b91c1c', label: 'Spam / Rejected' },
+    };
+    const cfg = map[st] || { bg: '#f1f5f9', color: '#475569', label: st || 'Submitted' };
+    return `<span class="badge rounded-pill" style="background:${cfg.bg};color:${cfg.color};">${escapeHtml(cfg.label)}</span>`;
+}
+
+function setStatusFilter(st) {
+    $('#filterStatus').val(st).trigger('change');
+}
+
+$(document).ready(function() {
+    table = $('#contactEnquiriesTable').DataTable({
+        processing: true,
+        serverSide: true,
+        pageLength: 15,
+        order: [[6, 'desc']],
+        ajax: {
+            url: BASE_URL + '/api/admin/contact-us-enquiries/data',
+            data: function(d) {
+                d.status = $('#filterStatus').val();
+                d.start_date = $('#filterStartDate').val();
+                d.end_date = $('#filterEndDate').val();
+            }
+        },
+        columns: [
+            {
+                data: 'id',
+                render: (id, type, row) => `
+                    <a href="${BASE_URL}/admin/enquiries/${id}" class="fw-bold text-primary text-decoration-none">
+                        #MSG-${String(id).padStart(5, '0')}
+                    </a>
+                    ${Number(row.reply_count || 0) > 0 ? `<span class="badge bg-primary bg-opacity-10 text-primary ms-1"><i class="bi bi-chat-dots"></i> ${row.reply_count}</span>` : ''}
+                `
+            },
+            {
+                data: 'buyer_name',
+                render: (name, type, row) => `
+                    <div class="fw-bold text-slate-800">${escapeHtml(name)}</div>
+                    <div class="smaller text-muted">${escapeHtml(row.buyer_email || '')}</div>
+                    ${row.buyer_phone ? `<div class="smaller text-slate-600"><i class="bi bi-telephone me-1"></i>${escapeHtml(row.buyer_phone)}</div>` : ''}
+                `
+            },
+            {
+                data: 'company_name',
+                render: val => val ? `<span class="fw-semibold text-slate-700">${escapeHtml(val)}</span>` : '<span class="text-muted smaller">Individual</span>'
+            },
+            {
+                data: 'country_name',
+                render: (country, type, row) => {
+                    const loc = row.delivery_location || '';
+                    return `<div>${escapeHtml(country || 'N/A')}</div>${loc ? `<div class="smaller text-muted">${escapeHtml(loc)}</div>` : ''}`;
+                }
+            },
+            {
+                data: 'subject',
+                render: subj => `<div class="fw-semibold text-slate-800 text-truncate" style="max-width:180px;" title="${escapeHtml(subj || 'Contact Enquiry')}">${escapeHtml(subj || 'Contact Enquiry')}</div>`
+            },
+            {
+                data: 'specifications',
+                render: val => `<div class="small text-muted text-truncate" style="max-width:250px;" title="${escapeHtml(val || '')}">${escapeHtml(val || '-')}</div>`
+            },
+            {
+                data: 'created_at',
+                render: val => val ? `<span class="small text-slate-600">${escapeHtml(val.substring(0, 16))}</span>` : '-'
+            },
+            {
+                data: 'status',
+                render: st => renderStatusBadge(st)
+            },
+            {
+                data: null,
+                orderable: false,
+                className: 'text-end',
+                render: row => `
+                    <div class="btn-group btn-group-sm">
+                        <a href="${BASE_URL}/admin/enquiries/${row.id}" class="btn btn-outline-primary" title="View Full Message & Conversation">
+                            <i class="bi bi-eye"></i>
+                        </a>
+                        <button type="button" class="btn btn-outline-success" title="Mark Resolved" onclick="quickStatus(${row.id}, 'RESOLVED')">
+                            <i class="bi bi-check2-all"></i>
+                        </button>
+                    </div>
+                `
+            }
+        ],
+        language: {
+            search: "_INPUT_",
+            searchPlaceholder: "Search contact messages..."
+        }
+    });
+
+    $('#filterStatus, #filterStartDate, #filterEndDate').on('change', function() {
+        table.ajax.reload();
+    });
+
+    $('#btnClearFilters').on('click', function() {
+        $('#filterStatus').val('ALL');
+        $('#filterStartDate').val('');
+        $('#filterEndDate').val('');
+        table.search('').draw();
+    });
+});
+
+function quickStatus(enquiryId, status) {
+    $.post(`${BASE_URL}/api/admin/enquiries/${enquiryId}/status`, {
+        csrf_token: CSRF_TOKEN,
+        status: status
+    }, function(res) {
+        if (res.success) {
+            Swal.fire({ icon: 'success', title: 'Updated', text: res.message, timer: 1800, showConfirmButton: false });
+            table.ajax.reload(null, false);
+        } else {
+            Swal.fire('Error', res.message || 'Could not update status.', 'error');
+        }
+    }, 'json');
+}
+
+function exportContactEnquiries(format) {
+    const params = new URLSearchParams({
+        format: format,
+        status: $('#filterStatus').val(),
+        start_date: $('#filterStartDate').val(),
+        end_date: $('#filterEndDate').val(),
+        search: table.search()
+    });
+    window.location.href = `${BASE_URL}/api/admin/contact-us-enquiries/export?${params.toString()}`;
+}
+</script>
+<?php
+$adminScripts = ob_get_clean();
+?>

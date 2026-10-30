@@ -155,8 +155,10 @@ class ChatConversation extends Model
         }
 
         if (!empty($filters['search'])) {
-            $sql .= " AND (s.company_name LIKE :search OR p.title LIKE :search)";
-            $params[':search'] = '%' . trim($filters['search']) . '%';
+            $sql .= " AND (s.company_name LIKE :search1 OR p.title LIKE :search2)";
+            $term = '%' . trim($filters['search']) . '%';
+            $params[':search1'] = $term;
+            $params[':search2'] = $term;
         }
 
         $sql .= " ORDER BY (unread_count > 0) DESC, COALESCE(c.last_message_at, c.created_at) DESC";
@@ -273,8 +275,11 @@ class ChatConversation extends Model
         }
 
         if (!empty($filters['search'])) {
-            $sql .= " AND (b.company_name LIKE :search OR b.name LIKE :search OR p.title LIKE :search)";
-            $params[':search'] = '%' . trim($filters['search']) . '%';
+            $sql .= " AND (b.company_name LIKE :search1 OR b.name LIKE :search2 OR p.title LIKE :search3)";
+            $term = '%' . trim($filters['search']) . '%';
+            $params[':search1'] = $term;
+            $params[':search2'] = $term;
+            $params[':search3'] = $term;
         }
 
         $sql .= " ORDER BY (unread_count > 0) DESC, COALESCE(c.last_message_at, c.created_at) DESC";
@@ -366,14 +371,17 @@ class ChatConversation extends Model
 
         if (!empty($filters['search'])) {
             $sql .= " AND (
-                b.company_name LIKE :search 
-                OR b.first_name LIKE :search 
-                OR b.last_name LIKE :search 
-                OR b.email LIKE :search 
-                OR s.company_name LIKE :search 
-                OR p.title LIKE :search
+                b.company_name LIKE :search1 
+                OR b.first_name LIKE :search2 
+                OR b.last_name LIKE :search3 
+                OR b.email LIKE :search4 
+                OR s.company_name LIKE :search5 
+                OR p.title LIKE :search6
             )";
-            $params[':search'] = '%' . trim($filters['search']) . '%';
+            $term = '%' . trim($filters['search']) . '%';
+            for ($i = 1; $i <= 6; $i++) {
+                $params[":search{$i}"] = $term;
+            }
         }
 
         $sql .= " ORDER BY COALESCE(c.last_message_at, c.created_at) DESC";

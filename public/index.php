@@ -132,6 +132,8 @@ use App\Controllers\AdminImpersonationController;
 use App\Controllers\AdminAuditTrailController;
 use App\Controllers\AdminNotificationController;
 use App\Controllers\AdminBulkEnquiryController;
+use App\Controllers\AdminFeedbackController;
+use App\Controllers\AdminCareerController;
 
 $request = new Request();
 $response = new Response();
@@ -152,6 +154,10 @@ $router->post('/api/inquiries', [ShopController::class, 'submitInquiry']);
 $router->get('/contact', [ShopController::class, 'contact']);
 $router->post('/contact', [ShopController::class, 'submitContact']);
 $router->post('/api/contact', [ShopController::class, 'submitContact']);
+$router->get('/support', [ShopController::class, 'support']);
+$router->get('/help', [ShopController::class, 'support']);
+$router->post('/support', [ShopController::class, 'submitSupport']);
+$router->post('/api/support', [ShopController::class, 'submitSupport']);
 // -------------------------------------------------------------
 // PUBLIC CMS & DYNAMIC FOOTER PAGES (21 Dedicated Pages)
 // -------------------------------------------------------------
@@ -160,8 +166,6 @@ $dedicatedCmsPages = [
     '/about-sports-junction'              => 'about-sports-junction',
     '/why-choose-sports-junction'         => 'why-choose-sports-junction',
     '/corporate-responsibility'           => 'corporate-responsibility',
-    '/feedback-suggestions'               => 'feedback-suggestions',
-    '/careers'                            => 'careers',
 
     // Column 2: Buyer & Seller Protection
     '/secure-payments'                    => 'secure-payments',
@@ -197,9 +201,18 @@ foreach ($dedicatedCmsPages as $routePath => $cmsSlug) {
     });
 }
 
-// User Feedback & Suggestions API / Form Submission
-$router->post('/api/feedback', [CmsPageController::class, 'submitFeedback']);
-$router->post('/feedback-suggestions', [CmsPageController::class, 'submitFeedback']);
+// Dedicated Suggestions & Feedback Form Routes
+$router->get('/feedback-suggestions', [ShopController::class, 'feedback']);
+$router->get('/suggestions-feedback', [ShopController::class, 'feedback']);
+$router->post('/api/feedback', [ShopController::class, 'submitFeedback']);
+$router->post('/feedback-suggestions', [ShopController::class, 'submitFeedback']);
+
+// Dedicated Careers & Job Application Routes
+$router->get('/careers', [ShopController::class, 'careers']);
+$router->get('/careers-with-us', [ShopController::class, 'careers']);
+$router->post('/careers/apply', [ShopController::class, 'submitCareerApplication']);
+$router->post('/api/careers/apply', [ShopController::class, 'submitCareerApplication']);
+
 $router->post('/contact-us', [ShopController::class, 'submitContact']);
 
 $router->get('/page/{slug}', [CmsPageController::class, 'show']);
@@ -355,17 +368,40 @@ $router->post('/api/admin/users/{id}/set-password', [AdminImpersonationControlle
 $router->get('/admin/enquiries', [EnquiryManagementController::class, 'index'], [AuthMiddleware::class]);
 $router->get('/admin/rfq-oem', [EnquiryManagementController::class, 'rfqOem'], [AuthMiddleware::class]);
 $router->get('/admin/sample-enquiries', [EnquiryManagementController::class, 'sampleEnquiries'], [AuthMiddleware::class]);
+$router->get('/admin/prototype-sample-enquiries', [EnquiryManagementController::class, 'sampleEnquiries'], [AuthMiddleware::class]);
+$router->get('/admin/product-enquiries', [EnquiryManagementController::class, 'productEnquiries'], [AuthMiddleware::class]);
+$router->get('/admin/rfq-enquiries', [EnquiryManagementController::class, 'rfqEnquiries'], [AuthMiddleware::class]);
+$router->get('/admin/fast-oem-enquiries', [EnquiryManagementController::class, 'fastOemEnquiries'], [AuthMiddleware::class]);
+$router->get('/admin/general-enquiries', [EnquiryManagementController::class, 'generalEnquiries'], [AuthMiddleware::class]);
+$router->get('/admin/contact-us-enquiries', [EnquiryManagementController::class, 'contactEnquiries'], [AuthMiddleware::class]);
+$router->get('/admin/support-enquiries', [EnquiryManagementController::class, 'supportEnquiries'], [AuthMiddleware::class]);
+
 $router->get('/admin/enquiries/attachment/{id}', [EnquiryManagementController::class, 'downloadAttachment']);
 $router->get('/admin/rfq-oem/attachment/{id}', [EnquiryManagementController::class, 'downloadAttachment']);
 $router->get('/admin/sample-enquiries/attachment/{id}', [EnquiryManagementController::class, 'downloadAttachment']);
 $router->get('/admin/enquiries/{id}', [EnquiryManagementController::class, 'show'], [AuthMiddleware::class]);
 $router->post('/admin/enquiries/{id}/reply', [EnquiryManagementController::class, 'reply'], [AuthMiddleware::class]);
+
 $router->get('/api/admin/enquiries/data', [EnquiryManagementController::class, 'data'], [AuthMiddleware::class]);
 $router->get('/api/admin/enquiries/export', [EnquiryManagementController::class, 'export'], [AuthMiddleware::class]);
 $router->get('/api/admin/rfq-oem/data', [EnquiryManagementController::class, 'rfqOemData'], [AuthMiddleware::class]);
 $router->get('/api/admin/rfq-oem/export', [EnquiryManagementController::class, 'rfqOemExport'], [AuthMiddleware::class]);
 $router->get('/api/admin/sample-enquiries/data', [EnquiryManagementController::class, 'sampleEnquiriesData'], [AuthMiddleware::class]);
 $router->get('/api/admin/sample-enquiries/export', [EnquiryManagementController::class, 'sampleEnquiriesExport'], [AuthMiddleware::class]);
+$router->get('/api/admin/prototype-sample-enquiries/data', [EnquiryManagementController::class, 'sampleEnquiriesData'], [AuthMiddleware::class]);
+$router->get('/api/admin/prototype-sample-enquiries/export', [EnquiryManagementController::class, 'sampleEnquiriesExport'], [AuthMiddleware::class]);
+$router->get('/api/admin/product-enquiries/data', [EnquiryManagementController::class, 'productEnquiriesData'], [AuthMiddleware::class]);
+$router->get('/api/admin/product-enquiries/export', [EnquiryManagementController::class, 'productEnquiriesExport'], [AuthMiddleware::class]);
+$router->get('/api/admin/rfq-enquiries/data', [EnquiryManagementController::class, 'rfqEnquiriesData'], [AuthMiddleware::class]);
+$router->get('/api/admin/rfq-enquiries/export', [EnquiryManagementController::class, 'rfqEnquiriesExport'], [AuthMiddleware::class]);
+$router->get('/api/admin/fast-oem-enquiries/data', [EnquiryManagementController::class, 'fastOemEnquiriesData'], [AuthMiddleware::class]);
+$router->get('/api/admin/fast-oem-enquiries/export', [EnquiryManagementController::class, 'fastOemEnquiriesExport'], [AuthMiddleware::class]);
+$router->get('/api/admin/general-enquiries/data', [EnquiryManagementController::class, 'generalEnquiriesData'], [AuthMiddleware::class]);
+$router->get('/api/admin/general-enquiries/export', [EnquiryManagementController::class, 'generalEnquiriesExport'], [AuthMiddleware::class]);
+$router->get('/api/admin/contact-us-enquiries/data', [EnquiryManagementController::class, 'contactEnquiriesData'], [AuthMiddleware::class]);
+$router->get('/api/admin/contact-us-enquiries/export', [EnquiryManagementController::class, 'contactEnquiriesExport'], [AuthMiddleware::class]);
+$router->get('/api/admin/support-enquiries/data', [EnquiryManagementController::class, 'supportEnquiriesData'], [AuthMiddleware::class]);
+$router->get('/api/admin/support-enquiries/export', [EnquiryManagementController::class, 'supportEnquiriesExport'], [AuthMiddleware::class]);
 $router->get('/api/admin/enquiries/{id}', [EnquiryManagementController::class, 'show'], [AuthMiddleware::class]);
 $router->post('/api/admin/enquiries/{id}/assign-supplier', [EnquiryManagementController::class, 'assignSupplier'], [AuthMiddleware::class]);
 $router->post('/api/admin/enquiries/{id}/status', [EnquiryManagementController::class, 'updateStatus'], [AuthMiddleware::class]);
@@ -445,6 +481,30 @@ $router->post('/admin/seller-agreement', [AdminSettingsController::class, 'updat
 // Super Admin Transactional Email Templates & SMTP Delivery Tool
 $router->get('/admin/email-templates', [AdminSettingsController::class, 'emailTemplates'], [AuthMiddleware::class]);
 $router->post('/admin/email-templates/test-send', [AdminSettingsController::class, 'testSendEmail'], [AuthMiddleware::class]);
+
+// Super Admin Suggestions & Feedback Management
+$router->get('/admin/feedbacks', [AdminFeedbackController::class, 'index'], [AuthMiddleware::class]);
+$router->get('/api/admin/feedbacks/data', [AdminFeedbackController::class, 'data'], [AuthMiddleware::class]);
+$router->get('/api/admin/feedbacks/export', [AdminFeedbackController::class, 'export'], [AuthMiddleware::class]);
+$router->get('/api/admin/feedbacks/{id}', [AdminFeedbackController::class, 'show'], [AuthMiddleware::class]);
+$router->post('/api/admin/feedbacks/{id}/status', [AdminFeedbackController::class, 'updateStatus'], [AuthMiddleware::class]);
+$router->post('/api/admin/feedbacks/{id}/notes', [AdminFeedbackController::class, 'updateNotes'], [AuthMiddleware::class]);
+$router->get('/admin/feedbacks/attachment/{id}', [AdminFeedbackController::class, 'downloadAttachment']);
+
+// Super Admin Careers & Candidate Applications Management
+$router->get('/admin/careers', [AdminCareerController::class, 'index'], [AuthMiddleware::class]);
+$router->get('/api/admin/careers/applications/data', [AdminCareerController::class, 'applicationsData'], [AuthMiddleware::class]);
+$router->get('/api/admin/careers/applications/export', [AdminCareerController::class, 'exportApplications'], [AuthMiddleware::class]);
+$router->get('/api/admin/careers/applications/{id}', [AdminCareerController::class, 'showApplication'], [AuthMiddleware::class]);
+$router->post('/api/admin/careers/applications/{id}/status', [AdminCareerController::class, 'updateApplicationStatus'], [AuthMiddleware::class]);
+$router->post('/api/admin/careers/applications/{id}/notes', [AdminCareerController::class, 'updateApplicationNotes'], [AuthMiddleware::class]);
+$router->get('/admin/careers/resume/{id}', [AdminCareerController::class, 'downloadResume']);
+
+// Super Admin Job Openings Management
+$router->get('/api/admin/careers/jobs', [AdminCareerController::class, 'jobsData'], [AuthMiddleware::class]);
+$router->post('/api/admin/careers/jobs', [AdminCareerController::class, 'saveJob'], [AuthMiddleware::class]);
+$router->post('/api/admin/careers/jobs/{id}/delete', [AdminCareerController::class, 'deleteJob'], [AuthMiddleware::class]);
+$router->post('/api/admin/careers/jobs/{id}/toggle-status', [AdminCareerController::class, 'toggleJobStatus'], [AuthMiddleware::class]);
 
 // Super Admin Supplier Management & Approvals
 $router->get('/admin/suppliers', [SupplierApprovalController::class, 'index'], [AuthMiddleware::class]);

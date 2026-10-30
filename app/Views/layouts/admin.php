@@ -46,7 +46,7 @@ if (!empty($user['id']) && ($user['role'] ?? '') === 'SUPER_ADMIN') {
         window.SportsJunction = window.SportsJunction || {};
         window.SportsJunction.baseUrl = '<?= htmlspecialchars($baseUrl) ?>';
         window.SportsJunction.csrfToken = '<?= \App\Helpers\CSRF::getToken() ?>';
-        window.SportsJunction.defaultLogo = '<?= htmlspecialchars($baseUrl) ?>/assets/images/logo.png';
+        window.SportsJunction.defaultLogo = '<?= htmlspecialchars(\App\Models\SiteSetting::getLogoUrl()) ?>';
         window.baseUrl = '<?= htmlspecialchars($baseUrl) ?>';
 
         window.SportsJunction.formatImageUrl = function (path) {
@@ -155,17 +155,37 @@ if (!empty($user['id']) && ($user['role'] ?? '') === 'SUPER_ADMIN') {
             <i class="bi bi-people"></i>
             <span>Buyer Management</span>
         </a>
-        <a href="<?= htmlspecialchars($baseUrl) ?>/admin/enquiries" class="sj-nav-item <?= ($activeMenu === 'enquiries' || (str_contains($_SERVER['REQUEST_URI'] ?? '', '/admin/enquiries') && !str_contains($_SERVER['REQUEST_URI'] ?? '', '/admin/rfq-oem') && !str_contains($_SERVER['REQUEST_URI'] ?? '', '/admin/sample-enquiries'))) ? 'active' : '' ?>">
-            <i class="bi bi-chat-left-quote"></i>
-            <span>Enquiry Management</span>
+        <a href="<?= htmlspecialchars($baseUrl) ?>/admin/enquiries" class="sj-nav-item <?= ($activeMenu === 'enquiries' && !str_contains($_SERVER['REQUEST_URI'] ?? '', '-enquiries')) ? 'active' : '' ?>">
+            <i class="bi bi-speedometer2"></i>
+            <span>All Enquiries Overview</span>
         </a>
-        <a href="<?= htmlspecialchars($baseUrl) ?>/admin/rfq-oem" class="sj-nav-item <?= ($activeMenu === 'rfq_oem' || str_contains($_SERVER['REQUEST_URI'] ?? '', '/admin/rfq-oem')) ? 'active' : '' ?>">
-            <i class="bi bi-clipboard2-check"></i>
-            <span>RFQ &amp; OEM Enquiries</span>
-        </a>
-        <a href="<?= htmlspecialchars($baseUrl) ?>/admin/sample-enquiries" class="sj-nav-item <?= ($activeMenu === 'sample_enquiries' || str_contains($_SERVER['REQUEST_URI'] ?? '', '/admin/sample-enquiries')) ? 'active' : '' ?>">
+        <a href="<?= htmlspecialchars($baseUrl) ?>/admin/product-enquiries" class="sj-nav-item <?= ($activeMenu === 'enquiries_product' || str_contains($_SERVER['REQUEST_URI'] ?? '', '/admin/product-enquiries')) ? 'active' : '' ?>">
             <i class="bi bi-box-seam"></i>
+            <span>Product Page Enquiries</span>
+        </a>
+        <a href="<?= htmlspecialchars($baseUrl) ?>/admin/rfq-enquiries" class="sj-nav-item <?= ($activeMenu === 'enquiries_rfq' || str_contains($_SERVER['REQUEST_URI'] ?? '', '/admin/rfq-enquiries')) ? 'active' : '' ?>">
+            <i class="bi bi-file-earmark-spreadsheet"></i>
+            <span>RFQ Enquiries</span>
+        </a>
+        <a href="<?= htmlspecialchars($baseUrl) ?>/admin/fast-oem-enquiries" class="sj-nav-item <?= ($activeMenu === 'enquiries_fast_oem' || str_contains($_SERVER['REQUEST_URI'] ?? '', '/admin/fast-oem-enquiries')) ? 'active' : '' ?>">
+            <i class="bi bi-gear-wide-connected"></i>
+            <span>Fast OEM Enquiries</span>
+        </a>
+        <a href="<?= htmlspecialchars($baseUrl) ?>/admin/sample-enquiries" class="sj-nav-item <?= ($activeMenu === 'sample_enquiries' || str_contains($_SERVER['REQUEST_URI'] ?? '', '/admin/sample-enquiries') || str_contains($_SERVER['REQUEST_URI'] ?? '', '/admin/prototype-sample-enquiries')) ? 'active' : '' ?>">
+            <i class="bi bi-badge-ad"></i>
             <span>Prototype Samples</span>
+        </a>
+        <a href="<?= htmlspecialchars($baseUrl) ?>/admin/general-enquiries" class="sj-nav-item <?= ($activeMenu === 'enquiries_general' || str_contains($_SERVER['REQUEST_URI'] ?? '', '/admin/general-enquiries')) ? 'active' : '' ?>">
+            <i class="bi bi-chat-square-text"></i>
+            <span>General Enquiries</span>
+        </a>
+        <a href="<?= htmlspecialchars($baseUrl) ?>/admin/contact-us-enquiries" class="sj-nav-item <?= ($activeMenu === 'enquiries_contact' || str_contains($_SERVER['REQUEST_URI'] ?? '', '/admin/contact-us-enquiries')) ? 'active' : '' ?>">
+            <i class="bi bi-envelope-paper"></i>
+            <span>Contact Us Enquiries</span>
+        </a>
+        <a href="<?= htmlspecialchars($baseUrl) ?>/admin/support-enquiries" class="sj-nav-item <?= ($activeMenu === 'enquiries_support' || str_contains($_SERVER['REQUEST_URI'] ?? '', '/admin/support-enquiries')) ? 'active' : '' ?>">
+            <i class="bi bi-headset"></i>
+            <span>Support Enquiries</span>
         </a>
         <a href="<?= htmlspecialchars($baseUrl) ?>/admin/bulk-enquiries" class="sj-nav-item <?= ($activeMenu === 'bulk_enquiries' || str_contains($_SERVER['REQUEST_URI'] ?? '', '/admin/bulk-enquiries')) ? 'active' : '' ?>">
             <i class="bi bi-list-check"></i>
@@ -199,6 +219,14 @@ if (!empty($user['id']) && ($user['role'] ?? '') === 'SUPER_ADMIN') {
         <a href="<?= htmlspecialchars($baseUrl) ?>/admin/pages" class="sj-nav-item <?= ($activeMenu === 'cms_pages') ? 'active' : '' ?>">
             <i class="bi bi-file-earmark-richtext"></i>
             <span>Footer &amp; CMS Pages</span>
+        </a>
+        <a href="<?= htmlspecialchars($baseUrl) ?>/admin/feedbacks" class="sj-nav-item <?= ($activeMenu === 'feedbacks' || str_contains($_SERVER['REQUEST_URI'] ?? '', '/admin/feedbacks')) ? 'active' : '' ?>">
+            <i class="bi bi-chat-heart"></i>
+            <span>Suggestions &amp; Feedback</span>
+        </a>
+        <a href="<?= htmlspecialchars($baseUrl) ?>/admin/careers" class="sj-nav-item <?= ($activeMenu === 'careers' || str_contains($_SERVER['REQUEST_URI'] ?? '', '/admin/careers')) ? 'active' : '' ?>">
+            <i class="bi bi-briefcase-fill"></i>
+            <span>Careers &amp; Applications</span>
         </a>
         <a href="<?= htmlspecialchars($baseUrl) ?>/admin/seller-agreement" class="sj-nav-item <?= ($activeMenu === 'seller_agreement') ? 'active' : '' ?>">
             <i class="bi bi-file-earmark-text-fill"></i>
@@ -519,7 +547,7 @@ if (!empty($user['id']) && ($user['role'] ?? '') === 'SUPER_ADMIN') {
     window.SportsJunction = Object.assign(window.SportsJunction || {}, {
         baseUrl: '<?= htmlspecialchars($baseUrl) ?>',
         csrfToken: '<?= \App\Helpers\CSRF::getToken() ?>',
-        defaultLogo: '<?= htmlspecialchars($baseUrl) ?>/assets/images/logo.png',
+        defaultLogo: '<?= htmlspecialchars(\App\Models\SiteSetting::getLogoUrl()) ?>',
         formatImageUrl: window.SportsJunction.formatImageUrl,
         escapeHtml: window.SportsJunction.escapeHtml
     });
@@ -553,10 +581,11 @@ if (!empty($user['id']) && ($user['role'] ?? '') === 'SUPER_ADMIN') {
         });
     }
 
-    // Mobile Sidebar Toggle Handling
+    // Sidebar Scroll Position Persistence & Active Item Centering
     document.addEventListener('DOMContentLoaded', () => {
         const toggleBtn = document.getElementById('sidebarToggleBtn');
         const sidebar = document.querySelector('.sj-sidebar');
+        const sidebarNav = document.querySelector('.sj-sidebar-nav');
         const backdrop = document.getElementById('sidebarBackdrop');
 
         if (toggleBtn && sidebar && backdrop) {
@@ -569,6 +598,27 @@ if (!empty($user['id']) && ($user['role'] ?? '') === 'SUPER_ADMIN') {
                 sidebar.classList.remove('show');
                 backdrop.classList.remove('show');
             });
+        }
+
+        // Restore & maintain sidebar scroll position
+        if (sidebarNav) {
+            const savedScroll = sessionStorage.getItem('sj_admin_sidebar_scroll');
+            if (savedScroll !== null) {
+                sidebarNav.scrollTop = parseInt(savedScroll, 10);
+            }
+            sidebarNav.addEventListener('scroll', () => {
+                sessionStorage.setItem('sj_admin_sidebar_scroll', sidebarNav.scrollTop);
+            }, { passive: true });
+
+            // Ensure active nav item is visible in viewport without jumping to top
+            const activeItem = sidebarNav.querySelector('.sj-nav-item.active');
+            if (activeItem) {
+                const navRect = sidebarNav.getBoundingClientRect();
+                const itemRect = activeItem.getBoundingClientRect();
+                if (itemRect.top < navRect.top || itemRect.bottom > navRect.bottom) {
+                    activeItem.scrollIntoView({ block: 'nearest', behavior: 'instant' });
+                }
+            }
         }
     });
 
@@ -666,6 +716,44 @@ if (!empty($user['id']) && ($user['role'] ?? '') === 'SUPER_ADMIN') {
 
         // Setup polling every 30 seconds
         pollTimer = setInterval(fetchNotifications, 30000);
+
+        // Mark notification as read immediately on click & navigate cleanly
+        document.addEventListener('click', (e) => {
+            const item = e.target.closest('.admin-notif-item');
+            if (!item) return;
+
+            const notifId = item.getAttribute('data-id');
+            if (!notifId) return;
+
+            // Visual update immediately
+            item.classList.remove('bg-primary-subtle', 'bg-opacity-10');
+            item.classList.add('bg-white');
+            const dot = item.querySelector('[title="Unread"]');
+            if (dot) dot.remove();
+
+            // Optimistically decrement count
+            const bellBadge = document.getElementById('adminNotifBadge');
+            const currentCount = parseInt(bellBadge ? bellBadge.textContent : '0', 10) || 0;
+            if (currentCount > 0) {
+                updateBadges(Math.max(0, currentCount - 1));
+            }
+
+            // Send async read request to server
+            const readUrl = baseUrl + '/api/admin/notifications/' + notifId + '/read';
+            fetch(readUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-Token': window.SportsJunction?.csrfToken || ''
+                },
+                keepalive: true
+            }).then(r => r.json()).then(data => {
+                if (data && typeof data.unread_count !== 'undefined') {
+                    updateBadges(data.unread_count);
+                }
+            }).catch(err => console.warn('Notification read status sync error:', err));
+        });
 
         // Mark all as read from dropdown
         document.addEventListener('DOMContentLoaded', () => {

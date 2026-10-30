@@ -475,8 +475,7 @@ document.addEventListener('DOMContentLoaded', function () {
 <!-- 4. THREE-STEP B2B SOURCING WORKFLOW -->
 <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 w-full">
     <div class="text-center max-w-2xl mx-auto mb-12">
-        <span class="text-xs font-bold uppercase tracking-wider text-blue-800">End-to-End Compliance</span>
-        <h2 class="font-headline text-2xl sm:text-3xl font-extrabold text-on-surface mt-1">Direct Factory Sourcing Made Seamless</h2>
+        <h2 class="font-headline text-2xl sm:text-3xl font-extrabold text-on-surface">Direct Factory Sourcing Made Seamless</h2>
         <p class="text-sm text-outline mt-2">Zero brokers, zero markups. Direct contract manufacturing with verified sports facilities in India.</p>
     </div>
 

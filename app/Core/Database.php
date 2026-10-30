@@ -13,6 +13,10 @@ class Database
 
     public static function getConnection(): PDO
     {
+        if (date_default_timezone_get() !== 'Asia/Kolkata') {
+            @date_default_timezone_set('Asia/Kolkata');
+        }
+
         if (self::$instance === null) {
             $configPath = dirname(__DIR__) . '/Config/Database.php';
             if (!file_exists($configPath)) {
@@ -96,6 +100,10 @@ class Database
 
             throw new RuntimeException("Database connection failed. Attempts: " . implode(' | ', $attempts), 500, $lastException);
         }
+
+        try {
+            self::$instance->exec("SET time_zone = '+05:30'");
+        } catch (\Throwable $e) {}
 
         return self::$instance;
     }
