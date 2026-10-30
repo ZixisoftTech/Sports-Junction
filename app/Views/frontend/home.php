@@ -57,8 +57,7 @@ $baseUrl = Response::baseUrl();
                         </div>
                     </div>
                 <?php else: ?>
-                    <img alt="<?= htmlspecialchars($b['title']) ?>" class="absolute inset-0 w-full h-full object-cover opacity-35" src="<?= htmlspecialchars($imgSrc) ?>" onerror="this.onerror=null;this.src='https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&w=1600&q=80';">
-                    <div class="absolute inset-0 bg-gradient-to-r from-blue-950/95 via-blue-950/70 to-transparent"></div>
+                    <img alt="<?= htmlspecialchars($b['title']) ?>" class="absolute inset-0 w-full h-full object-cover" src="<?= htmlspecialchars($imgSrc) ?>" onerror="this.onerror=null;this.src='https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&w=1600&q=80';">
 
                     <div class="relative z-10 max-w-2xl p-6 sm:p-10 lg:p-12 text-white flex flex-col justify-between h-full w-full">
                         <div class="space-y-4">
@@ -69,12 +68,12 @@ $baseUrl = Response::baseUrl();
                             </div>
                             <?php endif; ?>
 
-                            <h1 class="font-headline text-3xl sm:text-4xl lg:text-5xl font-extrabold leading-tight tracking-tight text-white">
+                            <h1 class="font-headline text-3xl sm:text-4xl lg:text-5xl font-extrabold leading-tight tracking-tight text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.85)]">
                                 <?= htmlspecialchars($b['title']) ?>
                             </h1>
 
                             <?php if (!empty($b['subtitle'])): ?>
-                            <p class="text-sm sm:text-base text-gray-200 leading-relaxed max-w-xl">
+                            <p class="text-sm sm:text-base text-gray-100 leading-relaxed max-w-xl drop-shadow-[0_1px_4px_rgba(0,0,0,0.85)]">
                                 <?= htmlspecialchars($b['subtitle']) ?>
                             </p>
                             <?php endif; ?>
