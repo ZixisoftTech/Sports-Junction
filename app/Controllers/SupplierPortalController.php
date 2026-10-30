@@ -771,5 +771,12 @@ class SupplierPortalController extends Controller
         $status = ($result['success'] ?? false) ? 200 : 422;
         $this->json($result, $status);
     }
+
+    public function downloadErrorReport(): void
+    {
+        $fileToken = trim((string)$this->request->get('token', ''));
+        $format = strtolower((string)$this->request->get('format', 'xlsx'));
+        \App\Helpers\BulkProductImporter::downloadErrorReport($fileToken, $format);
+    }
 }
 

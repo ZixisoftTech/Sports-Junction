@@ -784,31 +784,106 @@ document.addEventListener('DOMContentLoaded', function () {
                         <div class="d-flex align-items-center gap-2" id="adminBulkStatsBadges"></div>
                     </div>
 
-                    <!-- Error Messages Box -->
-                    <div id="adminBulkErrorsContainer" class="d-none mb-3">
-                        <div class="alert alert-danger p-3 mb-0">
-                            <h6 class="fw-bold text-danger mb-2"><i class="bi bi-exclamation-triangle-fill me-1.5"></i>Row-by-Row Validation Issues Found:</h6>
-                            <ul class="mb-0 ps-3 small text-danger" id="adminBulkErrorsList" style="max-height: 160px; overflow-y: auto;"></ul>
+                    <!-- Navigation Tabs -->
+                    <ul class="nav nav-tabs mb-3" id="adminBulkTabs" role="tablist">
+                        <li class="nav-item">
+                            <button class="nav-link active fw-bold text-danger d-flex align-items-center gap-1.5" id="adminTabBtnErrors" type="button">
+                                <i class="bi bi-exclamation-octagon-fill"></i> Failed Records <span class="badge bg-danger rounded-pill ms-1" id="adminBadgeCountErrors">0</span>
+                            </button>
+                        </li>
+                        <li class="nav-item">
+                            <button class="nav-link fw-bold text-success d-flex align-items-center gap-1.5" id="adminTabBtnValid" type="button">
+                                <i class="bi bi-check-circle-fill"></i> Successful Records <span class="badge bg-success rounded-pill ms-1" id="adminBadgeCountValid">0</span>
+                            </button>
+                        </li>
+                        <li class="nav-item d-none" id="adminTabLiSkipped">
+                            <button class="nav-link fw-bold text-warning d-flex align-items-center gap-1.5" id="adminTabBtnSkipped" type="button">
+                                <i class="bi bi-slash-circle-fill"></i> Skipped / Duplicates <span class="badge bg-warning text-dark rounded-pill ms-1" id="adminBadgeCountSkipped">0</span>
+                            </button>
+                        </li>
+                    </ul>
+
+                    <!-- Tab Pane 1: Failed Records & Error Table -->
+                    <div id="adminPaneErrors" class="mb-3">
+                        <div class="alert alert-danger p-3 mb-2 d-flex flex-wrap align-items-center justify-content-between gap-2">
+                            <div>
+                                <h6 class="fw-bold text-danger mb-0 d-flex align-items-center gap-1.5">
+                                    <i class="bi bi-exclamation-triangle-fill"></i> Row-by-Row Validation Issues Found
+                                </h6>
+                                <span class="small text-danger-emphasis">Review invalid fields, exact error descriptions, and suggested corrections below.</span>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <button type="button" id="btnAdminDownloadErrorsXlsx" class="btn btn-sm btn-danger fw-bold shadow-xs">
+                                    <i class="bi bi-file-earmark-excel me-1"></i> Download Report (.xlsx)
+                                </button>
+                                <button type="button" id="btnAdminDownloadErrorsCsv" class="btn btn-sm btn-outline-danger bg-white fw-bold shadow-xs">
+                                    <i class="bi bi-filetype-csv me-1"></i> CSV
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Detailed Error Table -->
+                        <div class="table-responsive border rounded-3" style="max-height: 280px; overflow-y: auto;">
+                            <table class="table table-sm table-hover align-middle mb-0 text-nowrap small">
+                                <thead class="table-light sticky-top">
+                                    <tr>
+                                        <th style="width: 85px;">Excel Row</th>
+                                        <th style="width: 220px;">Product Name / SKU</th>
+                                        <th style="width: 140px;">Field</th>
+                                        <th>Error Description</th>
+                                        <th>Suggested Fix</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="adminBulkErrorTableBody"></tbody>
+                            </table>
                         </div>
                     </div>
 
-                    <!-- Preview Table -->
-                    <div class="table-responsive border rounded-3" style="max-height: 260px; overflow-y: auto;">
-                        <table class="table table-sm table-hover align-middle mb-0 text-nowrap small">
-                            <thead class="table-light sticky-top">
-                                <tr>
-                                    <th>#</th>
-                                    <th>Product Name</th>
-                                    <th>Categories</th>
-                                    <th>Min Price ($)</th>
-                                    <th>Max Price ($)</th>
-                                    <th>MOQ</th>
-                                    <th>SKU</th>
-                                    <th>Status</th>
-                                </tr>
-                            </thead>
-                            <tbody id="adminBulkPreviewTableBody"></tbody>
-                        </table>
+                    <!-- Tab Pane 2: Successful Records -->
+                    <div id="adminPaneValid" class="d-none mb-3">
+                        <div class="alert alert-success p-2.5 mb-2 d-flex align-items-center justify-content-between">
+                            <span class="small fw-bold text-success-emphasis"><i class="bi bi-check-circle-fill me-1 text-success"></i> Products validated and ready for immediate catalog import.</span>
+                            <span class="badge bg-success" id="adminValidSummaryCount">0 Ready</span>
+                        </div>
+                        <div class="table-responsive border rounded-3" style="max-height: 280px; overflow-y: auto;">
+                            <table class="table table-sm table-hover align-middle mb-0 text-nowrap small">
+                                <thead class="table-light sticky-top">
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Row</th>
+                                        <th>Product Name</th>
+                                        <th>Categories</th>
+                                        <th>Min Price ($)</th>
+                                        <th>Max Price ($)</th>
+                                        <th>MOQ</th>
+                                        <th>SKU</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="adminBulkPreviewTableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Tab Pane 3: Skipped Records -->
+                    <div id="adminPaneSkipped" class="d-none mb-3">
+                        <div class="alert alert-warning p-2.5 mb-2 small fw-bold text-warning-emphasis">
+                            <i class="bi bi-slash-circle-fill me-1 text-warning"></i> These rows were skipped because they contain duplicate SKUs or invalid formats.
+                        </div>
+                        <div class="table-responsive border rounded-3" style="max-height: 280px; overflow-y: auto;">
+                            <table class="table table-sm table-hover align-middle mb-0 text-nowrap small">
+                                <thead class="table-light sticky-top">
+                                    <tr>
+                                        <th>Excel Row</th>
+                                        <th>Product Name</th>
+                                        <th>SKU</th>
+                                        <th>Reason Skipped</th>
+                                        <th>Suggested Fix</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="adminBulkSkippedTableBody"></tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -838,12 +913,49 @@ document.addEventListener('DOMContentLoaded', function () {
     const btnCommit = document.getElementById('btnAdminBulkCommit');
     const previewSection = document.getElementById('adminBulkPreviewSection');
     const statsContainer = document.getElementById('adminBulkStatsBadges');
-    const errorsContainer = document.getElementById('adminBulkErrorsContainer');
-    const errorsList = document.getElementById('adminBulkErrorsList');
     const previewTableBody = document.getElementById('adminBulkPreviewTableBody');
+
+    // Admin Tabs & Tables
+    const tabBtnErrors = document.getElementById('adminTabBtnErrors');
+    const tabBtnValid = document.getElementById('adminTabBtnValid');
+    const tabBtnSkipped = document.getElementById('adminTabBtnSkipped');
+    const tabLiSkipped = document.getElementById('adminTabLiSkipped');
+    const paneErrors = document.getElementById('adminPaneErrors');
+    const paneValid = document.getElementById('adminPaneValid');
+    const paneSkipped = document.getElementById('adminPaneSkipped');
+    const badgeCountErrors = document.getElementById('adminBadgeCountErrors');
+    const badgeCountValid = document.getElementById('adminBadgeCountValid');
+    const badgeCountSkipped = document.getElementById('adminBadgeCountSkipped');
+    const errorTableBody = document.getElementById('adminBulkErrorTableBody');
+    const skippedTableBody = document.getElementById('adminBulkSkippedTableBody');
+    const validSummaryCount = document.getElementById('adminValidSummaryCount');
 
     let currentFile = null;
     let currentFileToken = null;
+    let lastDetailedErrors = [];
+
+    function switchAdminTab(activeTab) {
+        const tabs = [
+            { btn: tabBtnErrors, pane: paneErrors, activeClass: 'active text-danger border-danger' },
+            { btn: tabBtnValid, pane: paneValid, activeClass: 'active text-success border-success' },
+            { btn: tabBtnSkipped, pane: paneSkipped, activeClass: 'active text-warning border-warning' }
+        ];
+
+        tabs.forEach(t => {
+            if (!t.btn || !t.pane) return;
+            if (t.btn === activeTab) {
+                t.btn.classList.add('active');
+                t.pane.classList.remove('d-none');
+            } else {
+                t.btn.classList.remove('active');
+                t.pane.classList.add('d-none');
+            }
+        });
+    }
+
+    if (tabBtnErrors) tabBtnErrors.addEventListener('click', () => switchAdminTab(tabBtnErrors));
+    if (tabBtnValid) tabBtnValid.addEventListener('click', () => switchAdminTab(tabBtnValid));
+    if (tabBtnSkipped) tabBtnSkipped.addEventListener('click', () => switchAdminTab(tabBtnSkipped));
 
     if (dropzone && fileInput) {
         dropzone.addEventListener('click', () => fileInput.click());
@@ -916,7 +1028,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     throw new Error('Server returned an invalid response (Status ' + res.status + '). Please try again.');
                 }
 
-                if (!data.success) {
+                if (!data.success && (!data.detailed_errors || data.detailed_errors.length === 0)) {
                     Swal.fire({
                         icon: 'error',
                         title: 'Validation Failed',
@@ -929,44 +1041,94 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
 
                 currentFileToken = data.file_token;
+                lastDetailedErrors = data.detailed_errors || [];
                 previewSection.classList.remove('d-none');
 
+                const stats = data.stats || {};
+                const totalRows = stats.total || data.total_rows || 0;
+                const validRows = stats.valid || data.valid_rows_count || 0;
+                const failedRows = stats.failed || data.error_rows_count || 0;
+                const skippedRows = stats.skipped || 0;
+                const totalIssues = stats.issues || lastDetailedErrors.length || 0;
+
+                badgeCountErrors.textContent = totalIssues;
+                badgeCountValid.textContent = validRows;
+                badgeCountSkipped.textContent = skippedRows;
+                if (validSummaryCount) validSummaryCount.textContent = `${validRows} Ready to Import`;
+
                 statsContainer.innerHTML = `
-                    <span class="badge bg-secondary">Total: ${data.total_rows}</span>
-                    <span class="badge bg-success">Valid: ${data.valid_rows_count}</span>
-                    <span class="badge bg-danger">Issues: ${data.error_rows_count}</span>
+                    <span class="badge bg-secondary">Total Rows: ${totalRows}</span>
+                    <span class="badge bg-success">Valid: ${validRows}</span>
+                    ${failedRows > 0 ? `<span class="badge bg-danger">Failed: ${failedRows} (${totalIssues} issues)</span>` : ''}
+                    ${skippedRows > 0 ? `<span class="badge bg-warning text-dark">Skipped: ${skippedRows}</span>` : ''}
                 `;
 
-                if (data.errors && data.errors.length > 0) {
-                    errorsContainer.classList.remove('d-none');
-                    errorsList.innerHTML = data.errors.map(err => `
-                        <li><strong>Row ${err.row} [${err.product}]:</strong> ${err.errors.join('; ')}</li>
-                    `).join('');
+                // Render Error Table
+                if (lastDetailedErrors.length > 0) {
+                    errorTableBody.innerHTML = lastDetailedErrors.map(err => {
+                        return `
+                            <tr>
+                                <td><span class="badge bg-danger-subtle text-danger border border-danger-subtle font-mono fw-bold">Row ${err.row || '—'}</span></td>
+                                <td>
+                                    <div class="fw-bold text-dark">${escapeHtml(err.product || '—')}</div>
+                                    <div class="small font-mono text-muted">SKU: ${escapeHtml(err.sku || '—')}</div>
+                                </td>
+                                <td><span class="badge bg-primary-subtle text-primary border">${escapeHtml(err.field || 'General')}</span></td>
+                                <td class="text-danger fw-semibold">${escapeHtml(err.error || 'Validation error')}</td>
+                                <td>
+                                    <span class="badge bg-success-subtle text-success-emphasis border text-wrap text-start">
+                                        <i class="bi bi-lightbulb me-1"></i>${escapeHtml(err.suggested_fix || 'Check spreadsheet value')}
+                                    </span>
+                                </td>
+                            </tr>
+                        `;
+                    }).join('');
+                    switchAdminTab(tabBtnErrors);
                 } else {
-                    errorsContainer.classList.add('d-none');
-                    errorsList.innerHTML = '';
+                    errorTableBody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-success fw-bold"><i class="bi bi-check-circle-fill me-1"></i>All rows passed validation!</td></tr>';
+                    switchAdminTab(tabBtnValid);
                 }
 
-                if (data.preview_rows && data.preview_rows.length > 0) {
-                    previewTableBody.innerHTML = data.preview_rows.map(row => `
+                // Render Valid Records Table
+                const validRecords = data.preview_rows || data.valid_records || [];
+                if (validRecords.length > 0) {
+                    previewTableBody.innerHTML = validRecords.map((row, idx) => `
                         <tr>
-                            <td><span class="badge bg-light text-muted border">Row ${row.row_num}</span></td>
-                            <td class="fw-bold text-dark">${row.name}</td>
-                            <td><span class="badge bg-primary-subtle text-primary border">${row.category_names ? row.category_names.join(', ') : 'Category'}</span></td>
-                            <td class="text-success fw-bold">$${parseFloat(row.min_price).toFixed(2)}</td>
-                            <td>$${parseFloat(row.max_price).toFixed(2)}</td>
-                            <td>${row.moq}</td>
-                            <td><code class="text-muted small">${row.sku || '-'}</code></td>
+                            <td><span class="badge bg-light text-muted border">${idx + 1}</span></td>
+                            <td><span class="badge bg-light text-dark border">Row ${row.row_num || idx + 2}</span></td>
+                            <td class="fw-bold text-dark">${escapeHtml(row.name || row.title || '—')}</td>
+                            <td><span class="badge bg-primary-subtle text-primary border">${row.category_names ? escapeHtml(row.category_names.join(', ')) : 'Category'}</span></td>
+                            <td class="text-success fw-bold">$${parseFloat(row.min_price || 0).toFixed(2)}</td>
+                            <td>$${parseFloat(row.max_price || 0).toFixed(2)}</td>
+                            <td>${row.moq || 1}</td>
+                            <td><code class="text-muted small">${escapeHtml(row.sku || '-')}</code></td>
                             <td><span class="badge bg-success-subtle text-success border">Ready</span></td>
                         </tr>
                     `).join('');
                 } else {
-                    previewTableBody.innerHTML = '<tr><td colspan="8" class="text-center py-3 text-muted">No valid rows available to import.</td></tr>';
+                    previewTableBody.innerHTML = '<tr><td colspan="9" class="text-center py-3 text-muted">No valid rows available to import. Please resolve the issues above.</td></tr>';
                 }
 
-                if (data.valid_rows_count > 0) {
+                // Render Skipped Table
+                const skippedRecords = data.skipped_records || [];
+                if (skippedRecords.length > 0) {
+                    tabLiSkipped.classList.remove('d-none');
+                    skippedTableBody.innerHTML = skippedRecords.map(s => `
+                        <tr>
+                            <td><span class="badge bg-warning-subtle text-warning-emphasis border font-mono fw-bold">Row ${s.row}</span></td>
+                            <td class="fw-bold text-dark">${escapeHtml(s.product || '—')}</td>
+                            <td class="font-mono text-muted">${escapeHtml(s.sku || '—')}</td>
+                            <td class="text-warning-emphasis fw-semibold">${escapeHtml(s.message || 'Duplicate SKU or duplicate entry')}</td>
+                            <td class="text-muted">Provide a unique SKU or leave blank to auto-generate.</td>
+                        </tr>
+                    `).join('');
+                } else {
+                    tabLiSkipped.classList.add('d-none');
+                }
+
+                if (validRows > 0) {
                     btnCommit.classList.remove('d-none');
-                    btnCommit.innerHTML = `<i class="bi bi-check2-circle me-1"></i> Confirm &amp; Import (${data.valid_rows_count}) Products`;
+                    btnCommit.innerHTML = `<i class="bi bi-check2-circle me-1"></i> Confirm &amp; Import (${validRows}) Products`;
                 } else {
                     btnCommit.classList.add('d-none');
                 }
@@ -980,6 +1142,35 @@ document.addEventListener('DOMContentLoaded', function () {
             } finally {
                 btnValidate.disabled = false;
                 btnValidate.innerHTML = '<i class="bi bi-shield-check me-1"></i> Re-Validate';
+            }
+        });
+    }
+
+    // Admin Error Report Download Handlers
+    function escapeHtml(str) {
+        if (!str) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    const btnAdminDownloadXlsx = document.getElementById('btnAdminDownloadErrorsXlsx');
+    if (btnAdminDownloadXlsx) {
+        btnAdminDownloadXlsx.addEventListener('click', function () {
+            if (currentFileToken) {
+                window.location.href = `${baseUrl}/api/products/bulk-error-report?token=${encodeURIComponent(currentFileToken)}&format=xlsx`;
+            }
+        });
+    }
+
+    const btnAdminDownloadCsv = document.getElementById('btnAdminDownloadErrorsCsv');
+    if (btnAdminDownloadCsv) {
+        btnAdminDownloadCsv.addEventListener('click', function () {
+            if (currentFileToken) {
+                window.location.href = `${baseUrl}/api/products/bulk-error-report?token=${encodeURIComponent(currentFileToken)}&format=csv`;
             }
         });
     }

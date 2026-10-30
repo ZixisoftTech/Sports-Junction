@@ -345,6 +345,103 @@ class BulkProductImporter
     }
 
     /**
+     * Download or stream bulk upload error report (XLSX or CSV)
+     */
+    public static function downloadErrorReport(string $fileToken, string $format = 'xlsx'): void
+    {
+        if (ob_get_level()) {
+            ob_end_clean();
+        }
+
+        self::ensureTempDir();
+        $cacheFile = self::getTempDir() . '/' . basename($fileToken) . '.json';
+        
+        $detailedErrors = [];
+        if (file_exists($cacheFile)) {
+            $payload = json_decode((string)file_get_contents($cacheFile), true);
+            $detailedErrors = $payload['detailed_errors'] ?? [];
+            if (empty($detailedErrors) && !empty($payload['errors'])) {
+                foreach ($payload['errors'] as $err) {
+                    $details = is_array($err['errors'] ?? null) ? implode('; ', $err['errors']) : ($err['message'] ?? 'Error');
+                    $detailedErrors[] = [
+                        'row'           => $err['row'] ?? 1,
+                        'product'       => $err['product'] ?? 'Product',
+                        'sku'           => $err['sku'] ?? '—',
+                        'field'         => 'Validation',
+                        'error'         => $details,
+                        'suggested_fix' => 'Review spreadsheet row data and adhere to template specifications.'
+                    ];
+                }
+            }
+        }
+
+        if (empty($detailedErrors)) {
+            $detailedErrors[] = [
+                'row'           => 1,
+                'product'       => 'Upload Session',
+                'sku'           => '—',
+                'field'         => 'Session Status',
+                'error'         => 'No error issues found or upload session has expired.',
+                'suggested_fix' => 'Re-upload the spreadsheet to generate a fresh validation report.'
+            ];
+        }
+
+        $headers = ['Excel Row', 'Product Name', 'SKU', 'Field with Error', 'Error Description', 'Suggested Fix'];
+        $rows = [];
+        foreach ($detailedErrors as $de) {
+            $rows[] = [
+                (string)($de['row'] ?? '—'),
+                (string)($de['product'] ?? '—'),
+                (string)($de['sku'] ?? '—'),
+                (string)($de['field'] ?? 'General'),
+                (string)($de['error'] ?? 'Validation failure'),
+                (string)($de['suggested_fix'] ?? 'Correct row value in spreadsheet'),
+            ];
+        }
+
+        $filename = 'Sports_Junction_Bulk_Upload_Error_Report_' . date('Ymd_His');
+
+        if (strtolower($format) === 'csv') {
+            header('Content-Type: text/csv; charset=UTF-8');
+            header('Content-Disposition: attachment; filename="' . $filename . '.csv"');
+            $out = fopen('php://output', 'w');
+            fprintf($out, chr(0xEF) . chr(0xBB) . chr(0xBF));
+            fputcsv($out, $headers);
+            foreach ($rows as $r) {
+                fputcsv($out, $r);
+            }
+            fclose($out);
+            exit;
+        }
+
+        $tempFile = self::getSafeTempFile('sj_err_rep_', 'xlsx');
+        $success = self::createXlsxFile($tempFile, $headers, $rows);
+
+        if (!$success || !file_exists($tempFile) || filesize($tempFile) === 0) {
+            @unlink($tempFile);
+            header('Content-Type: text/csv; charset=UTF-8');
+            header('Content-Disposition: attachment; filename="' . $filename . '.csv"');
+            $out = fopen('php://output', 'w');
+            fprintf($out, chr(0xEF) . chr(0xBB) . chr(0xBF));
+            fputcsv($out, $headers);
+            foreach ($rows as $r) {
+                fputcsv($out, $r);
+            }
+            fclose($out);
+            exit;
+        }
+
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment; filename="' . $filename . '.xlsx"');
+        header('Content-Length: ' . filesize($tempFile));
+        header('Cache-Control: max-age=0, no-cache, no-store, must-revalidate');
+        header('Pragma: public');
+        readfile($tempFile);
+        @unlink($tempFile);
+        exit;
+    }
+
+    /**
      * Create Multi-Sheet OpenXML XLSX file
      */
     public static function createMultiSheetXlsxFile(string $targetPath, array $sheets): bool
@@ -652,14 +749,48 @@ class BulkProductImporter
         }
 
         if (empty($rawRows) || count($rawRows) < 2) {
+            $emptyIssue = [
+                'row'           => 1,
+                'product'       => 'Spreadsheet File',
+                'sku'           => '—',
+                'field'         => 'Template Structure',
+                'error'         => 'The uploaded file is empty or missing headers and data rows.',
+                'suggested_fix' => 'Download the official Sports Junction Bulk Upload Template and add at least one product row.'
+            ];
             return [
-                'success' => false,
-                'message' => 'The uploaded file is empty or missing headers and data rows.',
-                'total_rows' => 0,
+                'success'          => false,
+                'message'          => 'The uploaded file is empty or missing headers and data rows.',
+                'total_rows'       => 0,
                 'valid_rows_count' => 0,
-                'error_rows_count' => 0,
-                'errors' => [],
-                'preview_rows' => [],
+                'error_rows_count' => 1,
+                'stats'            => [
+                    'total'   => 0,
+                    'valid'   => 0,
+                    'failed'  => 1,
+                    'skipped' => 0,
+                    'issues'  => 1,
+                ],
+                'errors'           => [
+                    [
+                        'row'     => 1,
+                        'product' => 'Spreadsheet File',
+                        'errors'  => ['The uploaded file is empty or missing headers and data rows.'],
+                        'message' => 'The uploaded file is empty or missing headers and data rows.',
+                    ]
+                ],
+                'detailed_errors'  => [$emptyIssue],
+                'failed_records'   => [
+                    [
+                        'row'             => 1,
+                        'product'         => 'Spreadsheet File',
+                        'sku'             => '—',
+                        'errors'          => ['The uploaded file is empty or missing headers and data rows.'],
+                        'message'         => 'The uploaded file is empty or missing headers and data rows.',
+                        'detailed_errors' => [$emptyIssue],
+                    ]
+                ],
+                'skipped_records'  => [],
+                'preview_rows'     => [],
             ];
         }
 
@@ -716,6 +847,9 @@ class BulkProductImporter
         }
 
         $validRecords = [];
+        $failedRecords = [];
+        $skippedRecords = [];
+        $allDetailedErrors = [];
         $errors = [];
         $seenSkusInFile = [];
 
@@ -743,7 +877,11 @@ class BulkProductImporter
             // 1. Product Name (Required)
             $name = $mapped['name'] ?? $mapped['title'] ?? $mapped['product_name'] ?? '';
             if (empty($name)) {
-                $rowErrors[] = 'Product Name is required.';
+                $rowErrors[] = [
+                    'field'         => 'Product Name',
+                    'error'         => 'Product Name is missing or empty.',
+                    'suggested_fix' => 'Enter a descriptive product title in column A (e.g., "Professional PU Football (Size 5)").'
+                ];
             }
 
             // 2. Categories (Required, supports multiple comma-separated)
@@ -753,7 +891,11 @@ class BulkProductImporter
             $resolvedCategoryNames = [];
 
             if (empty($catItems)) {
-                $rowErrors[] = 'At least one Category is required.';
+                $rowErrors[] = [
+                    'field'         => 'Categories',
+                    'error'         => 'At least one Category is required.',
+                    'suggested_fix' => 'Enter a valid Category name or numeric ID from the Reference Sheet (e.g., "Football & Inflatables" or "1").'
+                ];
             } else {
                 foreach ($catItems as $ci) {
                     if (is_numeric($ci) && isset($catById[(int)$ci])) {
@@ -765,7 +907,11 @@ class BulkProductImporter
                             $resolvedCategoryIds[] = (int)$catByName[$lower]['id'];
                             $resolvedCategoryNames[] = $catByName[$lower]['name'];
                         } else {
-                            $rowErrors[] = "Unknown Category '{$ci}'. Please specify an active category name or ID.";
+                            $rowErrors[] = [
+                                'field'         => 'Categories',
+                                'error'         => "Unknown or inactive Category '{$ci}'.",
+                                'suggested_fix' => 'Verify the category name or ID against the Reference Data sheet.'
+                            ];
                         }
                     }
                 }
@@ -793,29 +939,48 @@ class BulkProductImporter
                     $parentCatId = (int)$sub['category_id'];
                     if (!empty($resolvedCategoryIds) && !in_array($parentCatId, $resolvedCategoryIds, true)) {
                         $parentCatName = $catById[$parentCatId]['name'] ?? "Category #{$parentCatId}";
-                        $rowErrors[] = "Subcategory '{$sub['name']}' belongs to '{$parentCatName}' and cannot be used with the selected Category/Categories.";
+                        $rowErrors[] = [
+                            'field'         => 'Subcategories',
+                            'error'         => "Subcategory '{$sub['name']}' belongs to '{$parentCatName}' and does not match the selected Category.",
+                            'suggested_fix' => "Select a subcategory that belongs to the designated parent Category, or update the Category to '{$parentCatName}'."
+                        ];
                     } else {
                         $resolvedSubcategoryIds[] = (int)$sub['id'];
                         $resolvedSubcategoryNames[] = $sub['name'];
                     }
                 } else {
-                    $rowErrors[] = "Unknown Subcategory '{$si}'.";
+                    $rowErrors[] = [
+                        'field'         => 'Subcategories',
+                        'error'         => "Unknown or inactive Subcategory '{$si}'.",
+                        'suggested_fix' => 'Leave blank if not applicable, or select an active subcategory from the Reference Data sheet.'
+                    ];
                 }
             }
             $resolvedSubcategoryIds = array_values(array_unique($resolvedSubcategoryIds));
 
             // 4. SKU Validation
             $sku = $mapped['sku'] ?? null;
+            $isDuplicateSku = false;
             if (!empty($sku)) {
                 $skuUpper = strtoupper($sku);
                 if (isset($seenSkusInFile[$skuUpper])) {
-                    $rowErrors[] = "Duplicate SKU '{$sku}' found in file (already on row {$seenSkusInFile[$skuUpper]}).";
+                    $isDuplicateSku = true;
+                    $rowErrors[] = [
+                        'field'         => 'SKU',
+                        'error'         => "Duplicate SKU '{$sku}' already present in this file at row {$seenSkusInFile[$skuUpper]}.",
+                        'suggested_fix' => 'Assign a unique SKU code to each product or leave blank to auto-generate.'
+                    ];
                 } else {
                     $seenSkusInFile[$skuUpper] = $rowNum;
                     // Check against DB
                     $existingSku = Product::fetch("SELECT id, title FROM products WHERE UPPER(sku) = :sku LIMIT 1", [':sku' => $skuUpper]);
                     if ($existingSku) {
-                        $rowErrors[] = "SKU '{$sku}' already exists in database (assigned to Product #{$existingSku['id']}).";
+                        $isDuplicateSku = true;
+                        $rowErrors[] = [
+                            'field'         => 'SKU',
+                            'error'         => "SKU '{$sku}' already exists in database (assigned to Product #{$existingSku['id']}: '{$existingSku['title']}').",
+                            'suggested_fix' => 'Provide a distinct SKU that is not already registered in the marketplace.'
+                        ];
                     }
                 }
             }
@@ -824,13 +989,27 @@ class BulkProductImporter
             $minPrice = $mapped['min_price'] ?? $mapped['price'] ?? '';
             $maxPrice = $mapped['max_price'] ?? $minPrice;
 
-            if ($minPrice === '' || !is_numeric($minPrice) || (float)$minPrice <= 0) {
-                $rowErrors[] = 'Min Price must be a valid positive number.';
+            if ($minPrice === '') {
+                $rowErrors[] = [
+                    'field'         => 'Min Price',
+                    'error'         => 'Min Price ($) is required.',
+                    'suggested_fix' => 'Enter a numeric starting wholesale price (e.g. 15.50).'
+                ];
+            } elseif (!is_numeric($minPrice) || (float)$minPrice <= 0) {
+                $rowErrors[] = [
+                    'field'         => 'Min Price',
+                    'error'         => "Invalid Min Price '{$minPrice}'. Must be a positive number greater than 0.",
+                    'suggested_fix' => 'Enter a positive numeric price greater than 0 (e.g. 12.00) without currency symbols.'
+                ];
             }
-            $minPriceVal = (float)$minPrice;
+            $minPriceVal = is_numeric($minPrice) ? (float)$minPrice : 0.0;
             $maxPriceVal = is_numeric($maxPrice) ? (float)$maxPrice : $minPriceVal;
-            if ($maxPriceVal < $minPriceVal) {
-                $rowErrors[] = 'Max Price cannot be less than Min Price.';
+            if ($minPriceVal > 0 && $maxPriceVal < $minPriceVal) {
+                $rowErrors[] = [
+                    'field'         => 'Max Price',
+                    'error'         => "Max Price ({$maxPriceVal}) cannot be less than Min Price ({$minPriceVal}).",
+                    'suggested_fix' => 'Ensure Max Price is equal to or greater than Min Price.'
+                ];
             }
 
             // 6. Price Unit
@@ -838,9 +1017,19 @@ class BulkProductImporter
             $priceUnitId = $priceUnitByName[$priceUnitStr] ?? 1;
 
             // 7. MOQ
-            $moq = $mapped['moq'] ?? $mapped['moq_quantity'] ?? '1';
-            if ($moq === '' || !is_numeric($moq) || (int)$moq < 1) {
-                $rowErrors[] = 'MOQ must be an integer greater than or equal to 1.';
+            $moq = $mapped['moq'] ?? $mapped['moq_quantity'] ?? '';
+            if ($moq === '') {
+                $rowErrors[] = [
+                    'field'         => 'MOQ',
+                    'error'         => 'Minimum Order Quantity (MOQ) is required.',
+                    'suggested_fix' => 'Specify a whole integer quantity (e.g. 50, 100).'
+                ];
+            } elseif (!is_numeric($moq) || (int)$moq < 1 || (float)$moq != (int)$moq) {
+                $rowErrors[] = [
+                    'field'         => 'MOQ',
+                    'error'         => "Invalid MOQ '{$moq}'. Must be a whole positive integer >= 1.",
+                    'suggested_fix' => 'Enter a positive whole number for MOQ without decimals or letters (e.g. 25).'
+                ];
             }
             $moqVal = max(1, (int)$moq);
 
@@ -857,6 +1046,13 @@ class BulkProductImporter
                 // Sellers can ONLY import for their own supplier account.
                 // Any supplier in the file is ignored to prevent privilege escalation.
                 $targetSupplierId = (int)$supplierId;
+                if ($targetSupplierId <= 0) {
+                    $rowErrors[] = [
+                        'field'         => 'Supplier Account',
+                        'error'         => 'Active seller profile not found or unverified.',
+                        'suggested_fix' => 'Ensure your supplier account is approved and active before uploading.'
+                    ];
+                }
             } else {
                 $supKey = $mapped['supplier'] ?? $mapped['supplier_id'] ?? '';
                 if (!empty($supKey)) {
@@ -865,13 +1061,21 @@ class BulkProductImporter
                     } elseif (isset($supplierMap[strtolower($supKey)])) {
                         $targetSupplierId = (int)$supplierMap[strtolower($supKey)]['id'];
                     } else {
-                        $rowErrors[] = "Supplier '{$supKey}' not found in database.";
+                        $rowErrors[] = [
+                            'field'         => 'Supplier',
+                            'error'         => "Supplier '{$supKey}' not found in database.",
+                            'suggested_fix' => 'Use a valid Supplier ID or Company Name from the Reference Sheet.'
+                        ];
                         $targetSupplierId = 0;
                     }
                 } elseif (!empty($adminSelectedSupplierId) && isset($supplierMap[(int)$adminSelectedSupplierId])) {
                     $targetSupplierId = (int)$adminSelectedSupplierId;
                 } else {
-                    $rowErrors[] = "Supplier is required for Super Admin imports. Please select a supplier from the dropdown or include the Supplier ID/Name in the spreadsheet.";
+                    $rowErrors[] = [
+                        'field'         => 'Supplier',
+                        'error'         => 'Supplier assignment is required for Super Admin import.',
+                        'suggested_fix' => 'Select a target supplier from the dropdown or include Supplier ID/Name in the spreadsheet.'
+                    ];
                     $targetSupplierId = 0;
                 }
             }
@@ -886,16 +1090,62 @@ class BulkProductImporter
 
             // 12. Images
             $primaryImage = $mapped['primary_image'] ?? '';
+            if (!empty($primaryImage)) {
+                $hasValidSchemeOrExt = (str_starts_with($primaryImage, 'http://') || str_starts_with($primaryImage, 'https://') || str_starts_with($primaryImage, '/') || preg_match('/\.(jpg|jpeg|png|webp|gif)$/i', $primaryImage));
+                $isValidImg = $hasValidSchemeOrExt && (filter_var($primaryImage, FILTER_VALIDATE_URL) || str_starts_with($primaryImage, '/') || preg_match('/^[a-zA-Z0-9_\-\.\/]+$/', $primaryImage));
+                if (!$isValidImg) {
+                    $rowErrors[] = [
+                        'field'         => 'Primary Image',
+                        'error'         => "Invalid Primary Image format '{$primaryImage}'.",
+                        'suggested_fix' => 'Provide a valid image URL starting with http:// or https:// (or a supported image filename ending in .jpg, .png, or .webp).'
+                    ];
+                }
+            }
             $galleryImagesRaw = $mapped['gallery_images'] ?? '';
             $galleryImages = array_filter(array_map('trim', preg_split('/[,;|]/', (string)$galleryImagesRaw)));
+            foreach ($galleryImages as $gIdx => $gImg) {
+                $hasValidGSchemeOrExt = (str_starts_with($gImg, 'http://') || str_starts_with($gImg, 'https://') || str_starts_with($gImg, '/') || preg_match('/\.(jpg|jpeg|png|webp|gif)$/i', $gImg));
+                $isValidGImg = $hasValidGSchemeOrExt && (filter_var($gImg, FILTER_VALIDATE_URL) || str_starts_with($gImg, '/') || preg_match('/^[a-zA-Z0-9_\-\.\/]+$/', $gImg));
+                if (!$isValidGImg) {
+                    $rowErrors[] = [
+                        'field'         => 'Gallery Images',
+                        'error'         => "Invalid gallery image URL at item " . ($gIdx + 1) . ": '{$gImg}'.",
+                        'suggested_fix' => 'Provide valid http:// or https:// image URLs separated by commas.'
+                    ];
+                }
+            }
 
             if (!empty($rowErrors)) {
-                $errors[] = [
-                    'row'     => $rowNum,
-                    'product' => $name ?: 'Unnamed Row #' . $rowNum,
-                    'errors'  => $rowErrors,
-                    'message' => implode('; ', $rowErrors),
+                $rowErrorStrings = [];
+                foreach ($rowErrors as $re) {
+                    $rowErrorStrings[] = $re['error'];
+                    $allDetailedErrors[] = [
+                        'row'           => $rowNum,
+                        'product'       => $name ?: 'Unnamed Product (Row ' . $rowNum . ')',
+                        'sku'           => $sku ?: '—',
+                        'field'         => $re['field'],
+                        'error'         => $re['error'],
+                        'suggested_fix' => $re['suggested_fix'],
+                        'is_duplicate'  => $isDuplicateSku,
+                    ];
+                }
+
+                $failedRecord = [
+                    'row'             => $rowNum,
+                    'product'         => $name ?: 'Unnamed Row #' . $rowNum,
+                    'sku'             => $sku ?: '—',
+                    'errors'          => $rowErrorStrings,
+                    'message'         => implode('; ', $rowErrorStrings),
+                    'detailed_errors' => $rowErrors,
+                    'is_duplicate'    => $isDuplicateSku,
                 ];
+
+                if ($isDuplicateSku && count($rowErrors) === 1) {
+                    $skippedRecords[] = $failedRecord;
+                } else {
+                    $failedRecords[] = $failedRecord;
+                }
+                $errors[] = $failedRecord;
             } else {
                 $validRecords[] = [
                     'row_num'               => $rowNum,
@@ -938,32 +1188,49 @@ class BulkProductImporter
             }
         }
 
-        // Generate file token for commitment
+        // Generate file token for commitment and error reporting
         $fileToken = bin2hex(random_bytes(16));
         $cachePayload = [
             'uploader_supplier_id' => $supplierId,
             'is_admin'             => $isAdmin,
             'created_at'           => time(),
             'valid_records'        => $validRecords,
+            'failed_records'       => $failedRecords,
+            'skipped_records'      => $skippedRecords,
+            'detailed_errors'      => $allDetailedErrors,
+            'stats'                => [
+                'total'   => count($rawRows),
+                'valid'   => count($validRecords),
+                'failed'  => count($failedRecords),
+                'skipped' => count($skippedRecords),
+                'issues'  => count($allDetailedErrors),
+            ],
         ];
         file_put_contents(self::getTempDir() . '/' . $fileToken . '.json', json_encode($cachePayload));
 
-        // Sample preview rows (up to 10)
-        $previewRows = array_slice($validRecords, 0, 10);
+        // Sample preview rows (up to 25)
+        $previewRows = array_slice($validRecords, 0, 25);
 
         return [
             'success'          => true,
             'file_token'       => $fileToken,
             'total_rows'       => count($rawRows),
             'valid_rows_count' => count($validRecords),
-            'error_rows_count' => count($errors),
+            'error_rows_count' => count($failedRecords),
             'stats'            => [
-                'total'  => count($rawRows),
-                'valid'  => count($validRecords),
-                'errors' => count($errors),
+                'total'   => count($rawRows),
+                'valid'   => count($validRecords),
+                'failed'  => count($failedRecords),
+                'skipped' => count($skippedRecords),
+                'issues'  => count($allDetailedErrors),
+                'errors'  => count($failedRecords),
             ],
             'errors'           => $errors,
+            'detailed_errors'  => $allDetailedErrors,
             'preview_rows'     => $previewRows,
+            'valid_records'    => $previewRows,
+            'failed_records'   => array_slice($failedRecords, 0, 50),
+            'skipped_records'  => array_slice($skippedRecords, 0, 50),
         ];
     }
 

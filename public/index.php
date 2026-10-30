@@ -329,6 +329,7 @@ $router->get('/supplier/products/bulk-template', [SupplierPortalController::clas
 $router->get('/supplier/products/import-reference', [SupplierPortalController::class, 'downloadImportReference'], [SupplierAuthMiddleware::class]);
 $router->post('/supplier/products/bulk-preview', [SupplierPortalController::class, 'bulkPreview'], [SupplierAuthMiddleware::class]);
 $router->post('/supplier/products/bulk-commit', [SupplierPortalController::class, 'bulkCommit'], [SupplierAuthMiddleware::class]);
+$router->get('/supplier/products/bulk-error-report', [SupplierPortalController::class, 'downloadErrorReport'], [SupplierAuthMiddleware::class]);
 $router->get('/supplier/products/edit/{id}', [SupplierPortalController::class, 'editProduct'], [SupplierAuthMiddleware::class]);
 $router->post('/supplier/products/edit/{id}', [SupplierPortalController::class, 'updateProduct'], [SupplierAuthMiddleware::class]);
 $router->post('/supplier/products/update/{id}', [SupplierPortalController::class, 'updateProduct'], [SupplierAuthMiddleware::class]);
@@ -560,6 +561,7 @@ $router->get('/admin/products/import-reference', [ProductController::class, 'dow
 $router->get('/api/products/import-reference', [ProductController::class, 'downloadImportReference'], [AuthMiddleware::class]);
 $router->post('/api/products/bulk-preview', [ProductController::class, 'bulkPreview'], [AuthMiddleware::class]);
 $router->post('/api/products/bulk-commit', [ProductController::class, 'bulkCommit'], [AuthMiddleware::class]);
+$router->get('/api/products/bulk-error-report', [ProductController::class, 'downloadErrorReport'], [AuthMiddleware::class]);
 $router->get('/admin/products/edit/{id}', [ProductController::class, 'edit'], [AuthMiddleware::class]);
 $router->get('/api/products/data', [ProductController::class, 'data'], [AuthMiddleware::class]);
 $router->get('/api/products/export', [ProductController::class, 'export'], [AuthMiddleware::class]);
