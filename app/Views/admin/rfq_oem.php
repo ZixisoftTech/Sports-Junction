@@ -22,9 +22,6 @@ $csrfToken = \App\Helpers\CSRF::generate();
                 <li><a class="dropdown-item py-2" href="#" onclick="exportRfqOem('pdf'); return false;"><i class="bi bi-file-earmark-pdf text-danger me-2"></i>Print / Save PDF</a></li>
             </ul>
         </div>
-        <a href="<?= $baseUrl ?>/admin/enquiries" class="btn btn-outline-primary btn-sm fw-semibold px-3 py-2 rounded-3">
-            <i class="bi bi-chat-left-quote me-1"></i> All Enquiries Hub
-        </a>
     </div>
 </div>
 

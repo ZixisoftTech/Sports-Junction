@@ -162,10 +162,6 @@ if (!empty($user['id']) && ($user['role'] ?? '') === 'SUPER_ADMIN') {
             <i class="bi bi-people"></i>
             <span>Buyer Management</span>
         </a>
-        <a href="<?= htmlspecialchars($baseUrl) ?>/admin/enquiries" class="sj-nav-item <?= ($activeMenu === 'enquiries' && !str_contains($_SERVER['REQUEST_URI'] ?? '', '-enquiries')) ? 'active' : '' ?>">
-            <i class="bi bi-speedometer2"></i>
-            <span>All Enquiries Overview</span>
-        </a>
         <a href="<?= htmlspecialchars($baseUrl) ?>/admin/product-enquiries" class="sj-nav-item <?= ($activeMenu === 'enquiries_product' || str_contains($_SERVER['REQUEST_URI'] ?? '', '/admin/product-enquiries')) ? 'active' : '' ?>">
             <i class="bi bi-box-seam"></i>
             <span>Product Page Enquiries</span>
@@ -198,6 +194,14 @@ if (!empty($user['id']) && ($user['role'] ?? '') === 'SUPER_ADMIN') {
             <i class="bi bi-list-check"></i>
             <span>Bulk Product Enquiries</span>
         </a>
+        <a href="<?= htmlspecialchars($baseUrl) ?>/admin/feedbacks" class="sj-nav-item <?= ($activeMenu === 'feedbacks' || str_contains($_SERVER['REQUEST_URI'] ?? '', '/admin/feedbacks')) ? 'active' : '' ?>">
+            <i class="bi bi-chat-heart"></i>
+            <span>Suggestions &amp; Feedback</span>
+        </a>
+        <a href="<?= htmlspecialchars($baseUrl) ?>/admin/careers" class="sj-nav-item <?= ($activeMenu === 'careers' || str_contains($_SERVER['REQUEST_URI'] ?? '', '/admin/careers')) ? 'active' : '' ?>">
+            <i class="bi bi-briefcase-fill"></i>
+            <span>Careers Form Submissions</span>
+        </a>
         <a href="<?= htmlspecialchars($baseUrl) ?>/admin/communication" class="sj-nav-item <?= ($activeMenu === 'communication' || str_contains($_SERVER['REQUEST_URI'] ?? '', '/admin/communication')) ? 'active' : '' ?>">
             <i class="bi bi-chat-dots-fill"></i>
             <span>Communication Center</span>
@@ -226,14 +230,6 @@ if (!empty($user['id']) && ($user['role'] ?? '') === 'SUPER_ADMIN') {
         <a href="<?= htmlspecialchars($baseUrl) ?>/admin/pages" class="sj-nav-item <?= ($activeMenu === 'cms_pages') ? 'active' : '' ?>">
             <i class="bi bi-file-earmark-richtext"></i>
             <span>Footer &amp; CMS Pages</span>
-        </a>
-        <a href="<?= htmlspecialchars($baseUrl) ?>/admin/feedbacks" class="sj-nav-item <?= ($activeMenu === 'feedbacks' || str_contains($_SERVER['REQUEST_URI'] ?? '', '/admin/feedbacks')) ? 'active' : '' ?>">
-            <i class="bi bi-chat-heart"></i>
-            <span>Suggestions &amp; Feedback</span>
-        </a>
-        <a href="<?= htmlspecialchars($baseUrl) ?>/admin/careers" class="sj-nav-item <?= ($activeMenu === 'careers' || str_contains($_SERVER['REQUEST_URI'] ?? '', '/admin/careers')) ? 'active' : '' ?>">
-            <i class="bi bi-briefcase-fill"></i>
-            <span>Careers &amp; Applications</span>
         </a>
         <a href="<?= htmlspecialchars($baseUrl) ?>/admin/seller-agreement" class="sj-nav-item <?= ($activeMenu === 'seller_agreement') ? 'active' : '' ?>">
             <i class="bi bi-file-earmark-text-fill"></i>
