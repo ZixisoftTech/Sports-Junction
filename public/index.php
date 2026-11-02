@@ -134,6 +134,8 @@ use App\Controllers\AdminNotificationController;
 use App\Controllers\AdminBulkEnquiryController;
 use App\Controllers\AdminFeedbackController;
 use App\Controllers\AdminCareerController;
+use App\Controllers\SupportQueryController;
+use App\Controllers\AdminSupportQueryController;
 
 $request = new Request();
 $response = new Response();
@@ -212,6 +214,10 @@ $router->get('/careers', [ShopController::class, 'careers']);
 $router->get('/careers-with-us', [ShopController::class, 'careers']);
 $router->post('/careers/apply', [ShopController::class, 'submitCareerApplication']);
 $router->post('/api/careers/apply', [ShopController::class, 'submitCareerApplication']);
+
+// Help Centre Query Submission (Buyer & Seller)
+$router->post('/api/help-centre/submit-query', [SupportQueryController::class, 'submit']);
+$router->post('/api/support/submit-query', [SupportQueryController::class, 'submit']);
 
 $router->post('/contact-us', [ShopController::class, 'submitContact']);
 
@@ -376,6 +382,21 @@ $router->get('/admin/fast-oem-enquiries', [EnquiryManagementController::class, '
 $router->get('/admin/general-enquiries', [EnquiryManagementController::class, 'generalEnquiries'], [AuthMiddleware::class]);
 $router->get('/admin/contact-us-enquiries', [EnquiryManagementController::class, 'contactEnquiries'], [AuthMiddleware::class]);
 $router->get('/admin/support-enquiries', [EnquiryManagementController::class, 'supportEnquiries'], [AuthMiddleware::class]);
+
+// Super Admin Buyer & Seller Support Query Management
+$router->get('/admin/buyer-queries', [AdminSupportQueryController::class, 'buyerQueries'], [AuthMiddleware::class]);
+$router->get('/api/admin/buyer-queries/data', [AdminSupportQueryController::class, 'buyerQueriesData'], [AuthMiddleware::class]);
+$router->get('/api/admin/buyer-queries/export', [AdminSupportQueryController::class, 'buyerQueriesExport'], [AuthMiddleware::class]);
+
+$router->get('/admin/seller-queries', [AdminSupportQueryController::class, 'sellerQueries'], [AuthMiddleware::class]);
+$router->get('/api/admin/seller-queries/data', [AdminSupportQueryController::class, 'sellerQueriesData'], [AuthMiddleware::class]);
+$router->get('/api/admin/seller-queries/export', [AdminSupportQueryController::class, 'sellerQueriesExport'], [AuthMiddleware::class]);
+
+$router->get('/api/admin/support-queries/{id}', [AdminSupportQueryController::class, 'getQueryDetail'], [AuthMiddleware::class]);
+$router->post('/api/admin/support-queries/{id}/status', [AdminSupportQueryController::class, 'updateStatus'], [AuthMiddleware::class]);
+$router->post('/api/admin/support-queries/{id}/assign', [AdminSupportQueryController::class, 'assign'], [AuthMiddleware::class]);
+$router->post('/api/admin/support-queries/{id}/notes', [AdminSupportQueryController::class, 'addNote'], [AuthMiddleware::class]);
+$router->get('/admin/support-queries/{id}/attachment', [AdminSupportQueryController::class, 'downloadAttachment']);
 
 $router->get('/admin/enquiries/attachment/{id}', [EnquiryManagementController::class, 'downloadAttachment']);
 $router->get('/admin/rfq-oem/attachment/{id}', [EnquiryManagementController::class, 'downloadAttachment']);

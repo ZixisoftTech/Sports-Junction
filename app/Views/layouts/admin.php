@@ -186,9 +186,13 @@ if (!empty($user['id']) && ($user['role'] ?? '') === 'SUPER_ADMIN') {
             <i class="bi bi-envelope-paper"></i>
             <span>Contact Us Enquiries</span>
         </a>
-        <a href="<?= htmlspecialchars($baseUrl) ?>/admin/support-enquiries" class="sj-nav-item <?= ($activeMenu === 'enquiries_support' || str_contains($_SERVER['REQUEST_URI'] ?? '', '/admin/support-enquiries')) ? 'active' : '' ?>">
-            <i class="bi bi-headset"></i>
-            <span>Support Enquiries</span>
+        <a href="<?= htmlspecialchars($baseUrl) ?>/admin/buyer-queries" class="sj-nav-item <?= ($activeMenu === 'buyer_queries' || str_contains($_SERVER['REQUEST_URI'] ?? '', '/admin/buyer-queries')) ? 'active' : '' ?>">
+            <i class="bi bi-person-lines-fill"></i>
+            <span>Buyer Queries</span>
+        </a>
+        <a href="<?= htmlspecialchars($baseUrl) ?>/admin/seller-queries" class="sj-nav-item <?= ($activeMenu === 'seller_queries' || str_contains($_SERVER['REQUEST_URI'] ?? '', '/admin/seller-queries')) ? 'active' : '' ?>">
+            <i class="bi bi-shop-window"></i>
+            <span>Seller Queries</span>
         </a>
         <a href="<?= htmlspecialchars($baseUrl) ?>/admin/bulk-enquiries" class="sj-nav-item <?= ($activeMenu === 'bulk_enquiries' || str_contains($_SERVER['REQUEST_URI'] ?? '', '/admin/bulk-enquiries')) ? 'active' : '' ?>">
             <i class="bi bi-list-check"></i>
