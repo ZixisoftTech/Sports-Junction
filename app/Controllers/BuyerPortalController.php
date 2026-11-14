@@ -33,11 +33,41 @@ class BuyerPortalController extends Controller
     public function dashboard(): void
     {
         $buyer = $this->getBuyer();
-        $enquiries = ProductInquiry::getBuyerEnquiries((int)$buyer['id'], $buyer['email']);
-        $sampleEnquiries = ProductInquiry::getBuyerSampleEnquiries((int)$buyer['id'], $buyer['email']);
-        $sortList = BuyerFavourite::getBuyerSortList((int)$buyer['id']);
-        $recentViews = BuyerRecentlyViewed::getRecent((int)$buyer['id'], 6);
-        $bulkEnquiriesData = BulkProductEnquiry::getByBuyer((int)$buyer['id'], 5, 0);
+        
+        try {
+            $enquiries = ProductInquiry::getBuyerEnquiries((int)$buyer['id'], $buyer['email']);
+        } catch (\Throwable $e) {
+            @error_log("Error fetching buyer enquiries: " . $e->getMessage());
+            $enquiries = [];
+        }
+
+        try {
+            $sampleEnquiries = ProductInquiry::getBuyerSampleEnquiries((int)$buyer['id'], $buyer['email']);
+        } catch (\Throwable $e) {
+            @error_log("Error fetching buyer sample enquiries: " . $e->getMessage());
+            $sampleEnquiries = [];
+        }
+
+        try {
+            $sortList = BuyerFavourite::getBuyerSortList((int)$buyer['id']);
+        } catch (\Throwable $e) {
+            @error_log("Error fetching buyer sort list: " . $e->getMessage());
+            $sortList = [];
+        }
+
+        try {
+            $recentViews = BuyerRecentlyViewed::getRecent((int)$buyer['id'], 6);
+        } catch (\Throwable $e) {
+            @error_log("Error fetching buyer recent views: " . $e->getMessage());
+            $recentViews = [];
+        }
+
+        try {
+            $bulkEnquiriesData = BulkProductEnquiry::getByBuyer((int)$buyer['id'], 5, 0);
+        } catch (\Throwable $e) {
+            @error_log("Error fetching buyer bulk enquiries: " . $e->getMessage());
+            $bulkEnquiriesData = ['records' => [], 'total' => 0];
+        }
 
         $counts = [
             'enquiries'      => count($enquiries),
@@ -169,8 +199,19 @@ class BuyerPortalController extends Controller
     public function sortList(): void
     {
         $buyer = $this->getBuyer();
-        $sortProducts = BuyerFavourite::getBuyerSortList((int)$buyer['id']);
-        $allCountries = Country::allActive();
+        try {
+            $sortProducts = BuyerFavourite::getBuyerSortList((int)$buyer['id']);
+        } catch (\Throwable $e) {
+            @error_log("Error fetching buyer sort list: " . $e->getMessage());
+            $sortProducts = [];
+        }
+
+        try {
+            $allCountries = Country::allActive();
+        } catch (\Throwable $e) {
+            @error_log("Error fetching countries: " . $e->getMessage());
+            $allCountries = [];
+        }
 
         $this->render('buyer/sort_list', [
             'pageTitle'    => 'My Sort List — Sports Junction',

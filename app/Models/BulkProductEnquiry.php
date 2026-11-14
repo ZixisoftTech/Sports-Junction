@@ -350,6 +350,9 @@ class BulkProductEnquiry extends Model
     public static function getByBuyer(int $buyerUserId, int $limit = 20, int $offset = 0): array
     {
         self::ensureSchema();
+        $limitInt = max(1, (int)$limit);
+        $offsetInt = max(0, (int)$offset);
+
         $rows = self::fetchAll("
             SELECT bpe.*,
                    (
@@ -365,8 +368,8 @@ class BulkProductEnquiry extends Model
             FROM bulk_product_enquiries bpe
             WHERE bpe.buyer_user_id = :buid
             ORDER BY bpe.created_at DESC
-            LIMIT :limit OFFSET :offset
-        ", [':buid' => $buyerUserId, ':limit' => $limit, ':offset' => $offset]);
+            LIMIT {$limitInt} OFFSET {$offsetInt}
+        ", [':buid' => $buyerUserId]);
 
         $total = (int) self::fetchColumn("
             SELECT COUNT(*) FROM bulk_product_enquiries WHERE buyer_user_id = :buid

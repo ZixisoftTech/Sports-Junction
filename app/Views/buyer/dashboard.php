@@ -15,8 +15,8 @@ $baseUrl = Response::baseUrl();
                 <span class="w-2 h-2 rounded-full bg-blue-600"></span>
                 <span>Verified Buyer Portal</span>
             </div>
-            <h1 class="font-headline font-extrabold text-2xl sm:text-3xl text-slate-900 tracking-tight">Welcome, <?= htmlspecialchars($buyer['name']) ?></h1>
-            <p class="text-xs sm:text-sm text-slate-500 mt-1"><?= htmlspecialchars($buyer['company_name'] ?? 'Direct Sourcing Account') ?> • <?= htmlspecialchars($buyer['email']) ?></p>
+            <h1 class="font-headline font-extrabold text-2xl sm:text-3xl text-slate-900 tracking-tight">Welcome, <?= htmlspecialchars((string)($buyer['name'] ?? 'Buyer')) ?></h1>
+            <p class="text-xs sm:text-sm text-slate-500 mt-1"><?= htmlspecialchars((string)($buyer['company_name'] ?? 'Direct Sourcing Account')) ?> • <?= htmlspecialchars((string)($buyer['email'] ?? '')) ?></p>
         </div>
 
         <div class="flex items-center gap-3">
@@ -128,14 +128,14 @@ $baseUrl = Response::baseUrl();
                                     <div class="text-[11px] text-slate-400 font-medium"><?= date('h:i A', strtotime($inq['created_at'])) ?></div>
                                 </td>
                                 <td class="py-3.5 px-4 font-bold text-slate-900 flex items-center gap-2.5">
-                                    <img src="<?= htmlspecialchars(\App\Helpers\Uploader::imageUrl($inq['primary_image'])) ?>" onerror="this.onerror=null;this.src='<?= htmlspecialchars($baseUrl) ?>/assets/images/logo.jpg';" class="w-9 h-9 rounded-lg object-cover border border-slate-200 shrink-0">
-                                    <span><?= htmlspecialchars($inq['product_name'] ?? 'Product Inquiry') ?></span>
+                                    <img src="<?= htmlspecialchars(\App\Helpers\Uploader::imageUrl($inq['primary_image'] ?? null)) ?>" onerror="this.onerror=null;this.src='<?= htmlspecialchars($baseUrl) ?>/assets/images/logo.jpg';" class="w-9 h-9 rounded-lg object-cover border border-slate-200 shrink-0">
+                                    <span><?= htmlspecialchars((string)($inq['product_name'] ?? 'Product Inquiry')) ?></span>
                                 </td>
-                                <td class="py-3.5 px-4 text-slate-600 font-semibold"><?= htmlspecialchars($inq['supplier_name'] ?? 'Sports Junction Hub') ?></td>
-                                <td class="py-3.5 px-4 text-slate-900 font-bold"><?= (int)$inq['target_quantity'] ?> units</td>
+                                <td class="py-3.5 px-4 text-slate-600 font-semibold"><?= htmlspecialchars((string)($inq['supplier_name'] ?? 'Sports Junction Hub')) ?></td>
+                                <td class="py-3.5 px-4 text-slate-900 font-bold"><?= (int)($inq['target_quantity'] ?? 1) ?> units</td>
                                 <td class="py-3.5 px-4">
-                                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold border <?= ($inq['status'] === 'RESPONDED') ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-amber-50 text-amber-800 border-amber-200' ?>">
-                                        <?= htmlspecialchars($inq['status']) ?>
+                                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold border <?= (($inq['status'] ?? '') === 'RESPONDED') ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-amber-50 text-amber-800 border-amber-200' ?>">
+                                        <?= htmlspecialchars((string)($inq['status'] ?? 'PENDING')) ?>
                                     </span>
                                 </td>
                                 <td class="py-3.5 px-4 text-right">
@@ -179,21 +179,31 @@ $baseUrl = Response::baseUrl();
         <?php else: ?>
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <?php foreach ($displaySortProducts as $fav): ?>
+                    <?php
+                        $favId = (int)($fav['id'] ?? $fav['product_id'] ?? 0);
+                        $favName = (string)($fav['name'] ?? 'Sports Product');
+                        $favSlug = (string)($fav['slug'] ?? '');
+                        $favSupplier = (string)($fav['supplier_name'] ?? 'Verified Factory');
+                        $favMoqUnit = (string)($fav['moq_unit_name'] ?? 'units');
+                        $favImg = \App\Helpers\Uploader::imageUrl($fav['primary_image'] ?? null);
+                        $favPrice = (float)($fav['min_price'] ?? 0);
+                        $favMoq = (int)($fav['moq_quantity'] ?? 1);
+                    ?>
                     <div class="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-3.5 flex flex-col justify-between group hover:border-blue-700 transition-all">
                         <div>
                             <div class="relative rounded-xl overflow-hidden mb-3 aspect-square bg-slate-50 border border-slate-100">
-                                <img src="<?= htmlspecialchars(\App\Helpers\Uploader::imageUrl($fav['primary_image'])) ?>" onerror="this.onerror=null;this.src='<?= htmlspecialchars($baseUrl) ?>/assets/images/logo.jpg';" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                                <img src="<?= htmlspecialchars($favImg) ?>" onerror="this.onerror=null;this.src='<?= htmlspecialchars($baseUrl) ?>/assets/images/logo.jpg';" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
                             </div>
-                            <h3 class="font-bold text-xs text-slate-900 line-clamp-2 mb-1"><?= htmlspecialchars($fav['name']) ?></h3>
-                            <div class="text-[11px] text-slate-500 font-semibold mb-2"><?= htmlspecialchars($fav['supplier_name'] ?? 'Verified Factory') ?></div>
+                            <h3 class="font-bold text-xs text-slate-900 line-clamp-2 mb-1"><?= htmlspecialchars($favName) ?></h3>
+                            <div class="text-[11px] text-slate-500 font-semibold mb-2"><?= htmlspecialchars($favSupplier) ?></div>
                             <div class="font-bold text-blue-900 text-sm">
-                                $<?= number_format((float)$fav['min_price'], 2) ?>
+                                $<?= number_format($favPrice, 2) ?>
                             </div>
-                            <div class="text-[10px] text-slate-400">MOQ: <?= (int)$fav['moq_quantity'] ?> <?= htmlspecialchars($fav['moq_unit_name'] ?? 'units') ?></div>
+                            <div class="text-[10px] text-slate-400">MOQ: <?= $favMoq ?> <?= htmlspecialchars($favMoqUnit) ?></div>
                         </div>
                         <div class="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between">
-                            <a href="<?= htmlspecialchars($baseUrl) ?>/product/<?= htmlspecialchars($fav['slug']) ?>" class="text-xs font-bold text-blue-900 hover:underline">View Product &rarr;</a>
-                            <button type="button" onclick="removeSortItem(<?= (int)$fav['id'] ?>, this)" class="text-slate-400 hover:text-rose-600 transition-colors" title="Remove from Sort List">
+                            <a href="<?= htmlspecialchars($baseUrl) ?>/product/<?= htmlspecialchars($favSlug ?: (string)$favId) ?>" class="text-xs font-bold text-blue-900 hover:underline">View Product &rarr;</a>
+                            <button type="button" onclick="removeSortItem(<?= $favId ?>, this)" class="text-slate-400 hover:text-rose-600 transition-colors" title="Remove from Sort List">
                                 <span class="material-symbols-outlined text-[18px]">delete</span>
                             </button>
                         </div>

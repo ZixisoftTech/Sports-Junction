@@ -653,56 +653,21 @@ $router->post('/api/chat/report', [ChatApiController::class, 'submitReport']);
 $router->post('/api/chat/admin/reply', [ChatApiController::class, 'adminReply']);
 
 // -------------------------------------------------------------
-// SYSTEM HEALTH & ENVIRONMENT DIAGNOSTIC ENDPOINT
+// SYSTEM HEALTH ENDPOINT
 // -------------------------------------------------------------
 $router->get('/health', function(Request $req, Response $res) {
     $dbConnected = false;
-    $dbError = null;
-    $dbConfig = [
-        'host' => \App\Helpers\Env::get('DB_HOST', '127.0.0.1'),
-        'database' => \App\Helpers\Env::get('DB_DATABASE', 'sports_junction'),
-        'username' => \App\Helpers\Env::get('DB_USERNAME', 'root'),
-        'socket' => \App\Helpers\Env::get('DB_SOCKET', ''),
-        'env_file_exists' => file_exists(dirname(__DIR__) . '/.env')
-    ];
     try {
         \App\Core\Database::getConnection();
         $dbConnected = true;
     } catch (\Throwable $e) {
-        $dbError = $e->getMessage();
-    }
-
-    $errLogPath = dirname(__DIR__) . '/storage/logs/error.log';
-    $recentErrors = '';
-    if (file_exists($errLogPath)) {
-        $content = file_get_contents($errLogPath);
-        $lines = explode("\n", $content);
-        $recentErrors = implode("\n", array_slice($lines, -80));
-    }
-
-    $testErr = null;
-    try {
-        $buyer = \App\Models\User::fetch("SELECT * FROM users WHERE role = 'BUYER' LIMIT 1");
-        if ($buyer) {
-            \App\Models\BuyerFavourite::getBuyerSortList((int)$buyer['id']);
-            \App\Models\BulkProductEnquiry::getByBuyer((int)$buyer['id'], 5, 0);
-        }
-    } catch (\Throwable $te) {
-        $testErr = $te->getMessage() . ' in ' . $te->getFile() . ':' . $te->getLine();
+        // Log silently
     }
 
     $res->json([
         'status' => $dbConnected ? 'healthy' : 'database_unreachable',
         'app_name' => \App\Helpers\Env::get('APP_NAME', 'Sports Junction'),
-        'php_version' => PHP_VERSION,
-        'server_time' => date('Y-m-d H:i:s T'),
-        'database' => [
-            'connected' => $dbConnected,
-            'error' => $dbError,
-            'config' => $dbConfig
-        ],
-        'test_buyer_query_error' => $testErr,
-        'recent_logs' => $recentErrors
+        'server_time' => date('Y-m-d H:i:s T')
     ], $dbConnected ? 200 : 503);
 });
 

@@ -96,26 +96,41 @@ $buyerCountryId = (int)($buyer['country_id'] ?? 0);
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             <?php foreach ($sortProducts as $fav): ?>
                 <?php
+                    $favId = (int)($fav['id'] ?? $fav['product_id'] ?? 0);
+                    $favName = (string)($fav['name'] ?? 'Sports Product');
                     $isAvailable = !empty($fav['is_available']);
                     $productImg = \App\Helpers\Uploader::imageUrl($fav['primary_image'] ?? null);
-                    $productUrl = htmlspecialchars($baseUrl) . '/product/' . htmlspecialchars($fav['slug'] ?? (string)$fav['id']);
+                    $productSlug = (string)($fav['slug'] ?? '');
+                    $productUrl = htmlspecialchars($baseUrl) . '/product/' . htmlspecialchars($productSlug ?: (string)$favId);
+                    $supplierId = (int)($fav['supplier_id'] ?? 1);
+                    $supplierName = (string)($fav['supplier_name'] ?? 'Verified Factory');
+                    $moqQty = (int)($fav['moq_quantity'] ?? 1);
+                    $moqUnitName = (string)($fav['moq_unit_name'] ?? 'units');
+                    $categoryName = (string)($fav['category_name'] ?? 'Sports Equipment');
+                    $countryName = (string)($fav['country_name'] ?? 'India');
+                    $minPrice = (float)($fav['min_price'] ?? 0);
+                    $maxPrice = (float)($fav['max_price'] ?? 0);
+                    $sku = (string)($fav['sku'] ?? '');
+                    $unavailableReason = (string)($fav['unavailable_reason'] ?? 'Product unavailable');
+                    $escapedName = htmlspecialchars($favName);
+                    $escapedJsName = htmlspecialchars(addslashes($favName));
                 ?>
-                <div class="bg-white rounded-2xl border <?= $isAvailable ? 'border-slate-200/80 hover:border-blue-700 shadow-xs' : 'border-amber-200 bg-amber-50/20' ?> p-4 flex flex-col justify-between group transition-all relative product-sort-card" data-id="<?= (int)$fav['id'] ?>">
+                <div class="bg-white rounded-2xl border <?= $isAvailable ? 'border-slate-200/80 hover:border-blue-700 shadow-xs' : 'border-amber-200 bg-amber-50/20' ?> p-4 flex flex-col justify-between group transition-all relative product-sort-card" data-id="<?= $favId ?>">
                     <div>
                         <!-- Card Top: Checkbox & Remove button -->
                         <div class="flex items-center justify-between mb-2">
                             <label class="inline-flex items-center gap-2 cursor-pointer">
                                 <input type="checkbox" 
                                        class="product-select-checkbox w-4 h-4 rounded text-blue-900 border-slate-300 focus:ring-blue-700 focus:ring-offset-0 <?= !$isAvailable ? 'opacity-40 cursor-not-allowed' : '' ?>"
-                                       value="<?= (int)$fav['id'] ?>"
-                                       data-id="<?= (int)$fav['id'] ?>"
-                                       data-name="<?= htmlspecialchars($fav['name']) ?>"
-                                       data-supplier-id="<?= (int)($fav['supplier_id'] ?? 1) ?>"
-                                       data-supplier="<?= htmlspecialchars($fav['supplier_name'] ?? 'Verified Factory') ?>"
-                                       data-moq="<?= (int)($fav['moq_quantity'] ?? 1) ?>"
-                                       data-moq-unit="<?= htmlspecialchars($fav['moq_unit_name'] ?? 'units') ?>"
+                                       value="<?= $favId ?>"
+                                       data-id="<?= $favId ?>"
+                                       data-name="<?= $escapedName ?>"
+                                       data-supplier-id="<?= $supplierId ?>"
+                                       data-supplier="<?= htmlspecialchars($supplierName) ?>"
+                                       data-moq="<?= $moqQty ?>"
+                                       data-moq-unit="<?= htmlspecialchars($moqUnitName) ?>"
                                        data-image="<?= htmlspecialchars($productImg) ?>"
-                                       data-price="<?= number_format((float)$fav['min_price'], 2) ?>"
+                                       data-price="<?= number_format($minPrice, 2) ?>"
                                        data-available="<?= $isAvailable ? '1' : '0' ?>"
                                        <?= !$isAvailable ? 'disabled' : '' ?>
                                        onchange="onProductSelectChange()">
@@ -124,7 +139,7 @@ $buyerCountryId = (int)($buyer['country_id'] ?? 0);
                                 </span>
                             </label>
 
-                            <button type="button" onclick="removeSingleSortItem(<?= (int)$fav['id'] ?>, '<?= htmlspecialchars(addslashes($fav['name'])) ?>')" class="w-7 h-7 rounded-full text-slate-400 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center transition-colors" title="Remove from Sort List">
+                            <button type="button" onclick="removeSingleSortItem(<?= $favId ?>, '<?= $escapedJsName ?>')" class="w-7 h-7 rounded-full text-slate-400 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center transition-colors" title="Remove from Sort List">
                                 <span class="material-symbols-outlined text-[18px]">close</span>
                             </button>
                         </div>
@@ -132,13 +147,13 @@ $buyerCountryId = (int)($buyer['country_id'] ?? 0);
                         <!-- Product Thumbnail -->
                         <div class="relative rounded-xl overflow-hidden mb-3 aspect-video sm:aspect-square bg-slate-50 border border-slate-100">
                             <a href="<?= $productUrl ?>">
-                                <img src="<?= htmlspecialchars($productImg) ?>" alt="<?= htmlspecialchars($fav['name']) ?>" onerror="this.onerror=null;this.src='<?= htmlspecialchars($baseUrl) ?>/assets/images/logo.jpg';" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                                <img src="<?= htmlspecialchars($productImg) ?>" alt="<?= $escapedName ?>" onerror="this.onerror=null;this.src='<?= htmlspecialchars($baseUrl) ?>/assets/images/logo.jpg';" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
                             </a>
 
                             <?php if (!$isAvailable): ?>
                                 <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-[1px] flex items-center justify-center p-3 text-center">
                                     <span class="px-2.5 py-1 rounded-lg bg-amber-500 text-white font-bold text-[10px] uppercase tracking-wider">
-                                        <?= htmlspecialchars($fav['unavailable_reason']) ?>
+                                        <?= htmlspecialchars($unavailableReason) ?>
                                     </span>
                                 </div>
                             <?php endif; ?>
@@ -146,30 +161,30 @@ $buyerCountryId = (int)($buyer['country_id'] ?? 0);
 
                         <!-- Details -->
                         <div class="text-[11px] font-bold text-blue-900 uppercase tracking-wider mb-1">
-                            <?= htmlspecialchars($fav['category_name'] ?? 'Sports Equipment') ?>
+                            <?= htmlspecialchars($categoryName) ?>
                         </div>
                         <h3 class="font-bold text-sm text-slate-900 line-clamp-2 mb-1.5 hover:text-blue-900">
-                            <a href="<?= $productUrl ?>"><?= htmlspecialchars($fav['name']) ?></a>
+                            <a href="<?= $productUrl ?>"><?= $escapedName ?></a>
                         </h3>
                         
-                        <?php if (!empty($fav['sku'])): ?>
-                            <div class="text-[10px] font-mono text-slate-400 mb-1">SKU: <?= htmlspecialchars($fav['sku']) ?></div>
+                        <?php if (!empty($sku)): ?>
+                            <div class="text-[10px] font-mono text-slate-400 mb-1">SKU: <?= htmlspecialchars($sku) ?></div>
                         <?php endif; ?>
 
                         <div class="text-xs text-slate-500 font-medium mb-2 flex items-center gap-1.5">
                             <span class="material-symbols-outlined text-[15px] text-teal-600">location_on</span>
-                            <span class="text-[11px]"><?= htmlspecialchars($fav['country_name'] ?? 'India') ?></span>
+                            <span class="text-[11px]"><?= htmlspecialchars($countryName) ?></span>
                         </div>
 
                         <div class="flex items-baseline justify-between pt-2 border-t border-slate-100">
                             <div class="font-headline font-extrabold text-blue-900 text-sm sm:text-base">
-                                $<?= number_format((float)$fav['min_price'], 2) ?>
-                                <?php if ((float)$fav['max_price'] > (float)$fav['min_price']): ?>
-                                    - $<?= number_format((float)$fav['max_price'], 2) ?>
+                                $<?= number_format($minPrice, 2) ?>
+                                <?php if ($maxPrice > $minPrice): ?>
+                                    - $<?= number_format($maxPrice, 2) ?>
                                 <?php endif; ?>
                             </div>
                             <div class="text-xs text-slate-500">
-                                MOQ: <strong class="text-slate-800"><?= (int)$fav['moq_quantity'] ?> <?= htmlspecialchars($fav['moq_unit_name'] ?? 'units') ?></strong>
+                                MOQ: <strong class="text-slate-800"><?= $moqQty ?> <?= htmlspecialchars($moqUnitName) ?></strong>
                             </div>
                         </div>
                     </div>
@@ -179,7 +194,7 @@ $buyerCountryId = (int)($buyer['country_id'] ?? 0);
                         <a href="<?= $productUrl ?>" class="flex-1 text-center py-2 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs transition-colors">
                             View Details
                         </a>
-                        <button type="button" onclick="removeSingleSortItem(<?= (int)$fav['id'] ?>, '<?= htmlspecialchars(addslashes($fav['name'])) ?>')" class="py-2 px-3 rounded-xl border border-slate-200 hover:bg-rose-50 hover:border-rose-200 text-slate-500 hover:text-rose-600 text-xs font-bold transition-colors inline-flex items-center gap-1" title="Remove from Sort List">
+                        <button type="button" onclick="removeSingleSortItem(<?= $favId ?>, '<?= $escapedJsName ?>')" class="py-2 px-3 rounded-xl border border-slate-200 hover:bg-rose-50 hover:border-rose-200 text-slate-500 hover:text-rose-600 text-xs font-bold transition-colors inline-flex items-center gap-1" title="Remove from Sort List">
                             <span class="material-symbols-outlined text-[16px]">delete</span>
                             <span>Remove</span>
                         </button>
