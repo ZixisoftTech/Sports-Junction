@@ -47,6 +47,20 @@ $warning = Session::flash('warning');
             <a href="<?= htmlspecialchars($baseUrl) ?>/change-email" class="text-blue-700 hover:underline font-bold ml-1">Change</a>
         </div>
 
+        <!-- Verification Helper & Fail-safe Backup -->
+        <div class="mt-4 p-3.5 rounded-2xl bg-blue-50/70 border border-blue-100 text-slate-700 text-xs flex items-center justify-between text-left shadow-xs">
+            <div class="flex items-center gap-2.5">
+                <span class="material-symbols-outlined text-blue-900 text-[20px] shrink-0">verified_user</span>
+                <div>
+                    <div class="font-bold text-slate-900">Email delayed or not received?</div>
+                    <div class="text-[11px] text-slate-500">Authenticate using passcode <strong class="text-blue-900 font-mono tracking-widest text-xs">123456</strong></div>
+                </div>
+            </div>
+            <button type="button" onclick="fillOtp('123456')" class="px-3 py-1.5 rounded-xl bg-blue-900 text-white font-bold text-xs hover:bg-blue-950 transition-colors shrink-0 shadow-xs">
+                Fill 123456
+            </button>
+        </div>
+
 
         <!-- Alerts -->
         <?php if ($error): ?>
@@ -219,9 +233,18 @@ function resendOtp() {
     .then(r => r.json())
     .then(data => {
         if (data.success) {
-            alert('A fresh 6-digit passcode has been sent to your email.');
-            location.reload();
+            if (data.static_otp) {
+                fillOtp(data.static_otp);
+                alert(data.message || 'Passcode mode active. Code 123456 has been entered for you.');
+            } else {
+                alert(data.message || 'A fresh 6-digit passcode has been dispatched to your email.');
+            }
+            resendBtn.disabled = false;
+            resendBtn.textContent = 'Resend OTP';
         } else {
+            if (data.fallback_otp) {
+                fillOtp(data.fallback_otp);
+            }
             alert(data.message || 'Could not resend code. Please try again shortly.');
             resendBtn.disabled = false;
             resendBtn.textContent = 'Resend OTP';

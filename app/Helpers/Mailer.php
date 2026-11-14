@@ -46,26 +46,27 @@ class Mailer
             return false;
         }
 
-        // 3. Load & sanitize SMTP configuration exclusively from environment
-        $host = trim((string) Env::get('MAIL_HOST', 'smtp.gmail.com'));
+        // 3. Load & sanitize SMTP configuration (supports database SiteSetting overrides or .env)
+        $host = trim((string) (SiteSetting::get('mail_host') ?? Env::get('MAIL_HOST', 'smtp.gmail.com')));
         if ($host === '') {
             $host = 'smtp.gmail.com';
         }
-        $port = (int) Env::get('MAIL_PORT', 587);
+        $port = (int) (SiteSetting::get('mail_port') ?? Env::get('MAIL_PORT', 587));
         if ($port <= 0) {
             $port = 587;
         }
-        $user = trim((string) Env::get('MAIL_USERNAME', 'noreply@sportsjunction.in'));
-        $pass = trim((string) Env::get('MAIL_PASSWORD', ''));
-        $encryption = strtolower((string) Env::get('MAIL_ENCRYPTION', 'tls'));
+        $user = trim((string) (SiteSetting::get('mail_username') ?? Env::get('MAIL_USERNAME', 'noreply@sportsjunction.in')));
+        $rawPass = (string) (SiteSetting::get('mail_password') ?? Env::get('MAIL_PASSWORD', ''));
+        $pass = str_replace(' ', '', trim($rawPass));
+        $encryption = strtolower((string) (SiteSetting::get('mail_encryption') ?? Env::get('MAIL_ENCRYPTION', 'tls')));
         if ($encryption === '') {
             $encryption = 'tls';
         }
-        $fromEmail = trim((string) Env::get('MAIL_FROM_ADDRESS', 'noreply@sportsjunction.in'), '<> ');
+        $fromEmail = trim((string) (SiteSetting::get('mail_from_address') ?? Env::get('MAIL_FROM_ADDRESS', 'noreply@sportsjunction.in')), '<> ');
         if ($fromEmail === '' || !filter_var($fromEmail, FILTER_VALIDATE_EMAIL)) {
             $fromEmail = 'noreply@sportsjunction.in';
         }
-        $fromName = trim((string) Env::get('MAIL_FROM_NAME', 'Sports Junction'));
+        $fromName = trim((string) (SiteSetting::get('mail_from_name') ?? Env::get('MAIL_FROM_NAME', 'Sports Junction')));
         if ($fromName === '') {
             $fromName = 'Sports Junction';
         }
@@ -83,14 +84,12 @@ class Mailer
             return true;
         }
 
-        // 4. Validate credentials before initiating connection
-        if (empty($pass)) {
-            self::logDiagnostic($toEmail, $subject, 'FAILED', 'MAIL_PASSWORD is blank or not configured in .env');
-            return false;
-        }
-
-        if (empty($user)) {
-            self::logDiagnostic($toEmail, $subject, 'FAILED', 'MAIL_USERNAME is blank or not configured in .env');
+        // 4. If credentials missing, try host sendmail / PHP mail() fallback
+        if (empty($pass) || empty($user)) {
+            if (self::sendViaPhpMail($toEmail, $toName, $subject, $htmlContent, $textContent, $fromEmail, $fromName)) {
+                return true;
+            }
+            self::logDiagnostic($toEmail, $subject, 'FAILED', 'MAIL_PASSWORD is blank and PHP mail fallback unavailable');
             return false;
         }
 
@@ -116,7 +115,7 @@ class Mailer
 
             if (!$socket) {
                 self::logDiagnostic($toEmail, $subject, 'FAILED', "Connection failed to {$remoteSocket}: {$errstr} ({$errno})");
-                return false;
+                return self::sendViaPhpMail($toEmail, $toName, $subject, $htmlContent, $textContent, $fromEmail, $fromName);
             }
 
             stream_set_timeout($socket, (int)$timeout);
@@ -126,7 +125,7 @@ class Mailer
             if ($resp['code'] !== 220) {
                 fclose($socket);
                 self::logDiagnostic($toEmail, $subject, 'FAILED', 'SMTP Banner Failed: ' . $resp['message']);
-                return false;
+                return self::sendViaPhpMail($toEmail, $toName, $subject, $htmlContent, $textContent, $fromEmail, $fromName);
             }
 
             // 2. EHLO
@@ -135,7 +134,7 @@ class Mailer
             if ($resp['code'] !== 250) {
                 fclose($socket);
                 self::logDiagnostic($toEmail, $subject, 'FAILED', 'SMTP EHLO Failed: ' . $resp['message']);
-                return false;
+                return self::sendViaPhpMail($toEmail, $toName, $subject, $htmlContent, $textContent, $fromEmail, $fromName);
             }
 
             // 3. STARTTLS if tls mode on port 587
@@ -144,20 +143,20 @@ class Mailer
                 if ($resp['code'] !== 220) {
                     fclose($socket);
                     self::logDiagnostic($toEmail, $subject, 'FAILED', 'SMTP STARTTLS Failed: ' . $resp['message']);
-                    return false;
+                    return self::sendViaPhpMail($toEmail, $toName, $subject, $htmlContent, $textContent, $fromEmail, $fromName);
                 }
 
                 if (!stream_socket_enable_crypto($socket, true, STREAM_CRYPTO_METHOD_TLS_CLIENT)) {
                     fclose($socket);
                     self::logDiagnostic($toEmail, $subject, 'FAILED', 'SMTP TLS Crypto Handshake Failed');
-                    return false;
+                    return self::sendViaPhpMail($toEmail, $toName, $subject, $htmlContent, $textContent, $fromEmail, $fromName);
                 }
 
                 $resp = self::sendCommand($socket, "EHLO " . $hostname);
                 if ($resp['code'] !== 250) {
                     fclose($socket);
                     self::logDiagnostic($toEmail, $subject, 'FAILED', 'SMTP Post-TLS EHLO Failed: ' . $resp['message']);
-                    return false;
+                    return self::sendViaPhpMail($toEmail, $toName, $subject, $htmlContent, $textContent, $fromEmail, $fromName);
                 }
             }
 
@@ -166,21 +165,21 @@ class Mailer
             if ($resp['code'] !== 334) {
                 fclose($socket);
                 self::logDiagnostic($toEmail, $subject, 'FAILED', 'SMTP AUTH LOGIN Rejected: ' . $resp['message']);
-                return false;
+                return self::sendViaPhpMail($toEmail, $toName, $subject, $htmlContent, $textContent, $fromEmail, $fromName);
             }
 
             $resp = self::sendCommand($socket, base64_encode($user));
             if ($resp['code'] !== 334) {
                 fclose($socket);
                 self::logDiagnostic($toEmail, $subject, 'FAILED', 'SMTP Username Rejected: ' . $resp['message']);
-                return false;
+                return self::sendViaPhpMail($toEmail, $toName, $subject, $htmlContent, $textContent, $fromEmail, $fromName);
             }
 
             $resp = self::sendCommand($socket, base64_encode($pass));
             if ($resp['code'] !== 235) {
                 fclose($socket);
                 self::logDiagnostic($toEmail, $subject, 'FAILED', 'SMTP Authentication Rejected: ' . $resp['message']);
-                return false;
+                return self::sendViaPhpMail($toEmail, $toName, $subject, $htmlContent, $textContent, $fromEmail, $fromName);
             }
 
             // 5. Envelope
@@ -270,8 +269,65 @@ class Mailer
             return true;
         } catch (\Throwable $e) {
             self::logDiagnostic($toEmail, $subject, 'EXCEPTION', $e->getMessage());
+            return self::sendViaPhpMail($toEmail, $toName, $subject, $htmlContent, $textContent, $fromEmail, $fromName);
+        }
+    }
+
+    /**
+     * Fallback delivery via host system PHP mail() when SMTP is unreachable or fails auth
+     */
+    public static function sendViaPhpMail(
+        string $toEmail,
+        string $toName,
+        string $subject,
+        string $htmlContent,
+        ?string $textContent = null,
+        ?string $fromEmail = null,
+        ?string $fromName = null
+    ): bool {
+        if (!function_exists('mail')) {
             return false;
         }
+
+        $fromEmail = $fromEmail ?: 'noreply@sportsjunction.in';
+        $fromName = $fromName ?: 'Sports Junction';
+
+        $boundary = "----=_Part_" . bin2hex(random_bytes(16));
+
+        $headers = [];
+        $headers[] = 'MIME-Version: 1.0';
+        $headers[] = 'From: =?UTF-8?B?' . base64_encode($fromName) . '?= <' . $fromEmail . '>';
+        $headers[] = 'Reply-To: ' . $fromEmail;
+        $headers[] = 'Content-Type: multipart/alternative; boundary="' . $boundary . '"';
+        $headers[] = 'X-Mailer: PHP/' . phpversion();
+
+        $plain = $textContent ?? strip_tags($htmlContent);
+
+        $body = "--{$boundary}\r\n";
+        $body .= "Content-Type: text/plain; charset=UTF-8\r\n";
+        $body .= "Content-Transfer-Encoding: base64\r\n\r\n";
+        $body .= chunk_split(base64_encode($plain)) . "\r\n";
+
+        $body .= "--{$boundary}\r\n";
+        $body .= "Content-Type: text/html; charset=UTF-8\r\n";
+        $body .= "Content-Transfer-Encoding: base64\r\n\r\n";
+        $body .= chunk_split(base64_encode($htmlContent)) . "\r\n";
+
+        $body .= "--{$boundary}--\r\n";
+
+        $encodedSubject = '=?UTF-8?B?' . base64_encode($subject) . '?=';
+        $to = $toName ? '=?UTF-8?B?' . base64_encode($toName) . '?= <' . $toEmail . '>' : $toEmail;
+
+        try {
+            $sent = @mail($to, $encodedSubject, $body, implode("\r\n", $headers), "-f" . $fromEmail);
+            if ($sent) {
+                self::logDiagnostic($toEmail, $subject, 'SUCCESS', 'Delivered via host PHP mail() transport');
+                return true;
+            }
+        } catch (\Throwable $e) {
+            self::logDiagnostic($toEmail, $subject, 'FAILED', 'PHP mail() error: ' . $e->getMessage());
+        }
+        return false;
     }
 
     /**
@@ -279,20 +335,21 @@ class Mailer
      */
     public static function testConnection(): array
     {
-        $host = trim((string) Env::get('MAIL_HOST', 'smtp.gmail.com'));
+        $host = trim((string) (SiteSetting::get('mail_host') ?? Env::get('MAIL_HOST', 'smtp.gmail.com')));
         if ($host === '') {
             $host = 'smtp.gmail.com';
         }
-        $port = (int) Env::get('MAIL_PORT', 587);
+        $port = (int) (SiteSetting::get('mail_port') ?? Env::get('MAIL_PORT', 587));
         if ($port <= 0) {
             $port = 587;
         }
-        $user = trim((string) Env::get('MAIL_USERNAME', 'noreply@sportsjunction.in'));
+        $user = trim((string) (SiteSetting::get('mail_username') ?? Env::get('MAIL_USERNAME', 'noreply@sportsjunction.in')));
         if ($user === '') {
             $user = 'noreply@sportsjunction.in';
         }
-        $pass = trim((string) Env::get('MAIL_PASSWORD', ''));
-        $encryption = strtolower((string) Env::get('MAIL_ENCRYPTION', 'tls'));
+        $rawPass = (string) (SiteSetting::get('mail_password') ?? Env::get('MAIL_PASSWORD', ''));
+        $pass = str_replace(' ', '', trim($rawPass));
+        $encryption = strtolower((string) (SiteSetting::get('mail_encryption') ?? Env::get('MAIL_ENCRYPTION', 'tls')));
         if ($encryption === '') {
             $encryption = 'tls';
         }

@@ -208,6 +208,54 @@ $logoUrl = \App\Models\SiteSetting::getLogoUrl();
                     </div>
                 </div>
 
+                <!-- Email & SMTP Configuration Card -->
+                <div class="card border-0 shadow-sm rounded-3 mb-4">
+                    <div class="card-header bg-white py-3 border-bottom">
+                        <h6 class="card-title fw-bold mb-0 text-slate-800">
+                            <i class="bi bi-envelope-at text-primary me-2"></i> SMTP &amp; Email Delivery Settings
+                        </h6>
+                    </div>
+                    <div class="card-body p-4">
+                        <p class="text-muted small mb-3">Configure transactional email credentials (Google Workspace, Gmail, or custom SMTP) for OTPs and buyer/seller notifications.</p>
+
+                        <div class="row g-3">
+                            <div class="col-md-8">
+                                <label class="form-label small fw-bold text-slate-700">SMTP Host</label>
+                                <input type="text" name="mail_host" class="form-control" placeholder="smtp.gmail.com" value="<?= htmlspecialchars($settings['mail_host'] ?? \App\Helpers\Env::get('MAIL_HOST', 'smtp.gmail.com')) ?>">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small fw-bold text-slate-700">Port</label>
+                                <input type="number" name="mail_port" class="form-control" placeholder="587" value="<?= htmlspecialchars($settings['mail_port'] ?? \App\Helpers\Env::get('MAIL_PORT', '587')) ?>">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold text-slate-700">SMTP Username / Email</label>
+                                <input type="email" name="mail_username" class="form-control" placeholder="noreply@sportsjunction.in" value="<?= htmlspecialchars($settings['mail_username'] ?? \App\Helpers\Env::get('MAIL_USERNAME', 'noreply@sportsjunction.in')) ?>">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold text-slate-700">App Password / Auth Key</label>
+                                <input type="password" name="mail_password" class="form-control" placeholder="16-character Google App Password" value="<?= htmlspecialchars($settings['mail_password'] ?? \App\Helpers\Env::get('MAIL_PASSWORD', '')) ?>">
+                                <div class="form-text small text-muted">Generate at <a href="https://myaccount.google.com/apppasswords" target="_blank" class="text-primary text-decoration-none fw-bold">Google App Passwords</a></div>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small fw-bold text-slate-700">Encryption</label>
+                                <select name="mail_encryption" class="form-select">
+                                    <?php $enc = strtolower((string)($settings['mail_encryption'] ?? \App\Helpers\Env::get('MAIL_ENCRYPTION', 'tls'))); ?>
+                                    <option value="tls" <?= $enc === 'tls' ? 'selected' : '' ?>>TLS (Port 587)</option>
+                                    <option value="ssl" <?= $enc === 'ssl' ? 'selected' : '' ?>>SSL (Port 465)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small fw-bold text-slate-700">From Address</label>
+                                <input type="email" name="mail_from_address" class="form-control" placeholder="noreply@sportsjunction.in" value="<?= htmlspecialchars($settings['mail_from_address'] ?? \App\Helpers\Env::get('MAIL_FROM_ADDRESS', 'noreply@sportsjunction.in')) ?>">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small fw-bold text-slate-700">From Name</label>
+                                <input type="text" name="mail_from_name" class="form-control" placeholder="Sports Junction" value="<?= htmlspecialchars($settings['mail_from_name'] ?? \App\Helpers\Env::get('MAIL_FROM_NAME', 'Sports Junction')) ?>">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Save Action Card -->
                 <div class="card border-0 shadow-sm rounded-3 bg-light">
                     <div class="card-body p-3 text-end">

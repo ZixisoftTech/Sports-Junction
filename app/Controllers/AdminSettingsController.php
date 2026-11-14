@@ -141,6 +141,23 @@ class AdminSettingsController extends Controller
         $useStaticOtp = $this->request->post('use_static_otp') ? '1' : '0';
         SiteSetting::set('use_static_otp', $useStaticOtp, 'auth');
 
+        // Email / SMTP Settings
+        $mailHost = trim((string) $this->request->post('mail_host', ''));
+        $mailPort = trim((string) $this->request->post('mail_port', ''));
+        $mailUsername = trim((string) $this->request->post('mail_username', ''));
+        $mailPassword = trim((string) $this->request->post('mail_password', ''));
+        $mailEncryption = trim((string) $this->request->post('mail_encryption', ''));
+        $mailFromAddress = trim((string) $this->request->post('mail_from_address', ''));
+        $mailFromName = trim((string) $this->request->post('mail_from_name', ''));
+
+        if ($mailHost !== '') SiteSetting::set('mail_host', $mailHost, 'mail');
+        if ($mailPort !== '') SiteSetting::set('mail_port', $mailPort, 'mail');
+        if ($mailUsername !== '') SiteSetting::set('mail_username', $mailUsername, 'mail');
+        if ($mailPassword !== '') SiteSetting::set('mail_password', str_replace(' ', '', $mailPassword), 'mail');
+        if ($mailEncryption !== '') SiteSetting::set('mail_encryption', $mailEncryption, 'mail');
+        if ($mailFromAddress !== '') SiteSetting::set('mail_from_address', $mailFromAddress, 'mail');
+        if ($mailFromName !== '') SiteSetting::set('mail_from_name', $mailFromName, 'mail');
+
         AuditLogger::log(
             'UPDATE',
             'SiteSetting',

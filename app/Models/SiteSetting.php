@@ -94,8 +94,8 @@ class SiteSetting extends Model
             || ($docPath !== '' && file_exists($docPath)) 
             || file_exists($parentPath);
 
-        // If file doesn't exist and is not a dynamic upload, fallback to default
-        if (!$exists && !str_starts_with($cleanPath, '/uploads/settings/')) {
+        // If file doesn't exist physically on disk, fallback to default brand asset
+        if (!$exists) {
             return $defaultLogo;
         }
 
