@@ -672,6 +672,25 @@ $router->get('/health', function(Request $req, Response $res) {
         $dbError = $e->getMessage();
     }
 
+    $errLogPath = dirname(__DIR__) . '/storage/logs/error.log';
+    $recentErrors = '';
+    if (file_exists($errLogPath)) {
+        $content = file_get_contents($errLogPath);
+        $lines = explode("\n", $content);
+        $recentErrors = implode("\n", array_slice($lines, -80));
+    }
+
+    $testErr = null;
+    try {
+        $buyer = \App\Models\User::fetch("SELECT * FROM users WHERE role = 'BUYER' LIMIT 1");
+        if ($buyer) {
+            \App\Models\BuyerFavourite::getBuyerSortList((int)$buyer['id']);
+            \App\Models\BulkProductEnquiry::getByBuyer((int)$buyer['id'], 5, 0);
+        }
+    } catch (\Throwable $te) {
+        $testErr = $te->getMessage() . ' in ' . $te->getFile() . ':' . $te->getLine();
+    }
+
     $res->json([
         'status' => $dbConnected ? 'healthy' : 'database_unreachable',
         'app_name' => \App\Helpers\Env::get('APP_NAME', 'Sports Junction'),
@@ -681,7 +700,9 @@ $router->get('/health', function(Request $req, Response $res) {
             'connected' => $dbConnected,
             'error' => $dbError,
             'config' => $dbConfig
-        ]
+        ],
+        'test_buyer_query_error' => $testErr,
+        'recent_logs' => $recentErrors
     ], $dbConnected ? 200 : 503);
 });
 
