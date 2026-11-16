@@ -316,7 +316,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 <h2 class="font-headline text-2xl sm:text-3xl text-on-surface font-extrabold">Verified Manufacturer Highlights</h2>
             </div>
             <a href="<?= htmlspecialchars($baseUrl) ?>/products" class="inline-flex items-center gap-1.5 text-sm font-bold text-blue-700 hover:text-blue-900 transition-colors">
-                <span>Explore Full Catalog (<?= count($featuredProducts) ?>+ items)</span>
+                <span>Explore Full Catalog (<?= count($featuredProducts ?? []) ?>+ items)</span>
                 <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
             </a>
         </div>
