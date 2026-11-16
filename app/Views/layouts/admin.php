@@ -624,10 +624,10 @@ if (!empty($user['id']) && ($user['role'] ?? '') === 'SUPER_ADMIN') {
 
     // Super Admin Real-Time Notification Poller & Dropdown Manager
     (function () {
-        const baseUrl = window.SportsJunction.baseUrl || '';
-        const pollUrl = baseUrl + '/api/admin/notifications/poll';
-        const markAllUrl = baseUrl + '/api/admin/notifications/mark-all-read';
-        let pollTimer = null;
+        var baseUrl = (window.SportsJunction && window.SportsJunction.baseUrl) || '';
+        var pollUrl = baseUrl + '/api/admin/notifications/poll';
+        var markAllUrl = baseUrl + '/api/admin/notifications/mark-all-read';
+        var pollTimer = null;
 
         function updateBadges(count) {
             const num = parseInt(count, 10) || 0;
