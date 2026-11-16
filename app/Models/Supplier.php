@@ -473,14 +473,58 @@ class Supplier extends Model
 
         self::beginTransaction();
         try {
+            self::execute("DELETE FROM supplier_tag_assignments WHERE supplier_id = :sid", [':sid' => $id]);
             self::execute("DELETE FROM suppliers WHERE id = :id", [':id' => $id]);
             if (!empty($supplier['user_id'])) {
+                self::execute("DELETE FROM email_otps WHERE email = :email", [':email' => $supplier['email'] ?? '']);
+                self::execute("DELETE FROM notifications WHERE user_id = :user_id", [':user_id' => (int)$supplier['user_id']]);
                 self::execute("DELETE FROM users WHERE id = :user_id", [':user_id' => (int)$supplier['user_id']]);
             }
             self::commit();
             return true;
         } catch (\Throwable $e) {
             self::rollBack();
+            return false;
+        }
+    }
+
+    public static function purgeByEmail(string $email): bool
+    {
+        $email = trim(strtolower($email));
+        if (empty($email)) {
+            return false;
+        }
+
+        try {
+            $user = self::fetch("SELECT id FROM users WHERE LOWER(email) = :email LIMIT 1", [':email' => $email]);
+            $userId = !empty($user['id']) ? (int)$user['id'] : null;
+
+            $supplier = self::fetch("SELECT id, user_id FROM suppliers WHERE LOWER(email) = :email OR user_id = :uid LIMIT 1", [
+                ':email' => $email,
+                ':uid' => $userId ?? 0
+            ]);
+            $supplierId = !empty($supplier['id']) ? (int)$supplier['id'] : null;
+
+            if (!$userId && !$supplierId) {
+                return false;
+            }
+
+            self::beginTransaction();
+            if ($supplierId) {
+                self::execute("DELETE FROM supplier_tag_assignments WHERE supplier_id = :sid", [':sid' => $supplierId]);
+                self::execute("DELETE FROM suppliers WHERE id = :sid", [':sid' => $supplierId]);
+            }
+            if ($userId) {
+                self::execute("DELETE FROM email_otps WHERE LOWER(email) = :email", [':email' => $email]);
+                self::execute("DELETE FROM notifications WHERE user_id = :uid", [':uid' => $userId]);
+                self::execute("DELETE FROM users WHERE id = :uid", [':uid' => $userId]);
+            }
+            self::commit();
+            return true;
+        } catch (\Throwable $e) {
+            try {
+                self::rollBack();
+            } catch (\Throwable $rbErr) {}
             return false;
         }
     }
