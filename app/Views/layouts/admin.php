@@ -91,7 +91,7 @@ if (!empty($user['id']) && ($user['role'] ?? '') === 'SUPER_ADMIN') {
 <!-- Sidebar Navigation -->
 <aside class="sj-sidebar">
     <div class="sj-sidebar-brand">
-        <a href="<?= htmlspecialchars($baseUrl) ?>/admin/dashboard" class="d-block text-center">
+        <a href="<?= htmlspecialchars($baseUrl) ?>/" class="d-block text-center" title="Sports Junction — Go to Website Home Page">
             <img src="<?= htmlspecialchars(\App\Models\SiteSetting::getLogoUrl()) ?>" alt="Sports Junction" class="img-fluid" style="max-height: 48px; width: auto; object-fit: contain;" onerror="this.onerror=null;this.src='<?= htmlspecialchars($baseUrl) ?>/assets/images/logo.png';">
         </a>
     </div>
