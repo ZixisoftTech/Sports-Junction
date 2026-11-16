@@ -38,6 +38,20 @@ $isMessagesPage = strpos($_SERVER['REQUEST_URI'] ?? '', '/supplier/messages') !=
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
 
+    <!-- Global Namespace & App Config -->
+    <script>
+        window.SportsJunction = window.SportsJunction || {};
+        window.SportsJunction.baseUrl = '<?= htmlspecialchars($baseUrl) ?>';
+        window.SportsJunction.csrfToken = '<?= htmlspecialchars(\App\Helpers\CSRF::token()) ?>';
+        window.baseUrl = window.SportsJunction.baseUrl;
+        window.csrfToken = window.SportsJunction.csrfToken;
+        var baseUrl = window.baseUrl;
+        var csrfToken = window.csrfToken;
+    </script>
+
+    <!-- Production Compiled Tailwind CSS Stylesheet (Standalone Local File, 0ms FOUC, Adblocker Proof) -->
+    <link rel="stylesheet" href="<?= htmlspecialchars($baseUrl) ?>/assets/css/tailwind.css">
+
     <!-- Suppress Tailwind Play CDN in production console warning -->
     <script>
         (function() {

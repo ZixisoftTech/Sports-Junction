@@ -95,6 +95,9 @@ if ($authUser && ($authUser['role'] ?? '') === 'BUYER') {
         var csrfToken = window.csrfToken;
     </script>
 
+    <!-- Production Compiled Tailwind CSS Stylesheet (Standalone Local File, 0ms FOUC, Adblocker Proof) -->
+    <link rel="stylesheet" href="<?= htmlspecialchars($baseUrl) ?>/assets/css/tailwind.css">
+
     <!-- Suppress Tailwind Play CDN in production console warning -->
     <script>
         (function() {

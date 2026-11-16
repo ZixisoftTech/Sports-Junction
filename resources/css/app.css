@@ -1,0 +1,68 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Fail-safe utilities */
+.hidden { display: none !important; }
+[hidden] { display: none !important; }
+
+/* Material Symbols font ligatures */
+.material-symbols-outlined {
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    vertical-align: middle;
+    font-family: 'Material Symbols Outlined' !important;
+    font-style: normal;
+    font-weight: normal;
+    display: inline-block;
+    line-height: 1;
+    text-transform: none;
+    letter-spacing: normal;
+    word-wrap: normal;
+    white-space: nowrap;
+    direction: ltr;
+    -webkit-font-feature-settings: 'liga';
+    -webkit-font-smoothing: antialiased;
+}
+.material-symbols-outlined.fill-1 {
+    font-variation-settings: 'FILL' 1;
+}
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+.no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+/* Protection against browser translation tools */
+.notranslate,
+[translate="no"],
+.material-symbols-outlined,
+.material-symbols,
+[class*="material-symbols"] {
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+/* Google Translate clean integration styles */
+.goog-te-banner-frame.skiptranslate,
+iframe.goog-te-banner-frame,
+.goog-te-banner-frame {
+    display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+}
+body {
+    top: 0px !important;
+    position: static !important;
+}
+.skiptranslate:not(#google_translate_element) {
+    display: none !important;
+}
+#goog-gt-tt, .goog-te-balloon-frame {
+    display: none !important;
+}
+.goog-text-highlight {
+    background: none !important;
+    box-shadow: none !important;
+}
