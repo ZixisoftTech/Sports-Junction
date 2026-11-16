@@ -102,8 +102,13 @@ if ($authUser && ($authUser['role'] ?? '') === 'BUYER') {
         var csrfToken = window.csrfToken;
     </script>
 
-    <!-- Production Compiled Tailwind CSS Stylesheet (Standalone Local File, 0ms FOUC, Adblocker Proof) -->
-    <link rel="stylesheet" href="<?= htmlspecialchars($baseUrl) ?>/assets/css/tailwind.css">
+    <?php
+    $frontendTailwindVer = file_exists(dirname(__DIR__, 3) . '/public/assets/css/tailwind.css') 
+        ? (string)filemtime(dirname(__DIR__, 3) . '/public/assets/css/tailwind.css') 
+        : (string)time();
+    ?>
+    <!-- Production Compiled Tailwind CSS Stylesheet (Standalone Local File, 0ms FOUC, Cache Busted) -->
+    <link rel="stylesheet" href="<?= htmlspecialchars($baseUrl) ?>/assets/css/tailwind.css?v=<?= $frontendTailwindVer ?>">
 
     <!-- Suppress Tailwind Play CDN in production console warning -->
     <script>
@@ -152,6 +157,9 @@ if ($authUser && ($authUser['role'] ?? '') === 'BUYER') {
     <style>
         /* HTML5 hidden attribute fail-safe */
         [hidden] { display: none !important; }
+        .buyer-header-links, .supplier-header-links {
+            display: flex !important;
+        }
 
         .material-symbols-outlined {
             font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
@@ -366,12 +374,12 @@ if ($authUser && ($authUser['role'] ?? '') === 'BUYER') {
                         <!-- 2. Sort List for Buyer -->
                         <a href="<?= htmlspecialchars($baseUrl) ?>/buyer/sort-list" class="text-on-surface hover:text-blue-900 transition-colors flex items-center gap-1 relative py-1 px-1.5 rounded-lg hover:bg-blue-50/60 shrink-0" title="My Sort List">
                             <span class="material-symbols-outlined text-[20px] text-blue-900 fill-1">checklist</span>
-                            <span class="hidden md:inline text-xs font-bold text-slate-800">Sort List</span>
+                            <span class="text-xs font-bold text-slate-800">Sort List</span>
                             <span id="topNavSortBadge" class="<?= ($buyerSortCount > 0 ? '' : 'hidden') ?> inline-flex items-center justify-center px-1.5 py-0.5 rounded-full bg-blue-900 text-white font-black text-[10px] leading-tight ml-0.5 shadow-xs"><?= $buyerSortCount > 99 ? '99+' : $buyerSortCount ?></span>
                         </a>
 
                         <!-- 3. Additional Buyer Quick Links (Enquiries, Samples, Messages) -->
-                        <div class="hidden md:flex items-center gap-1.5 lg:gap-2">
+                        <div style="display: flex !important;" class="buyer-header-links flex items-center gap-1.5 lg:gap-2">
                             <a href="<?= htmlspecialchars($baseUrl) ?>/buyer/enquiries" class="text-on-surface hover:text-blue-900 transition-colors flex items-center gap-1 text-xs font-bold py-1 px-2 rounded-lg hover:bg-slate-100" title="My Enquiries">
                                 <span class="material-symbols-outlined text-[17px]">request_quote</span>
                                 <span>Enquiries</span>
@@ -395,7 +403,7 @@ if ($authUser && ($authUser['role'] ?? '') === 'BUYER') {
                             <span class="material-symbols-outlined text-[16px]">dashboard</span>
                             <span>Dashboard</span>
                         </a>
-                        <div class="hidden md:flex items-center gap-1.5 lg:gap-2">
+                        <div style="display: flex !important;" class="supplier-header-links flex items-center gap-1.5 lg:gap-2">
                             <a href="<?= htmlspecialchars($baseUrl) ?>/supplier/products" class="text-on-surface hover:text-blue-900 transition-colors flex items-center gap-1 text-xs font-bold py-1 px-2 rounded-lg hover:bg-slate-100" title="Catalogue Products">
                                 <span class="material-symbols-outlined text-[17px]">inventory_2</span>
                                 <span>Products</span>
@@ -426,7 +434,7 @@ if ($authUser && ($authUser['role'] ?? '') === 'BUYER') {
                     <!-- Sort List for Guests -->
                     <a href="<?= htmlspecialchars($baseUrl) ?>/buyer/sort-list" class="text-on-surface hover:text-blue-900 transition-colors flex items-center gap-1 relative py-1 px-1.5 rounded-lg hover:bg-blue-50/60 shrink-0" title="Sort List">
                         <span class="material-symbols-outlined text-[20px] text-blue-900 fill-1">checklist</span>
-                        <span class="hidden md:inline text-xs font-bold text-slate-800">Sort List</span>
+                        <span class="text-xs font-bold text-slate-800">Sort List</span>
                     </a>
 
                     <!-- Login & Register (ALWAYS VISIBLE, never hidden) -->

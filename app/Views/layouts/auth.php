@@ -75,8 +75,13 @@ if ($authUser && ($authUser['role'] ?? '') === 'BUYER') {
         var csrfToken = window.csrfToken;
     </script>
 
-    <!-- Production Compiled Tailwind CSS Stylesheet (Standalone Local File, 0ms FOUC, Adblocker Proof) -->
-    <link rel="stylesheet" href="<?= htmlspecialchars($baseUrl) ?>/assets/css/tailwind.css">
+    <?php
+    $authTailwindVer = file_exists(dirname(__DIR__, 3) . '/public/assets/css/tailwind.css') 
+        ? (string)filemtime(dirname(__DIR__, 3) . '/public/assets/css/tailwind.css') 
+        : (string)time();
+    ?>
+    <!-- Production Compiled Tailwind CSS Stylesheet (Standalone Local File, 0ms FOUC, Cache Busted) -->
+    <link rel="stylesheet" href="<?= htmlspecialchars($baseUrl) ?>/assets/css/tailwind.css?v=<?= $authTailwindVer ?>">
 
     <!-- Suppress Tailwind Play CDN in production console warning -->
     <script>
