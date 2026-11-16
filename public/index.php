@@ -659,19 +659,9 @@ $router->post('/api/chat/admin/reply', [ChatApiController::class, 'adminReply'])
 // -------------------------------------------------------------
 $router->get('/health', function(Request $req, Response $res) {
     $dbConnected = false;
-    $purged = false;
     try {
-        $db = \App\Core\Database::getConnection();
+        \App\Core\Database::getConnection();
         $dbConnected = true;
-
-        // Auto-purge requested decommissioned test accounts
-        $targetEmail = 'chetanprajapat007@gmail.com';
-        $checkStmt = $db->prepare("SELECT id FROM users WHERE LOWER(email) = :email LIMIT 1");
-        $checkStmt->execute([':email' => strtolower($targetEmail)]);
-        if ($checkStmt->fetchColumn()) {
-            \App\Models\Supplier::purgeByEmail($targetEmail);
-            $purged = true;
-        }
     } catch (\Throwable $e) {
         // Log silently
     }
@@ -679,8 +669,7 @@ $router->get('/health', function(Request $req, Response $res) {
     $res->json([
         'status' => $dbConnected ? 'healthy' : 'database_unreachable',
         'app_name' => \App\Helpers\Env::get('APP_NAME', 'Sports Junction'),
-        'server_time' => date('Y-m-d H:i:s T'),
-        'account_purged' => $purged
+        'server_time' => date('Y-m-d H:i:s T')
     ], $dbConnected ? 200 : 503);
 });
 
