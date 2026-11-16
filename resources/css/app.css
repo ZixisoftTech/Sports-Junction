@@ -2,8 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Fail-safe utilities */
-.hidden { display: none !important; }
+/* HTML5 native hidden attribute fail-safe */
 [hidden] { display: none !important; }
 
 /* Material Symbols font ligatures */

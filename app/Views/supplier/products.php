@@ -23,6 +23,50 @@ $baseUrl = Response::baseUrl();
         </div>
     </div>
 
+    <!-- Status Filter Tabs -->
+    <?php
+    $selectedStatus = strtoupper(trim((string)($_GET['status'] ?? 'ALL')));
+    $totalCount = count($products);
+    $approvedCount = count(array_filter($products, fn($p) => ($p['approval_status'] ?? '') === 'APPROVED'));
+    $pendingCount = count(array_filter($products, fn($p) => ($p['approval_status'] ?? '') === 'PENDING_APPROVAL'));
+    $rejectedCount = count(array_filter($products, fn($p) => ($p['approval_status'] ?? '') === 'REJECTED'));
+    $draftCount = count(array_filter($products, fn($p) => ($p['approval_status'] ?? '') === 'DRAFT'));
+    ?>
+    <div class="flex items-center gap-2 mb-4 overflow-x-auto pb-1 no-scrollbar text-xs font-bold">
+        <a href="<?= htmlspecialchars($baseUrl) ?>/supplier/products" class="px-3.5 py-2 rounded-xl transition-all flex items-center gap-1.5 <?= ($selectedStatus === 'ALL' || $selectedStatus === '') ? 'bg-blue-900 text-white shadow-xs' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50' ?>">
+            <span>All Products</span>
+            <span class="px-1.5 py-0.2 rounded-full text-[10px] <?= ($selectedStatus === 'ALL' || $selectedStatus === '') ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600' ?>"><?= $totalCount ?></span>
+        </a>
+        <a href="<?= htmlspecialchars($baseUrl) ?>/supplier/products?status=APPROVED" class="px-3.5 py-2 rounded-xl transition-all flex items-center gap-1.5 <?= $selectedStatus === 'APPROVED' ? 'bg-emerald-700 text-white shadow-xs' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50' ?>">
+            <span class="material-symbols-outlined text-[15px]">storefront</span>
+            <span>Published</span>
+            <span class="px-1.5 py-0.2 rounded-full text-[10px] <?= $selectedStatus === 'APPROVED' ? 'bg-white/20 text-white' : 'bg-emerald-100 text-emerald-800' ?>"><?= $approvedCount ?></span>
+        </a>
+        <a href="<?= htmlspecialchars($baseUrl) ?>/supplier/products?status=PENDING_APPROVAL" class="px-3.5 py-2 rounded-xl transition-all flex items-center gap-1.5 <?= $selectedStatus === 'PENDING_APPROVAL' ? 'bg-amber-600 text-white shadow-xs' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50' ?>">
+            <span class="material-symbols-outlined text-[15px]">hourglass_top</span>
+            <span>Pending Review</span>
+            <span class="px-1.5 py-0.2 rounded-full text-[10px] <?= $selectedStatus === 'PENDING_APPROVAL' ? 'bg-white/20 text-white' : 'bg-amber-100 text-amber-800' ?>"><?= $pendingCount ?></span>
+        </a>
+        <a href="<?= htmlspecialchars($baseUrl) ?>/supplier/products?status=REJECTED" class="px-3.5 py-2 rounded-xl transition-all flex items-center gap-1.5 <?= $selectedStatus === 'REJECTED' ? 'bg-red-600 text-white shadow-xs' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50' ?>">
+            <span class="material-symbols-outlined text-[15px]">cancel</span>
+            <span>Rejected</span>
+            <span class="px-1.5 py-0.2 rounded-full text-[10px] <?= $selectedStatus === 'REJECTED' ? 'bg-white/20 text-white' : 'bg-red-100 text-red-800' ?>"><?= $rejectedCount ?></span>
+        </a>
+        <?php if ($draftCount > 0): ?>
+        <a href="<?= htmlspecialchars($baseUrl) ?>/supplier/products?status=DRAFT" class="px-3.5 py-2 rounded-xl transition-all flex items-center gap-1.5 <?= $selectedStatus === 'DRAFT' ? 'bg-slate-800 text-white shadow-xs' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50' ?>">
+            <span>Drafts</span>
+            <span class="px-1.5 py-0.2 rounded-full text-[10px] <?= $selectedStatus === 'DRAFT' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600' ?>"><?= $draftCount ?></span>
+        </a>
+        <?php endif; ?>
+    </div>
+
+    <?php
+    $filteredProducts = $products;
+    if ($selectedStatus !== 'ALL' && $selectedStatus !== '') {
+        $filteredProducts = array_filter($products, fn($p) => ($p['approval_status'] ?? 'DRAFT') === $selectedStatus);
+    }
+    ?>
+
     <div class="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
         <div class="overflow-x-auto">
             <table class="w-full text-left text-xs">
@@ -39,15 +83,15 @@ $baseUrl = Response::baseUrl();
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100 font-medium">
-                    <?php if (empty($products)): ?>
+                    <?php if (empty($filteredProducts)): ?>
                         <tr>
                             <td colspan="8" class="py-12 text-center text-slate-400">
                                 <span class="material-symbols-outlined text-[36px] text-slate-300 block mb-2">inventory_2</span>
-                                No products in your catalog yet. Click "+ Add New Product" to submit sports goods for approval.
+                                <?= $selectedStatus !== 'ALL' && $selectedStatus !== '' ? 'No products found with status "' . htmlspecialchars($selectedStatus) . '".' : 'No products in your catalog yet. Click "+ Add New Product" to submit sports goods for approval.' ?>
                             </td>
                         </tr>
                     <?php else: ?>
-                        <?php foreach ($products as $p): ?>
+                        <?php foreach ($filteredProducts as $p): ?>
                             <?php 
                                 $status = $p['approval_status'] ?? 'DRAFT'; 
                                 $pubStatus = $p['status'] ?? 'DRAFT';

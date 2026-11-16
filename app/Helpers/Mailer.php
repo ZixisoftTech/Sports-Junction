@@ -148,7 +148,15 @@ class Mailer
                     return self::sendViaPhpMail($toEmail, $toName, $subject, $htmlContent, $textContent, $fromEmail, $fromName);
                 }
 
-                if (!stream_socket_enable_crypto($socket, true, STREAM_CRYPTO_METHOD_TLS_CLIENT)) {
+                $cryptoMethod = STREAM_CRYPTO_METHOD_TLS_CLIENT;
+                if (defined('STREAM_CRYPTO_METHOD_TLSv1_2_CLIENT')) {
+                    $cryptoMethod |= STREAM_CRYPTO_METHOD_TLSv1_2_CLIENT;
+                }
+                if (defined('STREAM_CRYPTO_METHOD_TLSv1_3_CLIENT')) {
+                    $cryptoMethod |= STREAM_CRYPTO_METHOD_TLSv1_3_CLIENT;
+                }
+
+                if (!stream_socket_enable_crypto($socket, true, $cryptoMethod)) {
                     fclose($socket);
                     self::logDiagnostic($toEmail, $subject, 'FAILED', 'SMTP TLS Crypto Handshake Failed');
                     return self::sendViaPhpMail($toEmail, $toName, $subject, $htmlContent, $textContent, $fromEmail, $fromName);
@@ -339,23 +347,29 @@ class Mailer
     /**
      * Test SMTP connectivity and authentication credentials
      */
-    public static function testConnection(): array
-    {
-        $host = trim((string) (SiteSetting::get('mail_host') ?? Env::get('MAIL_HOST', 'smtp.gmail.com')));
+    public static function testConnection(
+        ?string $overrideHost = null,
+        ?int $overridePort = null,
+        ?string $overrideUser = null,
+        ?string $overridePass = null,
+        ?string $overrideEnc = null,
+        ?string $testRecipient = null
+    ): array {
+        $host = trim((string) ($overrideHost ?? SiteSetting::get('mail_host') ?? Env::get('MAIL_HOST', 'smtp.gmail.com')));
         if ($host === '') {
             $host = 'smtp.gmail.com';
         }
-        $port = (int) (SiteSetting::get('mail_port') ?? Env::get('MAIL_PORT', 587));
+        $port = (int) ($overridePort ?? SiteSetting::get('mail_port') ?? Env::get('MAIL_PORT', 587));
         if ($port <= 0) {
             $port = 587;
         }
-        $user = trim((string) (SiteSetting::get('mail_username') ?? Env::get('MAIL_USERNAME', 'noreply@sportsjunction.in')));
+        $user = trim((string) ($overrideUser ?? SiteSetting::get('mail_username') ?? Env::get('MAIL_USERNAME', 'noreply@sportsjunction.in')));
         if ($user === '') {
             $user = 'noreply@sportsjunction.in';
         }
-        $rawPass = (string) (SiteSetting::get('mail_password') ?? Env::get('MAIL_PASSWORD', ''));
+        $rawPass = (string) ($overridePass ?? SiteSetting::get('mail_password') ?? Env::get('MAIL_PASSWORD', ''));
         $pass = str_replace(' ', '', trim($rawPass));
-        $encryption = strtolower((string) (SiteSetting::get('mail_encryption') ?? Env::get('MAIL_ENCRYPTION', 'tls')));
+        $encryption = strtolower((string) ($overrideEnc ?? SiteSetting::get('mail_encryption') ?? Env::get('MAIL_ENCRYPTION', 'tls')));
         if ($port === 465) {
             $encryption = 'ssl';
         } elseif ($encryption === '') {
@@ -370,7 +384,7 @@ class Mailer
                 'host' => $host,
                 'port' => $port,
                 'user' => $user,
-                'message' => 'MAIL_PASSWORD is blank or not configured in .env. Please configure your Google App Password to enable live email delivery.',
+                'message' => 'MAIL_PASSWORD is blank or not configured. Please configure your Google App Password (or Hostinger email password) to enable live email delivery.',
                 'log_file' => $logFile,
             ];
         }
@@ -401,7 +415,7 @@ class Mailer
                     'host' => $host,
                     'port' => $port,
                     'error' => "{$errstr} ({$errno})",
-                    'message' => "Unable to connect to {$remoteSocket}. Check internet/firewall connectivity.",
+                    'message' => "Unable to connect to {$remoteSocket}. Please check host, port ({$port}), and internet/firewall connectivity.",
                     'log_file' => $logFile
                 ];
             }
@@ -422,7 +436,15 @@ class Mailer
                     fclose($socket);
                     return ['status' => 'STARTTLS_FAILED', 'code' => $tlsResp['code'], 'message' => $tlsResp['message']];
                 }
-                if (!stream_socket_enable_crypto($socket, true, STREAM_CRYPTO_METHOD_TLS_CLIENT)) {
+                $cryptoMethod = STREAM_CRYPTO_METHOD_TLS_CLIENT;
+                if (defined('STREAM_CRYPTO_METHOD_TLSv1_2_CLIENT')) {
+                    $cryptoMethod |= STREAM_CRYPTO_METHOD_TLSv1_2_CLIENT;
+                }
+                if (defined('STREAM_CRYPTO_METHOD_TLSv1_3_CLIENT')) {
+                    $cryptoMethod |= STREAM_CRYPTO_METHOD_TLSv1_3_CLIENT;
+                }
+
+                if (!stream_socket_enable_crypto($socket, true, $cryptoMethod)) {
                     fclose($socket);
                     return ['status' => 'TLS_CRYPTO_FAILED', 'message' => 'TLS cryptographic handshake failed.'];
                 }
@@ -433,19 +455,43 @@ class Mailer
             self::sendCommand($socket, base64_encode($user));
             $passResp = self::sendCommand($socket, base64_encode($pass));
 
-            self::sendCommand($socket, "QUIT");
-            fclose($socket);
-
             if ($passResp['code'] === 235) {
+                // If test recipient provided, send a quick test email
+                $testSent = false;
+                if (!empty($testRecipient) && filter_var($testRecipient, FILTER_VALIDATE_EMAIL)) {
+                    $cleanFrom = trim($user, '<> ');
+                    self::sendCommand($socket, "MAIL FROM:<{$cleanFrom}>");
+                    self::sendCommand($socket, "RCPT TO:<{$testRecipient}>");
+                    self::sendCommand($socket, "DATA");
+                    $testSubject = "=?UTF-8?B?" . base64_encode("Sports Junction SMTP Test - " . date('d M Y H:i:s')) . "?=";
+                    $testBody = "From: Sports Junction <{$cleanFrom}>\r\nTo: <{$testRecipient}>\r\nSubject: {$testSubject}\r\nContent-Type: text/html; charset=UTF-8\r\n\r\n<h2>SMTP Test Successful</h2><p>Your SMTP credentials on Sports Junction are working perfectly!</p>\r\n.\r\n";
+                    self::writeAll($socket, $testBody);
+                    $testSent = true;
+                }
+
+                self::sendCommand($socket, "QUIT");
+                fclose($socket);
+
                 return [
                     'status' => 'AUTHENTICATED_AND_READY',
                     'configured' => true,
                     'host' => $host,
                     'port' => $port,
                     'user' => $user,
-                    'message' => 'SMTP authentication successful! Real emails will be delivered to recipients.',
+                    'test_sent' => $testSent,
+                    'message' => 'SMTP authentication successful! Real emails will be delivered to recipients.' . ($testSent ? " A live test email was dispatched to {$testRecipient}." : ''),
                     'log_file' => $logFile
                 ];
+            }
+
+            self::sendCommand($socket, "QUIT");
+            fclose($socket);
+
+            $detailedHint = 'SMTP credentials rejected by host.';
+            if (str_contains($passResp['message'], '535') || str_contains($passResp['message'], 'BadCredentials')) {
+                $detailedHint = "Google/SMTP rejected your username or password ({$passResp['message']}). Note: For Gmail SMTP, your SMTP Username MUST be your Google account email (e.g. yourname@gmail.com), and the password must be a 16-character Google App Password (not your account login password). If using domain email (noreply@sportsjunction.in), use your Hostinger SMTP host 'smtp.hostinger.com' with your Hostinger mailbox password.";
+            } elseif (str_contains($passResp['message'], '534') || str_contains($passResp['message'], 'WebLoginRequired')) {
+                $detailedHint = "Google requires 2-Step Verification and an App Password. Generate one at https://myaccount.google.com/apppasswords.";
             }
 
             return [
@@ -456,7 +502,7 @@ class Mailer
                 'user' => $user,
                 'code' => $passResp['code'],
                 'server_response' => $passResp['message'],
-                'message' => 'SMTP credentials rejected by host. Please verify your Google App Password.',
+                'message' => $detailedHint,
                 'log_file' => $logFile
             ];
         } catch (\Throwable $e) {

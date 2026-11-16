@@ -110,21 +110,34 @@ $isMessagesPage = strpos($_SERVER['REQUEST_URI'] ?? '', '/supplier/messages') !=
 
     <!-- Supplier Top Header -->
     <header class="w-full bg-white border-b border-slate-200 sticky top-0 z-40">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-            <div class="flex items-center gap-6">
-                <a href="<?= htmlspecialchars($baseUrl) ?>/supplier/dashboard" class="flex items-center gap-2" title="Sports Junction Supplier Partner Portal">
-                    <img src="<?= htmlspecialchars(\App\Models\SiteSetting::getLogoUrl()) ?>" alt="Sports Junction" class="h-9 sm:h-10 w-auto object-contain max-w-[170px]" onerror="this.onerror=null;this.src='<?= htmlspecialchars($baseUrl) ?>/assets/images/logo.png';">
-                    <span class="text-[10px] font-bold uppercase tracking-wider text-teal-700 bg-teal-50 border border-teal-200/80 px-2 py-0.5 rounded-full ml-1">Supplier Portal</span>
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-3">
+            <div class="flex items-center gap-4 lg:gap-6 min-w-0">
+                <a href="<?= htmlspecialchars($baseUrl) ?>/supplier/dashboard" class="flex items-center gap-2 shrink-0" title="Sports Junction Supplier Partner Portal">
+                    <img src="<?= htmlspecialchars(\App\Models\SiteSetting::getLogoUrl()) ?>" alt="Sports Junction" class="h-8 sm:h-10 w-auto object-contain max-w-[150px] sm:max-w-[170px]" onerror="this.onerror=null;this.src='<?= htmlspecialchars($baseUrl) ?>/assets/images/logo.png';">
+                    <span class="hidden sm:inline text-[10px] font-bold uppercase tracking-wider text-teal-700 bg-teal-50 border border-teal-200/80 px-2 py-0.5 rounded-full ml-1">Supplier Portal</span>
                 </a>
 
-                <nav class="hidden md:flex items-center gap-5 text-xs font-bold uppercase tracking-wider text-slate-600">
-                    <a href="<?= htmlspecialchars($baseUrl) ?>/supplier/dashboard" class="hover:text-blue-900 transition-colors py-1">Dashboard</a>
+                <!-- Desktop Navigation Links (Always visible from md up) -->
+                <?php
+                $currentUri = $_SERVER['REQUEST_URI'] ?? '';
+                $isDashboard = str_contains($currentUri, '/supplier/dashboard');
+                $isProducts = str_contains($currentUri, '/supplier/products');
+                $isEnquiries = str_contains($currentUri, '/supplier/enquiries');
+                $isSamples = str_contains($currentUri, '/supplier/sample-enquiries');
+                $isMessages = str_contains($currentUri, '/supplier/messages');
+                ?>
+                <nav class="hidden md:flex items-center gap-1 lg:gap-3 text-xs font-bold uppercase tracking-wider text-slate-600">
+                    <a href="<?= htmlspecialchars($baseUrl) ?>/supplier/dashboard" class="flex items-center gap-1 px-2.5 py-1.5 rounded-lg transition-colors <?= $isDashboard ? 'text-blue-900 bg-blue-50/80 font-black' : 'hover:text-blue-900 hover:bg-slate-50' ?>">
+                        <span class="material-symbols-outlined text-[17px]">dashboard</span>
+                        <span>Dashboard</span>
+                    </a>
                     
                     <!-- Catalogue Dropdown -->
-                    <div class="relative py-1" id="supplierCatalogueMenu">
-                        <button type="button" id="btnSupplierCatalogue" class="flex items-center gap-1 hover:text-blue-900 transition-colors py-1 focus:outline-none cursor-pointer">
+                    <div class="relative" id="supplierCatalogueMenu">
+                        <button type="button" id="btnSupplierCatalogue" class="flex items-center gap-1 px-2.5 py-1.5 rounded-lg transition-colors focus:outline-none cursor-pointer <?= $isProducts ? 'text-blue-900 bg-blue-50/80 font-black' : 'hover:text-blue-900 hover:bg-slate-50' ?>">
+                            <span class="material-symbols-outlined text-[17px]">inventory_2</span>
                             <span>Catalogue</span>
-                            <span class="material-symbols-outlined text-[16px] text-slate-400 transition-transform" id="catalogueCaret">expand_more</span>
+                            <span class="material-symbols-outlined text-[15px] text-slate-400 transition-transform" id="catalogueCaret">expand_more</span>
                         </button>
                         <div id="dropdownCatalogueMenu" class="absolute left-0 top-full pt-1 w-48 hidden z-50">
                             <div class="bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 overflow-hidden">
@@ -140,15 +153,19 @@ $isMessagesPage = strpos($_SERVER['REQUEST_URI'] ?? '', '/supplier/messages') !=
                         </div>
                     </div>
 
-                    <a href="<?= htmlspecialchars($baseUrl) ?>/supplier/enquiries" class="hover:text-blue-900 transition-colors py-1">Customer Enquiries</a>
-                    <a href="<?= htmlspecialchars($baseUrl) ?>/supplier/sample-enquiries" class="hover:text-teal-800 transition-colors py-1 flex items-center gap-1">
-                        <span class="material-symbols-outlined text-[16px] text-teal-600">science</span>
-                        <span>Prototype Samples</span>
+                    <a href="<?= htmlspecialchars($baseUrl) ?>/supplier/enquiries" class="flex items-center gap-1 px-2.5 py-1.5 rounded-lg transition-colors <?= $isEnquiries ? 'text-blue-900 bg-blue-50/80 font-black' : 'hover:text-blue-900 hover:bg-slate-50' ?>">
+                        <span class="material-symbols-outlined text-[17px]">request_quote</span>
+                        <span>Enquiries</span>
+                    </a>
+
+                    <a href="<?= htmlspecialchars($baseUrl) ?>/supplier/sample-enquiries" class="flex items-center gap-1 px-2.5 py-1.5 rounded-lg transition-colors <?= $isSamples ? 'text-teal-800 bg-teal-50/80 font-black' : 'hover:text-teal-800 hover:bg-teal-50/50 text-slate-600' ?>">
+                        <span class="material-symbols-outlined text-[17px] text-teal-600">science</span>
+                        <span>Samples</span>
                     </a>
                     
-                    <a href="<?= htmlspecialchars($baseUrl) ?>/supplier/messages" class="hover:text-teal-800 text-teal-800 transition-colors py-1 flex items-center gap-1.5 font-extrabold relative">
-                        <span class="material-symbols-outlined text-[18px]">chat</span>
-                        <span>Messages & Deals</span>
+                    <a href="<?= htmlspecialchars($baseUrl) ?>/supplier/messages" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-colors relative <?= $isMessages ? 'text-teal-800 bg-teal-50/80 font-black' : 'hover:text-teal-800 hover:bg-teal-50/50 text-slate-700 font-extrabold' ?>">
+                        <span class="material-symbols-outlined text-[18px] text-teal-700">chat</span>
+                        <span>Messages</span>
                         <?php if ($supplierUnreadCount > 0): ?>
                             <span class="inline-flex items-center justify-center px-1.5 py-0.5 text-[10px] font-black leading-none text-white bg-red-600 rounded-full shadow-xs animate-pulse">
                                 <?= $supplierUnreadCount > 99 ? '99+' : $supplierUnreadCount ?>
@@ -158,19 +175,63 @@ $isMessagesPage = strpos($_SERVER['REQUEST_URI'] ?? '', '/supplier/messages') !=
                 </nav>
             </div>
 
-            <!-- User Menu -->
-            <div class="flex items-center gap-3">
+            <!-- User Menu & Mobile Toggle -->
+            <div class="flex items-center gap-2 sm:gap-3 shrink-0">
                 <a href="<?= htmlspecialchars($baseUrl) ?>/supplier/profile" class="hidden sm:flex flex-col text-right group hover:opacity-90 transition cursor-pointer" title="Manage Supplier Profile">
                     <span class="text-xs font-bold text-slate-900 group-hover:text-teal-800 transition flex items-center justify-end gap-1">
                         <?= htmlspecialchars($supplier['company_name'] ?? $user['name'] ?? 'Supplier') ?>
-                        <span class="material-symbols-outlined text-[14px] text-slate-400 group-hover:text-teal-700">account_circle</span>
+                        <span class="material-symbols-outlined text-[15px] text-slate-400 group-hover:text-teal-700">account_circle</span>
                     </span>
                     <span class="text-[10px] font-semibold text-teal-700 group-hover:underline">Verified Manufacturer</span>
                 </a>
                 <a href="<?= htmlspecialchars($baseUrl) ?>/logout" class="px-3 py-1.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-600 text-xs font-bold transition-colors">
                     Logout
                 </a>
+
+                <!-- Mobile Hamburger Button (< md) -->
+                <button type="button" id="btnToggleSupplierMobileNav" class="md:hidden p-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-700 transition" aria-label="Toggle Supplier Menu">
+                    <span class="material-symbols-outlined text-[22px]">menu</span>
+                </button>
             </div>
+        </div>
+
+        <!-- Mobile Navigation Panel -->
+        <div id="supplierMobileNavPanel" class="hidden md:hidden bg-white border-t border-slate-200 px-4 py-3 space-y-1 text-sm font-semibold shadow-lg">
+            <a href="<?= htmlspecialchars($baseUrl) ?>/supplier/dashboard" class="flex items-center gap-2 px-3 py-2 rounded-lg text-slate-700 hover:bg-slate-100 hover:text-blue-900 <?= $isDashboard ? 'bg-blue-50 text-blue-900 font-bold' : '' ?>">
+                <span class="material-symbols-outlined text-[18px]">dashboard</span>
+                <span>Dashboard</span>
+            </a>
+            <a href="<?= htmlspecialchars($baseUrl) ?>/supplier/products" class="flex items-center gap-2 px-3 py-2 rounded-lg text-slate-700 hover:bg-slate-100 hover:text-blue-900 <?= $isProducts ? 'bg-blue-50 text-blue-900 font-bold' : '' ?>">
+                <span class="material-symbols-outlined text-[18px]">inventory_2</span>
+                <span>View Products</span>
+            </a>
+            <a href="<?= htmlspecialchars($baseUrl) ?>/supplier/products/add" class="flex items-center gap-2 px-3 py-2 rounded-lg text-slate-700 hover:bg-slate-100 hover:text-blue-900">
+                <span class="material-symbols-outlined text-[18px]">add_circle</span>
+                <span>Add Product</span>
+            </a>
+            <a href="<?= htmlspecialchars($baseUrl) ?>/supplier/enquiries" class="flex items-center gap-2 px-3 py-2 rounded-lg text-slate-700 hover:bg-slate-100 hover:text-blue-900 <?= $isEnquiries ? 'bg-blue-50 text-blue-900 font-bold' : '' ?>">
+                <span class="material-symbols-outlined text-[18px]">request_quote</span>
+                <span>Customer Enquiries</span>
+            </a>
+            <a href="<?= htmlspecialchars($baseUrl) ?>/supplier/sample-enquiries" class="flex items-center gap-2 px-3 py-2 rounded-lg text-slate-700 hover:bg-slate-100 hover:text-teal-800 <?= $isSamples ? 'bg-teal-50 text-teal-800 font-bold' : '' ?>">
+                <span class="material-symbols-outlined text-[18px] text-teal-600">science</span>
+                <span>Prototype Samples</span>
+            </a>
+            <a href="<?= htmlspecialchars($baseUrl) ?>/supplier/messages" class="flex items-center justify-between px-3 py-2 rounded-lg text-slate-700 hover:bg-slate-100 hover:text-teal-800 <?= $isMessages ? 'bg-teal-50 text-teal-800 font-bold' : '' ?>">
+                <div class="flex items-center gap-2">
+                    <span class="material-symbols-outlined text-[18px] text-teal-600">chat</span>
+                    <span>Messages & Deals</span>
+                </div>
+                <?php if ($supplierUnreadCount > 0): ?>
+                    <span class="px-2 py-0.5 text-xs font-black bg-red-600 text-white rounded-full">
+                        <?= $supplierUnreadCount > 99 ? '99+' : $supplierUnreadCount ?>
+                    </span>
+                <?php endif; ?>
+            </a>
+            <a href="<?= htmlspecialchars($baseUrl) ?>/supplier/profile" class="flex items-center gap-2 px-3 py-2 rounded-lg text-slate-700 hover:bg-slate-100 hover:text-blue-900">
+                <span class="material-symbols-outlined text-[18px]">account_circle</span>
+                <span>Supplier Profile</span>
+            </a>
         </div>
     </header>
 
@@ -242,6 +303,21 @@ $isMessagesPage = strpos($_SERVER['REQUEST_URI'] ?? '', '/supplier/messages') !=
                 if (!catMenu.contains(e.target)) {
                     catDropdown.classList.add('hidden');
                     if (catCaret) catCaret.classList.remove('rotate-180');
+                }
+            });
+        }
+
+        // Mobile Nav Toggle
+        const mobileToggleBtn = document.getElementById('btnToggleSupplierMobileNav');
+        const mobileNavPanel = document.getElementById('supplierMobileNavPanel');
+        if (mobileToggleBtn && mobileNavPanel) {
+            mobileToggleBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                mobileNavPanel.classList.toggle('hidden');
+            });
+            document.addEventListener('click', function(e) {
+                if (!mobileNavPanel.contains(e.target) && !mobileToggleBtn.contains(e.target)) {
+                    mobileNavPanel.classList.add('hidden');
                 }
             });
         }

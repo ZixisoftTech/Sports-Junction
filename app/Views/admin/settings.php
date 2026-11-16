@@ -256,6 +256,49 @@ $logoUrl = \App\Models\SiteSetting::getLogoUrl();
                                 <input type="text" name="mail_from_name" class="form-control" placeholder="Sports Junction" value="<?= htmlspecialchars($settings['mail_from_name'] ?? \App\Helpers\Env::get('MAIL_FROM_NAME', 'Sports Junction')) ?>">
                             </div>
                         </div>
+
+                        <!-- Provider Configuration Guidance -->
+                        <div class="mt-4 p-3 rounded-3 bg-light border border-slate-200 small">
+                            <div class="fw-bold text-slate-800 mb-1 d-flex items-center gap-1">
+                                <i class="bi bi-info-circle text-primary"></i>
+                                <span>SMTP Setup Reference</span>
+                            </div>
+                            <div class="row g-2 text-muted">
+                                <div class="col-md-6">
+                                    <strong class="text-dark">A. Gmail / Google Workspace SMTP:</strong><br>
+                                    &bull; <strong>Host:</strong> <code class="text-dark">smtp.gmail.com</code> | <strong>Port:</strong> <code class="text-dark">587</code> (TLS) or <code class="text-dark">465</code> (SSL)<br>
+                                    &bull; <strong>Username:</strong> Your Google Account address (e.g. <code class="text-dark">sportjunctions@gmail.com</code>)<br>
+                                    &bull; <strong>Password:</strong> 16-character Google App Password (not your account password)
+                                </div>
+                                <div class="col-md-6">
+                                    <strong class="text-dark">B. Hostinger / Domain Webmail:</strong><br>
+                                    &bull; <strong>Host:</strong> <code class="text-dark">smtp.hostinger.com</code> | <strong>Port:</strong> <code class="text-dark">465</code> (SSL) or <code class="text-dark">587</code> (TLS)<br>
+                                    &bull; <strong>Username:</strong> Your domain mailbox (e.g. <code class="text-dark">noreply@sportsjunction.in</code>)<br>
+                                    &bull; <strong>Password:</strong> Your Hostinger mailbox password
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Live SMTP Test Connection Box -->
+                        <div class="mt-4 p-3 rounded-3 bg-blue-50/50 border border-blue-200">
+                            <div class="fw-bold text-blue-900 small mb-2 d-flex items-center gap-1">
+                                <i class="bi bi-send-check text-primary"></i>
+                                <span>Live SMTP Connection Tester</span>
+                            </div>
+                            <p class="text-muted small mb-2">Test your credentials and socket handshake right now without needing to register or trigger user events.</p>
+                            <div class="row g-2 align-items-center">
+                                <div class="col-sm-7 col-md-8">
+                                    <input type="email" id="testSmtpRecipient" class="form-control form-control-sm" placeholder="Send test email to (e.g. your email address)" value="<?= htmlspecialchars(\App\Helpers\Session::get('auth_user')['email'] ?? '') ?>">
+                                </div>
+                                <div class="col-sm-5 col-md-4">
+                                    <button type="button" id="btnRunSmtpTest" class="btn btn-outline-primary btn-sm fw-bold w-100 d-flex items-center justify-content-center gap-1" onclick="runLiveSmtpTest()">
+                                        <i class="bi bi-play-circle"></i>
+                                        <span>Test SMTP Connection</span>
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="smtpTestFeedback" class="mt-2" style="display: none;"></div>
+                        </div>
                     </div>
                 </div>
 
@@ -566,6 +609,71 @@ function filterCategoryTable(query) {
         const nameEl = r.querySelector('.cat-name');
         const text = nameEl ? nameEl.textContent.toLowerCase() : '';
         r.style.display = text.includes(term) ? '' : 'none';
+    });
+}
+
+function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    var d = document.createElement('div');
+    d.textContent = str;
+    return d.innerHTML;
+}
+
+function runLiveSmtpTest() {
+    var btn = document.getElementById('btnRunSmtpTest');
+    var feedback = document.getElementById('smtpTestFeedback');
+    var recipientInput = document.getElementById('testSmtpRecipient');
+    var recipient = recipientInput ? recipientInput.value.trim() : '';
+
+    var host = (document.querySelector('input[name="mail_host"]') || {}).value || '';
+    var port = (document.querySelector('input[name="mail_port"]') || {}).value || '';
+    var username = (document.querySelector('input[name="mail_username"]') || {}).value || '';
+    var password = (document.querySelector('input[name="mail_password"]') || {}).value || '';
+    var encryption = (document.querySelector('select[name="mail_encryption"]') || {}).value || '';
+    var fromAddress = (document.querySelector('input[name="mail_from_address"]') || {}).value || '';
+
+    if (!recipient) {
+        alert('Please enter a recipient email address to send the test email to.');
+        return;
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Testing connection...';
+    feedback.style.display = 'block';
+    feedback.innerHTML = '<div class="alert alert-info py-2 px-3 small mb-0"><span class="spinner-border spinner-border-sm me-1"></span> Connecting to ' + host + ':' + port + ' via ' + encryption.toUpperCase() + ' and authenticating...</div>';
+
+    fetch(baseUrl + '/api/admin/settings/test-smtp', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRF-Token': csrfToken
+        },
+        body: new URLSearchParams({
+            _csrf: csrfToken,
+            mail_host: host,
+            mail_port: port,
+            mail_username: username,
+            mail_password: password,
+            mail_encryption: encryption,
+            mail_from_address: fromAddress,
+            test_recipient: recipient
+        })
+    })
+    .then(function(res) { return res.json(); })
+    .then(function(data) {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-play-circle me-1"></i> Test SMTP Connection';
+
+        if (data.success) {
+            feedback.innerHTML = '<div class="alert alert-success py-2 px-3 small mb-0"><i class="bi bi-check-circle-fill me-1"></i> <strong>SUCCESS:</strong> ' + escapeHtml(data.message) + '</div>';
+        } else {
+            feedback.innerHTML = '<div class="alert alert-danger py-2 px-3 small mb-0"><i class="bi bi-exclamation-triangle-fill me-1"></i> <strong>CONNECTION FAILED:</strong> ' + escapeHtml(data.message || 'SMTP Authentication failed.') + '</div>';
+        }
+    })
+    .catch(function(err) {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-play-circle me-1"></i> Test SMTP Connection';
+        feedback.innerHTML = '<div class="alert alert-danger py-2 px-3 small mb-0"><i class="bi bi-x-circle-fill me-1"></i> Network error while testing SMTP: ' + escapeHtml(err.message) + '</div>';
     });
 }
 </script>

@@ -138,6 +138,7 @@ $baseUrl = Response::baseUrl();
                             <th>Business Type</th>
                             <th>Location</th>
                             <th>Email &amp; Phone</th>
+                            <th>Created On</th>
                             <th>Approval Status</th>
                             <th>Products</th>
                             <th class="text-end">Actions</th>
@@ -469,7 +470,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 d.status_filter = $('#statusFilter').val();
             }
         },
-        order: [[0, 'desc']],
+        order: [[5, 'desc']],
         columns: [
             {
                 data: 'company_name',
@@ -494,6 +495,22 @@ document.addEventListener('DOMContentLoaded', function() {
                 data: null,
                 render: function(data, type, row) {
                     return `<div><i class="bi bi-envelope text-muted me-1"></i>${escapeHtml(row.email)}</div><small class="text-muted"><i class="bi bi-telephone text-muted me-1"></i>${escapeHtml(row.country_code || '')} ${escapeHtml(row.phone || '')}</small>`;
+                }
+            },
+            {
+                data: 'created_at',
+                render: function(data, type, row) {
+                    if (!data) return '<span class="text-muted small">-</span>';
+                    var dateFormatted = data;
+                    var timeFormatted = '';
+                    try {
+                        var d = new Date(data.replace(' ', 'T'));
+                        if (!isNaN(d.getTime())) {
+                            dateFormatted = d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+                            timeFormatted = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+                        }
+                    } catch(e) {}
+                    return `<div class="fw-semibold text-dark text-nowrap"><i class="bi bi-calendar3 me-1 text-muted"></i>${dateFormatted}</div>${timeFormatted ? `<small class="text-muted text-nowrap"><i class="bi bi-clock me-1 text-muted"></i>${timeFormatted}</small>` : ''}`;
                 }
             },
             {

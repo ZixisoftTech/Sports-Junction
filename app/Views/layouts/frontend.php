@@ -30,6 +30,7 @@ try {
 $buyerUnreadCount = 0;
 $buyerFavCount = 0;
 $buyerSortCount = 0;
+$supplierUnreadCount = 0;
 if ($authUser && ($authUser['role'] ?? '') === 'BUYER') {
     try {
         $buyerUnreadCount = ChatConversation::getTotalUnreadCountForUser((int)$authUser['id'], 'BUYER');
@@ -39,6 +40,12 @@ if ($authUser && ($authUser['role'] ?? '') === 'BUYER') {
         $buyerUnreadCount = 0;
         $buyerFavCount = 0;
         $buyerSortCount = 0;
+    }
+} elseif ($authUser && ($authUser['role'] ?? '') === 'SUPPLIER') {
+    try {
+        $supplierUnreadCount = ChatConversation::getTotalUnreadCountForUser((int)$authUser['id'], 'SUPPLIER');
+    } catch (\Throwable $e) {
+        $supplierUnreadCount = 0;
     }
 } else {
     $buyerSortCount = 0;
@@ -143,8 +150,7 @@ if ($authUser && ($authUser['role'] ?? '') === 'BUYER') {
         };
     </script>
     <style>
-        /* Fail-safe utilities for instant rendering before Tailwind CDN finishes */
-        .hidden { display: none !important; }
+        /* HTML5 hidden attribute fail-safe */
         [hidden] { display: none !important; }
 
         .material-symbols-outlined {
@@ -365,7 +371,7 @@ if ($authUser && ($authUser['role'] ?? '') === 'BUYER') {
                         </a>
 
                         <!-- 3. Additional Buyer Quick Links (Enquiries, Samples, Messages) -->
-                        <div class="hidden xl:flex items-center gap-2">
+                        <div class="hidden md:flex items-center gap-1.5 lg:gap-2">
                             <a href="<?= htmlspecialchars($baseUrl) ?>/buyer/enquiries" class="text-on-surface hover:text-blue-900 transition-colors flex items-center gap-1 text-xs font-bold py-1 px-2 rounded-lg hover:bg-slate-100" title="My Enquiries">
                                 <span class="material-symbols-outlined text-[17px]">request_quote</span>
                                 <span>Enquiries</span>
@@ -385,10 +391,27 @@ if ($authUser && ($authUser['role'] ?? '') === 'BUYER') {
                         <a href="<?= htmlspecialchars($baseUrl) ?>/logout" class="text-xs font-bold text-rose-600 hover:text-rose-700 hover:underline px-1.5 py-1 shrink-0" title="Logout">Logout</a>
 
                     <?php elseif (($authUser['role'] ?? '') === 'SUPPLIER'): ?>
-                        <a href="<?= htmlspecialchars($baseUrl) ?>/supplier/dashboard" class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-blue-900 hover:bg-blue-950 text-white font-bold text-xs shadow-xs transition-all shrink-0" title="Seller Dashboard">
+                        <a href="<?= htmlspecialchars($baseUrl) ?>/supplier/dashboard" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blue-900 hover:bg-blue-950 text-white font-bold text-xs shadow-xs transition-all shrink-0" title="Seller Dashboard">
                             <span class="material-symbols-outlined text-[16px]">dashboard</span>
-                            <span>Seller Dashboard</span>
+                            <span>Dashboard</span>
                         </a>
+                        <div class="hidden md:flex items-center gap-1.5 lg:gap-2">
+                            <a href="<?= htmlspecialchars($baseUrl) ?>/supplier/products" class="text-on-surface hover:text-blue-900 transition-colors flex items-center gap-1 text-xs font-bold py-1 px-2 rounded-lg hover:bg-slate-100" title="Catalogue Products">
+                                <span class="material-symbols-outlined text-[17px]">inventory_2</span>
+                                <span>Products</span>
+                            </a>
+                            <a href="<?= htmlspecialchars($baseUrl) ?>/supplier/enquiries" class="text-on-surface hover:text-blue-900 transition-colors flex items-center gap-1 text-xs font-bold py-1 px-2 rounded-lg hover:bg-slate-100" title="Customer Enquiries">
+                                <span class="material-symbols-outlined text-[17px]">request_quote</span>
+                                <span>Enquiries</span>
+                            </a>
+                            <a href="<?= htmlspecialchars($baseUrl) ?>/supplier/messages" class="text-on-surface hover:text-teal-800 transition-colors flex items-center gap-1 relative text-xs font-bold py-1 px-2 rounded-lg hover:bg-teal-50" title="Messages & Deals">
+                                <span class="material-symbols-outlined text-[17px] text-teal-600">chat</span>
+                                <span>Messages</span>
+                                <?php if ($supplierUnreadCount > 0): ?>
+                                    <span class="inline-flex items-center justify-center px-1.5 py-0.5 rounded-full bg-red-600 text-white font-black text-[10px] leading-tight ml-0.5 shadow-xs"><?= $supplierUnreadCount > 99 ? '99+' : $supplierUnreadCount ?></span>
+                                <?php endif; ?>
+                            </a>
+                        </div>
                         <a href="<?= htmlspecialchars($baseUrl) ?>/logout" class="text-xs font-bold text-rose-600 hover:text-rose-700 hover:underline px-1.5 py-1 shrink-0" title="Logout">Logout</a>
 
                     <?php elseif (($authUser['role'] ?? '') === 'SUPER_ADMIN'): ?>

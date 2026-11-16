@@ -456,6 +456,7 @@ $router->post('/api/admin/notifications/mark-all-read', [AdminNotificationContro
 $router->get('/admin/settings', [AdminSettingsController::class, 'index'], [AuthMiddleware::class]);
 $router->post('/admin/settings', [AdminSettingsController::class, 'updateGeneral'], [AuthMiddleware::class]);
 $router->post('/admin/settings/general', [AdminSettingsController::class, 'updateGeneral'], [AuthMiddleware::class]);
+$router->post('/api/admin/settings/test-smtp', [AdminSettingsController::class, 'testSmtpConnection'], [AuthMiddleware::class]);
 $router->post('/admin/settings/homepage-categories', [AdminSettingsController::class, 'updateHomepageCategories'], [AuthMiddleware::class]);
 $router->get('/admin/pages', [AdminSettingsController::class, 'pages'], [AuthMiddleware::class]);
 $router->post('/admin/pages', [AdminSettingsController::class, 'storePage'], [AuthMiddleware::class]);

@@ -24,47 +24,52 @@ $baseUrl = Response::baseUrl();
         </div>
     </div>
 
-    <!-- Metrics Cards (Database-backed counts) -->
+    <!-- Metrics Cards (Database-backed counts & Clickable Navigation) -->
     <div class="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
-        <div class="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs">
+        <a href="<?= htmlspecialchars($baseUrl) ?>/supplier/products" class="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:border-blue-900 hover:shadow-md transition-all group block cursor-pointer" title="View all products">
             <div class="flex items-center justify-between mb-2">
-                <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Total Products</span>
-                <span class="material-symbols-outlined text-[20px] text-blue-900">inventory_2</span>
+                <span class="text-xs font-bold text-slate-500 uppercase tracking-wider group-hover:text-blue-900 transition-colors">Total Products</span>
+                <span class="material-symbols-outlined text-[20px] text-blue-900 group-hover:scale-110 transition-transform">inventory_2</span>
             </div>
             <div class="font-headline font-extrabold text-2xl text-slate-900"><?= (int)$counts['total'] ?></div>
-        </div>
+            <div class="text-[11px] text-slate-400 mt-1 font-semibold group-hover:text-blue-900 transition-colors">Manage catalog &rarr;</div>
+        </a>
 
-        <div class="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs">
+        <a href="<?= htmlspecialchars($baseUrl) ?>/supplier/products?status=APPROVED" class="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:border-teal-700 hover:shadow-md transition-all group block cursor-pointer" title="View published products">
             <div class="flex items-center justify-between mb-2">
-                <span class="text-xs font-bold text-teal-700 uppercase tracking-wider">Published</span>
-                <span class="material-symbols-outlined text-[20px] text-teal-600">storefront</span>
+                <span class="text-xs font-bold text-teal-700 uppercase tracking-wider group-hover:text-teal-800 transition-colors">Published</span>
+                <span class="material-symbols-outlined text-[20px] text-teal-600 group-hover:scale-110 transition-transform">storefront</span>
             </div>
             <div class="font-headline font-extrabold text-2xl text-teal-700"><?= (int)$counts['published'] ?></div>
-        </div>
+            <div class="text-[11px] text-slate-400 mt-1 font-semibold group-hover:text-teal-700 transition-colors">Live in store &rarr;</div>
+        </a>
 
-        <div class="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs">
+        <a href="<?= htmlspecialchars($baseUrl) ?>/supplier/products?status=PENDING_APPROVAL" class="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:border-amber-600 hover:shadow-md transition-all group block cursor-pointer" title="View pending review products">
             <div class="flex items-center justify-between mb-2">
-                <span class="text-xs font-bold text-amber-700 uppercase tracking-wider">Pending Approval</span>
-                <span class="material-symbols-outlined text-[20px] text-amber-600">hourglass_top</span>
+                <span class="text-xs font-bold text-amber-700 uppercase tracking-wider group-hover:text-amber-800 transition-colors">Pending Approval</span>
+                <span class="material-symbols-outlined text-[20px] text-amber-600 group-hover:scale-110 transition-transform">hourglass_top</span>
             </div>
             <div class="font-headline font-extrabold text-2xl text-amber-600"><?= (int)$counts['pending'] ?></div>
-        </div>
+            <div class="text-[11px] text-slate-400 mt-1 font-semibold group-hover:text-amber-700 transition-colors">Under review &rarr;</div>
+        </a>
 
-        <div class="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs">
+        <a href="<?= htmlspecialchars($baseUrl) ?>/supplier/products?status=REJECTED" class="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:border-red-600 hover:shadow-md transition-all group block cursor-pointer" title="View rejected products">
             <div class="flex items-center justify-between mb-2">
-                <span class="text-xs font-bold text-red-700 uppercase tracking-wider">Rejected</span>
-                <span class="material-symbols-outlined text-[20px] text-red-600">cancel</span>
+                <span class="text-xs font-bold text-red-700 uppercase tracking-wider group-hover:text-red-800 transition-colors">Rejected</span>
+                <span class="material-symbols-outlined text-[20px] text-red-600 group-hover:scale-110 transition-transform">cancel</span>
             </div>
             <div class="font-headline font-extrabold text-2xl text-red-600"><?= (int)$counts['rejected'] ?></div>
-        </div>
+            <div class="text-[11px] text-slate-400 mt-1 font-semibold group-hover:text-red-700 transition-colors">Needs correction &rarr;</div>
+        </a>
 
-        <div class="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs">
+        <a href="<?= htmlspecialchars($baseUrl) ?>/supplier/enquiries" class="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:border-blue-800 hover:shadow-md transition-all group block cursor-pointer" title="View customer enquiries">
             <div class="flex items-center justify-between mb-2">
-                <span class="text-xs font-bold text-blue-800 uppercase tracking-wider">Customer Enquiries</span>
-                <span class="material-symbols-outlined text-[20px] text-blue-800">mark_email_unread</span>
+                <span class="text-xs font-bold text-blue-800 uppercase tracking-wider group-hover:text-blue-900 transition-colors">Customer Enquiries</span>
+                <span class="material-symbols-outlined text-[20px] text-blue-800 group-hover:scale-110 transition-transform">mark_email_unread</span>
             </div>
             <div class="font-headline font-extrabold text-2xl text-blue-800"><?= (int)$counts['enquiries'] ?></div>
-        </div>
+            <div class="text-[11px] text-slate-400 mt-1 font-semibold group-hover:text-blue-800 transition-colors">View inquiries &rarr;</div>
+        </a>
     </div>
 
     <!-- Recent Products Table -->

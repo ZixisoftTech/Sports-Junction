@@ -599,4 +599,48 @@ class AdminSettingsController extends Controller
         Session::flash('success', 'Homepage category display configuration updated successfully.');
         $this->redirect('/admin/settings#homepage-categories-card');
     }
+
+    /**
+     * POST /api/admin/settings/test-smtp
+     * Real-time SMTP credential & connection validator
+     */
+    public function testSmtpConnection(): void
+    {
+        $admin = $this->requireAdmin();
+        $token = $this->request->input('_csrf') ?? $this->request->input('csrf_token') ?? $this->request->header('X-CSRF-Token');
+        \App\Helpers\CSRF::validateOrFail($token);
+
+        $host = trim((string)$this->request->post('mail_host', 'smtp.gmail.com'));
+        $port = (int)$this->request->post('mail_port', 587);
+        $user = trim((string)$this->request->post('mail_username', ''));
+        $pass = str_replace(' ', '', trim((string)$this->request->post('mail_password', '')));
+        $encryption = strtolower((string)$this->request->post('mail_encryption', 'tls'));
+        $recipient = trim((string)$this->request->post('test_recipient', $admin['email'] ?? ''));
+
+        if (empty($user)) {
+            $this->json(['success' => false, 'message' => 'Please enter an SMTP Username.'], 422);
+            return;
+        }
+
+        if (empty($pass)) {
+            $this->json(['success' => false, 'message' => 'Please enter an SMTP App Password.'], 422);
+            return;
+        }
+
+        $result = \App\Helpers\Mailer::testConnection(
+            $host,
+            $port,
+            $user,
+            $pass,
+            $encryption,
+            $recipient
+        );
+
+        $isSuccess = ($result['status'] ?? '') === 'AUTHENTICATED_AND_READY';
+        $this->json([
+            'success' => $isSuccess,
+            'result'  => $result,
+            'message' => $result['message'] ?? 'SMTP test completed.'
+        ], $isSuccess ? 200 : 400);
+    }
 }

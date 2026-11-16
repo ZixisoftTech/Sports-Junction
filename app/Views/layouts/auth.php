@@ -184,48 +184,87 @@ if ($authUser && ($authUser['role'] ?? '') === 'BUYER') {
             </div>
 
             <!-- Right Actions -->
-            <div class="flex items-center gap-2 sm:gap-3 shrink-0 text-sm font-semibold">
+            <div class="flex items-center gap-1.5 sm:gap-3 shrink-0 text-sm font-semibold">
                 <?php if ($authUser): ?>
                     <?php if (($authUser['role'] ?? '') === 'BUYER'): ?>
-                        <a href="<?= htmlspecialchars($baseUrl) ?>/buyer/sort-list" class="text-on-surface hover:text-blue-900 transition-colors flex items-center gap-1 relative py-1 px-1.5 rounded-lg hover:bg-blue-50/60" title="Sort List">
+                        <!-- 1. Dedicated Buyer Dashboard Button -->
+                        <a href="<?= htmlspecialchars($baseUrl) ?>/buyer/dashboard" class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-blue-900 hover:bg-blue-950 text-white font-bold text-xs shadow-xs transition-all shrink-0" title="Buyer Dashboard">
+                            <span class="material-symbols-outlined text-[16px]">dashboard</span>
+                            <span>Dashboard</span>
+                        </a>
+
+                        <!-- 2. Sort List for Buyer -->
+                        <a href="<?= htmlspecialchars($baseUrl) ?>/buyer/sort-list" class="text-on-surface hover:text-blue-900 transition-colors flex items-center gap-1 relative py-1 px-1.5 rounded-lg hover:bg-blue-50/60 shrink-0" title="My Sort List">
                             <span class="material-symbols-outlined text-[20px] text-blue-900 fill-1">checklist</span>
-                            <span class="hidden lg:inline text-xs font-bold text-slate-800">Sort List</span>
+                            <span class="hidden md:inline text-xs font-bold text-slate-800">Sort List</span>
                             <span id="topNavSortBadge" class="<?= ($buyerSortCount > 0 ? '' : 'hidden') ?> inline-flex items-center justify-center px-1.5 py-0.5 rounded-full bg-blue-900 text-white font-black text-[10px] leading-tight ml-0.5 shadow-xs"><?= $buyerSortCount > 99 ? '99+' : $buyerSortCount ?></span>
                         </a>
-                        <div class="hidden sm:flex items-center gap-3">
-                            <a href="<?= htmlspecialchars($baseUrl) ?>/buyer/enquiries" class="text-on-surface hover:text-primary transition-colors flex items-center gap-1" title="My Enquiries">
-                                <span class="material-symbols-outlined text-[18px]">request_quote</span>
-                                <span class="hidden lg:inline text-xs font-bold">Enquiries</span>
+
+                        <!-- 3. Additional Buyer Quick Links -->
+                        <div class="hidden md:flex items-center gap-1.5 lg:gap-2">
+                            <a href="<?= htmlspecialchars($baseUrl) ?>/buyer/enquiries" class="text-on-surface hover:text-blue-900 transition-colors flex items-center gap-1 text-xs font-bold py-1 px-2 rounded-lg hover:bg-slate-100" title="My Enquiries">
+                                <span class="material-symbols-outlined text-[17px]">request_quote</span>
+                                <span>Enquiries</span>
                             </a>
-                            <a href="<?= htmlspecialchars($baseUrl) ?>/buyer/messages" class="text-on-surface hover:text-primary transition-colors flex items-center gap-1 relative" title="Messages & Negotiations">
-                                <span class="material-symbols-outlined text-[18px]">chat</span>
-                                <span class="hidden lg:inline text-xs font-bold">Messages</span>
-                                <span id="topNavMessagesBadge" class="<?= ($buyerUnreadCount > 0 ? '' : 'hidden') ?> inline-flex items-center justify-center px-1.5 py-0.5 rounded-full bg-red-600 text-white font-black text-[10px] leading-tight ml-1 shadow-xs"><?= $buyerUnreadCount > 99 ? '99+' : $buyerUnreadCount ?></span>
+                            <a href="<?= htmlspecialchars($baseUrl) ?>/buyer/sample-enquiries" class="text-on-surface hover:text-teal-700 transition-colors flex items-center gap-1 text-xs font-bold py-1 px-2 rounded-lg hover:bg-teal-50" title="Prototype Samples">
+                                <span class="material-symbols-outlined text-[17px] text-teal-600">science</span>
+                                <span>Samples</span>
                             </a>
-                            <a href="<?= htmlspecialchars($baseUrl) ?>/buyer/dashboard" class="px-3 py-1.5 rounded-full bg-surface-container text-primary font-bold text-xs hover:bg-primary hover:text-white transition-all flex items-center gap-1.5">
-                                <span class="material-symbols-outlined text-[16px]">person</span>
-                                <span><?= htmlspecialchars(explode(' ', $authUser['name'])[0]) ?></span>
+                            <a href="<?= htmlspecialchars($baseUrl) ?>/buyer/messages" class="text-on-surface hover:text-blue-900 transition-colors flex items-center gap-1 relative text-xs font-bold py-1 px-2 rounded-lg hover:bg-slate-100" title="Messages & Negotiations">
+                                <span class="material-symbols-outlined text-[17px]">chat</span>
+                                <span>Messages</span>
+                                <span id="topNavMessagesBadge" class="<?= ($buyerUnreadCount > 0 ? '' : 'hidden') ?> inline-flex items-center justify-center px-1.5 py-0.5 rounded-full bg-red-600 text-white font-black text-[10px] leading-tight ml-0.5 shadow-xs"><?= $buyerUnreadCount > 99 ? '99+' : $buyerUnreadCount ?></span>
                             </a>
                         </div>
-                        <a href="<?= htmlspecialchars($baseUrl) ?>/logout" class="text-xs font-bold text-rose-600 hover:underline px-2">Logout</a>
+
+                        <!-- 4. Logout Link -->
+                        <a href="<?= htmlspecialchars($baseUrl) ?>/logout" class="text-xs font-bold text-rose-600 hover:text-rose-700 hover:underline px-1.5 py-1 shrink-0" title="Logout">Logout</a>
+
                     <?php elseif (($authUser['role'] ?? '') === 'SUPPLIER'): ?>
-                        <a href="<?= htmlspecialchars($baseUrl) ?>/supplier/dashboard" class="px-3.5 py-1.5 rounded-full bg-primary text-white font-bold text-xs shadow-xs">Seller Portal</a>
-                        <a href="<?= htmlspecialchars($baseUrl) ?>/logout" class="text-xs font-bold text-rose-600 hover:underline px-2">Logout</a>
+                        <a href="<?= htmlspecialchars($baseUrl) ?>/supplier/dashboard" class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-blue-900 hover:bg-blue-950 text-white font-bold text-xs shadow-xs transition-all shrink-0" title="Seller Dashboard">
+                            <span class="material-symbols-outlined text-[16px]">dashboard</span>
+                            <span>Dashboard</span>
+                        </a>
+                        <div class="hidden md:flex items-center gap-1.5 lg:gap-2">
+                            <a href="<?= htmlspecialchars($baseUrl) ?>/supplier/products" class="text-on-surface hover:text-blue-900 transition-colors flex items-center gap-1 text-xs font-bold py-1 px-2 rounded-lg hover:bg-slate-100" title="Catalogue Products">
+                                <span class="material-symbols-outlined text-[17px]">inventory_2</span>
+                                <span>Products</span>
+                            </a>
+                            <a href="<?= htmlspecialchars($baseUrl) ?>/supplier/enquiries" class="text-on-surface hover:text-blue-900 transition-colors flex items-center gap-1 text-xs font-bold py-1 px-2 rounded-lg hover:bg-slate-100" title="Customer Enquiries">
+                                <span class="material-symbols-outlined text-[17px]">request_quote</span>
+                                <span>Enquiries</span>
+                            </a>
+                            <a href="<?= htmlspecialchars($baseUrl) ?>/supplier/messages" class="text-on-surface hover:text-teal-800 transition-colors flex items-center gap-1 relative text-xs font-bold py-1 px-2 rounded-lg hover:bg-teal-50" title="Messages & Deals">
+                                <span class="material-symbols-outlined text-[17px] text-teal-600">chat</span>
+                                <span>Messages</span>
+                            </a>
+                        </div>
+                        <a href="<?= htmlspecialchars($baseUrl) ?>/logout" class="text-xs font-bold text-rose-600 hover:text-rose-700 hover:underline px-1.5 py-1 shrink-0" title="Logout">Logout</a>
+
                     <?php elseif (($authUser['role'] ?? '') === 'SUPER_ADMIN'): ?>
-                        <a href="<?= htmlspecialchars($baseUrl) ?>/admin/dashboard" class="px-3.5 py-1.5 rounded-full bg-primary text-white font-bold text-xs shadow-xs">Admin Panel</a>
-                        <a href="<?= htmlspecialchars($baseUrl) ?>/logout" class="text-xs font-bold text-rose-600 hover:underline px-2">Logout</a>
+                        <a href="<?= htmlspecialchars($baseUrl) ?>/admin/dashboard" class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-blue-900 hover:bg-blue-950 text-white font-bold text-xs shadow-xs transition-all shrink-0" title="Admin Dashboard">
+                            <span class="material-symbols-outlined text-[16px]">admin_panel_settings</span>
+                            <span>Admin Panel</span>
+                        </a>
+                        <a href="<?= htmlspecialchars($baseUrl) ?>/logout" class="text-xs font-bold text-rose-600 hover:text-rose-700 hover:underline px-1.5 py-1 shrink-0" title="Logout">Logout</a>
                     <?php endif; ?>
+
                 <?php else: ?>
-                    <a href="<?= htmlspecialchars($baseUrl) ?>/login?redirect=/buyer/sort-list" class="text-on-surface hover:text-blue-900 transition-colors flex items-center gap-1 py-1 px-1.5 rounded-lg hover:bg-slate-100" title="Sort List">
-                        <span class="material-symbols-outlined text-[20px] text-slate-500 hover:text-blue-900 transition-colors">checklist</span>
-                        <span class="hidden lg:inline text-xs font-bold">Sort List</span>
+                    <!-- Sort List for Guests -->
+                    <a href="<?= htmlspecialchars($baseUrl) ?>/buyer/sort-list" class="text-on-surface hover:text-blue-900 transition-colors flex items-center gap-1 relative py-1 px-1.5 rounded-lg hover:bg-blue-50/60 shrink-0" title="Sort List">
+                        <span class="material-symbols-outlined text-[20px] text-blue-900 fill-1">checklist</span>
+                        <span class="hidden md:inline text-xs font-bold text-slate-800">Sort List</span>
                     </a>
-                    <div class="hidden sm:flex items-center gap-2">
-                        <a href="<?= htmlspecialchars($baseUrl) ?>/login" class="text-on-surface hover:text-primary transition-colors py-1 px-2">Login</a>
-                        <span class="text-outline-variant">|</span>
-                        <a href="<?= htmlspecialchars($baseUrl) ?>/register" class="text-on-surface hover:text-primary transition-colors py-1 px-2">Register</a>
+
+                    <!-- Login & Register (ALWAYS VISIBLE, never hidden) -->
+                    <div class="flex items-center gap-1 sm:gap-2 shrink-0">
+                        <a href="<?= htmlspecialchars($baseUrl) ?>/login" class="text-slate-800 hover:text-blue-900 font-bold text-xs sm:text-sm py-1 px-1.5 sm:px-2 rounded-lg hover:bg-slate-100 transition-colors" title="Login to your account">Login</a>
+                        <span class="text-slate-300 font-normal">|</span>
+                        <a href="<?= htmlspecialchars($baseUrl) ?>/register" class="text-slate-800 hover:text-blue-900 font-bold text-xs sm:text-sm py-1 px-1.5 sm:px-2 rounded-lg hover:bg-slate-100 transition-colors" title="Register as Buyer">Register</a>
                     </div>
-                    <a href="<?= htmlspecialchars($baseUrl) ?>/seller/login" class="rounded-full border-2 border-primary text-primary font-bold px-4 py-1.5 hover:bg-primary hover:text-white transition-all uppercase tracking-wider text-xs shadow-sm">
+
+                    <!-- SELL Button -->
+                    <a href="<?= htmlspecialchars($baseUrl) ?>/seller/login" class="rounded-full border-2 border-primary text-primary font-bold px-3 sm:px-4 py-1.5 hover:bg-primary hover:text-white transition-all uppercase tracking-wider text-xs shadow-xs shrink-0" title="Become a Verified Supplier">
                         SELL
                     </a>
                 <?php endif; ?>
