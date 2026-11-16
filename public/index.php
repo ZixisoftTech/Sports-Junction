@@ -156,8 +156,9 @@ $router->post('/api/inquiries', [ShopController::class, 'submitInquiry']);
 $router->get('/contact', [ShopController::class, 'contact']);
 $router->post('/contact', [ShopController::class, 'submitContact']);
 $router->post('/api/contact', [ShopController::class, 'submitContact']);
+$router->get('/help-center', [ShopController::class, 'helpCenter']);
+$router->get('/help', [ShopController::class, 'helpCenter']);
 $router->get('/support', [ShopController::class, 'support']);
-$router->get('/help', [ShopController::class, 'support']);
 $router->post('/support', [ShopController::class, 'submitSupport']);
 $router->post('/api/support', [ShopController::class, 'submitSupport']);
 // -------------------------------------------------------------

@@ -482,8 +482,8 @@ $csrfToken = \App\Helpers\CSRF::generate();
 
 <?php ob_start(); ?>
 <script>
-const BASE_URL = <?= json_encode($baseUrl) ?>;
-const CSRF_TOKEN = <?= json_encode($csrfToken ?? \App\Helpers\CSRF::token()) ?>;
+var BASE_URL = <?= json_encode($baseUrl) ?>;
+var CSRF_TOKEN = <?= json_encode($csrfToken ?? \App\Helpers\CSRF::token()) ?>;
 let buyersTable;
 
 function escapeHtml(str) {

@@ -307,8 +307,8 @@ $baseUrl = Response::baseUrl();
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    const baseUrl = '<?= $baseUrl ?>';
-    const csrfToken = '<?= CSRF::getToken() ?>';
+    var baseUrl = window.baseUrl || '<?= $baseUrl ?>';
+    var csrfToken = window.csrfToken || '<?= CSRF::getToken() ?>';
 
     // 1. Initialize Quill Rich-Text Editor
     let popupQuill = null;

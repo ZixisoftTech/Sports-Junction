@@ -181,8 +181,8 @@ $baseUrl = Response::baseUrl();
 
 <script>
 let productAppDt = null;
-const csrfToken = '<?= htmlspecialchars(CSRF::token()) ?>';
-const baseUrl = '<?= htmlspecialchars($baseUrl) ?>';
+var csrfToken = window.csrfToken || '<?= htmlspecialchars(CSRF::token()) ?>';
+var baseUrl = window.baseUrl || '<?= htmlspecialchars($baseUrl) ?>';
 
 function setApprovalFilter(val) {
     const sel = document.getElementById('approvalStatusFilter');

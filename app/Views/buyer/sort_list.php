@@ -371,8 +371,8 @@ $buyerCountryId = (int)($buyer['country_id'] ?? 0);
 <!-- JAVASCRIPT CONTROLLERS -->
 <!-- ========================================================================= -->
 <script>
-const csrfToken = '<?= htmlspecialchars(CSRF::token()) ?>';
-const baseUrl = '<?= htmlspecialchars($baseUrl) ?>';
+var csrfToken = window.csrfToken || '<?= htmlspecialchars(CSRF::token()) ?>';
+var baseUrl = window.baseUrl || '<?= htmlspecialchars($baseUrl) ?>';
 
 // Track selected products in memory
 let selectedProductsMap = new Map();

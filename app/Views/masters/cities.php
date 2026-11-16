@@ -146,7 +146,7 @@ $baseUrl = Response::baseUrl();
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    const baseUrl = window.SportsJunction.baseUrl;
+    var baseUrl = window.SportsJunction?.baseUrl || '';
 
     // Dynamic Dependent Dropdown Function
     function loadStates(countryId, targetSelect, selectedStateId = null) {

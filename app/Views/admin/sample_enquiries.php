@@ -134,8 +134,8 @@ $csrfToken = \App\Helpers\CSRF::generate();
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const baseUrl = '<?= $baseUrl ?>';
-    const csrfToken = '<?= $csrfToken ?>';
+    var baseUrl = window.baseUrl || '<?= $baseUrl ?>';
+    var csrfToken = window.csrfToken || '<?= $csrfToken ?>';
 
     // Supplier Search in Dropdown
     const supplierSearchBox = document.getElementById('supplierSearchBox');

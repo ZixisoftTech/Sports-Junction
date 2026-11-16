@@ -126,7 +126,7 @@ $baseUrl = Response::baseUrl();
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    const baseUrl = window.SportsJunction.baseUrl;
+    var baseUrl = window.SportsJunction?.baseUrl || '';
     const certModalEl = document.getElementById('certificateModal');
     const certModal = new bootstrap.Modal(certModalEl);
     const form = document.getElementById('certificateForm');

@@ -354,8 +354,8 @@ $exportUrl = $baseUrl . ($isSeller ? '/api/admin/seller-queries/export' : '/api/
 </div>
 
 <script>
-const BASE_URL = <?= json_encode($baseUrl) ?>;
-const CSRF_TOKEN = <?= json_encode($csrfToken) ?>;
+var BASE_URL = <?= json_encode($baseUrl) ?>;
+var CSRF_TOKEN = <?= json_encode($csrfToken) ?>;
 const DATA_URL = <?= json_encode($dataUrl) ?>;
 const EXPORT_URL = <?= json_encode($exportUrl) ?>;
 const SOURCE_TYPE = <?= json_encode($sourceType) ?>;

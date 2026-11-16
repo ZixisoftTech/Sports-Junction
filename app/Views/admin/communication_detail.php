@@ -403,8 +403,8 @@ if (!empty($messages)) {
 
 <script>
 let adminLastMessageId = <?= (int) $adminLastMsgId ?>;
-const convId = <?= (int) $conversation['id'] ?>;
-const baseUrl = '<?= $baseUrl ?>';
+var convId = <?= (int) $conversation['id'] ?>;
+var baseUrl = window.baseUrl || '<?= $baseUrl ?>';
 let adminSse = null;
 let adminPollInterval = null;
 

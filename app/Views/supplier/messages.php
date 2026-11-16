@@ -6,6 +6,7 @@ use App\Helpers\CSRF;
 
 $baseUrl = Response::baseUrl();
 $activeConvId = $activeConversation ? (int) $activeConversation['id'] : 0;
+$currentTab = $currentTab ?? 'all';
 
 $offersById = [];
 if (!empty($offers)) {
@@ -636,8 +637,9 @@ if (!empty($offers)) {
 
 <!-- CLIENT JAVASCRIPT -->
 <script>
-const activeConvId = <?= $activeConvId ?>;
-const baseUrl = <?= json_encode($baseUrl) ?>;
+var activeConvId = <?= $activeConvId ?>;
+var baseUrl = window.baseUrl || <?= json_encode($baseUrl) ?>;
+var csrfToken = window.csrfToken || '';
 let lastMessageId = <?= !empty($messages) ? (int) end($messages)['id'] : 0 ?>;
 let soundEnabled = (localStorage.getItem('sj_chat_sound') !== 'muted');
 

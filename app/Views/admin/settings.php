@@ -210,10 +210,13 @@ $logoUrl = \App\Models\SiteSetting::getLogoUrl();
 
                 <!-- Email & SMTP Configuration Card -->
                 <div class="card border-0 shadow-sm rounded-3 mb-4">
-                    <div class="card-header bg-white py-3 border-bottom">
+                    <div class="card-header bg-white py-3 border-bottom d-flex align-items-center justify-content-between">
                         <h6 class="card-title fw-bold mb-0 text-slate-800">
-                            <i class="bi bi-envelope-at text-primary me-2"></i> SMTP &amp; Email Delivery Settings
+                            <i class="bi bi-envelope-at text-primary me-2"></i> Google SMTP &amp; Email Delivery Settings
                         </h6>
+                        <a href="<?= $baseUrl ?>/admin/email-templates" class="btn btn-sm btn-outline-primary fw-bold">
+                            <i class="bi bi-send-check me-1"></i> Test SMTP &amp; Templates
+                        </a>
                     </div>
                     <div class="card-body p-4">
                         <p class="text-muted small mb-3">Configure transactional email credentials (Google Workspace, Gmail, or custom SMTP) for OTPs and buyer/seller notifications.</p>

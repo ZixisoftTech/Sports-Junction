@@ -229,8 +229,8 @@ $baseUrl = Response::baseUrl();
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    const baseUrl = window.SportsJunction.baseUrl;
-    const defaultLogo = window.SportsJunction.defaultLogo;
+    var baseUrl = window.SportsJunction?.baseUrl || '';
+    var defaultLogo = window.SportsJunction?.defaultLogo || '';
 
     // Image file live preview
     const fileInput = document.getElementById('catImageFile');

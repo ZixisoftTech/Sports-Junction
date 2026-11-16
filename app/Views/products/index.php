@@ -210,7 +210,7 @@ $baseUrl = Response::baseUrl();
 <script>
 window.SJ_BASE_URL = '<?= htmlspecialchars($baseUrl) ?>';
 document.addEventListener('DOMContentLoaded', function () {
-    const baseUrl = window.SportsJunction?.baseUrl || window.SJ_BASE_URL;
+    var baseUrl = window.SportsJunction?.baseUrl || window.SJ_BASE_URL;
     let productsDataTable = null;
     let activeProductCardFilter = null;
 
@@ -904,7 +904,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    const baseUrl = window.SportsJunction?.baseUrl || window.SJ_BASE_URL || '<?= htmlspecialchars($baseUrl) ?>';
+    var baseUrl = window.SportsJunction?.baseUrl || window.SJ_BASE_URL || '<?= htmlspecialchars($baseUrl) ?>';
     const dropzone = document.getElementById('adminBulkDropzone');
     const fileInput = document.getElementById('adminBulkFileInput');
     const fileInfo = document.getElementById('adminBulkSelectedFileInfo');

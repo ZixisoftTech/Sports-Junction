@@ -213,8 +213,8 @@ $baseUrl = $baseUrl ?? Response::baseUrl();
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    const baseUrl = '<?= htmlspecialchars($baseUrl) ?>';
-    const csrfToken = '<?= \App\Helpers\CSRF::getToken() ?>';
+    var baseUrl = window.baseUrl || '<?= htmlspecialchars($baseUrl) ?>';
+    var csrfToken = window.csrfToken || '<?= \App\Helpers\CSRF::getToken() ?>';
 
     const modal = document.getElementById('supplierBulkModal');
     const btnOpen = document.getElementById('btnOpenBulkModal');

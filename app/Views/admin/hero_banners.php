@@ -261,8 +261,8 @@ $baseUrl = Response::baseUrl();
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    const baseUrl = '<?= $baseUrl ?>';
-    const csrfToken = '<?= CSRF::getToken() ?>';
+    var baseUrl = window.baseUrl || '<?= $baseUrl ?>';
+    var csrfToken = window.csrfToken || '<?= CSRF::getToken() ?>';
 
     // Image preview handler
     const fileInput = document.getElementById('bannerImageFile');

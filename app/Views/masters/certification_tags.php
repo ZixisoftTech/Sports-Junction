@@ -131,7 +131,7 @@ $baseUrl = Response::baseUrl();
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    const baseUrl = window.SportsJunction.baseUrl;
+    var baseUrl = window.SportsJunction?.baseUrl || '';
     const tagModalEl = document.getElementById('tagModal');
     const tagModal = new bootstrap.Modal(tagModalEl);
     const form = document.getElementById('tagForm');

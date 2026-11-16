@@ -203,11 +203,11 @@ let popupThreadsListCache = [];
 let popupOffersMap = {};
 let isChatWindowOpen = false;
 
-const popupBaseUrl = <?= json_encode($baseUrl) ?>;
-const isUserLoggedIn = <?= json_encode($isLoggedIn) ?>;
-const currentUserId = <?= json_encode($currentUserId) ?>;
-const currentUserRole = <?= json_encode($userRole) ?>;
-const currentSupplierId = <?= json_encode($currentSupplierId) ?>;
+var popupBaseUrl = window.baseUrl || <?= json_encode($baseUrl) ?>;
+var isUserLoggedIn = <?= json_encode($isLoggedIn) ?>;
+var currentUserId = <?= json_encode($currentUserId) ?>;
+var currentUserRole = <?= json_encode($userRole) ?>;
+var currentSupplierId = <?= json_encode($currentSupplierId) ?>;
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {

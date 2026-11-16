@@ -660,7 +660,7 @@ $subcategories = $subcategories ?? [];
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    const baseUrl = window.SportsJunction.baseUrl || '<?= htmlspecialchars($baseUrl) ?>';
+    var baseUrl = window.SportsJunction?.baseUrl || '<?= htmlspecialchars($baseUrl) ?>';
     const form = document.getElementById('productPageForm');
     const isEdit = <?= json_encode($isEdit) ?>;
     const currentProductId = document.getElementById('productId').value;

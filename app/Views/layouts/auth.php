@@ -576,7 +576,7 @@ if ($authUser && ($authUser['role'] ?? '') === 'BUYER') {
 
     <!-- Interactive Scripts for Mega Menu & Inquiries -->
     <script>
-        const baseUrl = '<?= $baseUrl ?>';
+        var baseUrl = window.baseUrl || '<?= $baseUrl ?>';
         const navCategoriesData = <?= json_encode(array_values(array_map(function($c) {
             return [
                 'name' => (string)($c['name'] ?? ''),

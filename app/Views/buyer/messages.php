@@ -6,6 +6,8 @@ use App\Helpers\CSRF;
 
 $baseUrl = Response::baseUrl();
 $activeConvId = $activeConversation ? (int) $activeConversation['id'] : 0;
+$currentTab = $currentTab ?? 'all';
+$currentBuyerId = (int)($buyer['id'] ?? ($authUser['id'] ?? \App\Helpers\Session::get('auth_user')['id'] ?? 0));
 
 $offersById = [];
 if (!empty($offers)) {
@@ -659,8 +661,9 @@ if (!empty($offers)) {
 
 <!-- CLIENT JAVASCRIPT: SSE REAL-TIME, SOUND SYNTHESIS & WEBSOCKET/POLL FALLBACK -->
 <script>
-const activeConvId = <?= $activeConvId ?>;
-const baseUrl = <?= json_encode($baseUrl) ?>;
+var activeConvId = <?= $activeConvId ?>;
+var baseUrl = window.baseUrl || <?= json_encode($baseUrl) ?>;
+var csrfToken = window.csrfToken || '';
 let lastMessageId = <?= !empty($messages) ? (int) end($messages)['id'] : 0 ?>;
 let soundEnabled = (localStorage.getItem('sj_chat_sound') !== 'muted');
 
@@ -769,7 +772,7 @@ function appendIncomingMessage(msg) {
         return;
     }
 
-    const isMe = (parseInt(msg.sender_user_id) === <?= (int)$buyer['id'] ?>);
+    const isMe = (parseInt(msg.sender_user_id) === <?= $currentBuyerId ?>);
 
     // If SYSTEM message
     if (msg.message_type === 'SYSTEM') {

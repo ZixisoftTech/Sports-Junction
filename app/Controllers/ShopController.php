@@ -605,6 +605,19 @@ class ShopController extends Controller
     }
 
     /**
+     * Dedicated Help Center Portal (GET /help-center)
+     */
+    public function helpCenter(): void
+    {
+        $categories = Category::allActive();
+        $this->render('frontend/help_center', [
+            'pageTitle'       => 'Help Center — Sports Junction Direct B2B Desk',
+            'metaDescription' => 'Sports Junction centralized B2B Help Center connecting buyers and sellers with verified Indian sports manufacturers and dedicated support.',
+            'categories'      => $categories,
+        ], 'frontend');
+    }
+
+    /**
      * Public Support & Help Centre Page (GET /support)
      */
     public function support(): void

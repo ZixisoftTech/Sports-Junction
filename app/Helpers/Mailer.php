@@ -59,7 +59,9 @@ class Mailer
         $rawPass = (string) (SiteSetting::get('mail_password') ?? Env::get('MAIL_PASSWORD', ''));
         $pass = str_replace(' ', '', trim($rawPass));
         $encryption = strtolower((string) (SiteSetting::get('mail_encryption') ?? Env::get('MAIL_ENCRYPTION', 'tls')));
-        if ($encryption === '') {
+        if ($port === 465) {
+            $encryption = 'ssl';
+        } elseif ($encryption === '') {
             $encryption = 'tls';
         }
         $fromEmail = trim((string) (SiteSetting::get('mail_from_address') ?? Env::get('MAIL_FROM_ADDRESS', 'noreply@sportsjunction.in')), '<> ');
@@ -178,7 +180,11 @@ class Mailer
             $resp = self::sendCommand($socket, base64_encode($pass));
             if ($resp['code'] !== 235) {
                 fclose($socket);
-                self::logDiagnostic($toEmail, $subject, 'FAILED', 'SMTP Authentication Rejected: ' . $resp['message']);
+                $diag = 'SMTP Authentication Rejected: ' . $resp['message'];
+                if (strpos($resp['message'], '534') !== false || strpos($resp['message'], '5.7.9') !== false || stripos($resp['message'], 'WebLoginRequired') !== false) {
+                    $diag .= ' (Google SMTP requires a 16-character Google App Password with 2FA enabled: https://myaccount.google.com/apppasswords. Ensure username matches the Google account.)';
+                }
+                self::logDiagnostic($toEmail, $subject, 'FAILED', $diag);
                 return self::sendViaPhpMail($toEmail, $toName, $subject, $htmlContent, $textContent, $fromEmail, $fromName);
             }
 
@@ -350,7 +356,9 @@ class Mailer
         $rawPass = (string) (SiteSetting::get('mail_password') ?? Env::get('MAIL_PASSWORD', ''));
         $pass = str_replace(' ', '', trim($rawPass));
         $encryption = strtolower((string) (SiteSetting::get('mail_encryption') ?? Env::get('MAIL_ENCRYPTION', 'tls')));
-        if ($encryption === '') {
+        if ($port === 465) {
+            $encryption = 'ssl';
+        } elseif ($encryption === '') {
             $encryption = 'tls';
         }
         $logFile = dirname(__DIR__, 2) . '/storage/logs/mail.log';

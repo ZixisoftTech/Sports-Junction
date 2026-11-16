@@ -648,8 +648,8 @@ $currentPrimaryImg = !empty($product['primary_image']) ? Uploader::imageUrl($pro
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    const baseUrl = '<?= htmlspecialchars($baseUrl) ?>';
-    const defaultLogo = '<?= htmlspecialchars($defaultLogo) ?>';
+    var baseUrl = window.baseUrl || '<?= htmlspecialchars($baseUrl) ?>';
+    var defaultLogo = '<?= htmlspecialchars($defaultLogo) ?>';
     const form = document.getElementById('productPageForm');
     const isEdit = <?= json_encode($isEdit) ?>;
     const currentProductId = document.getElementById('productId').value;

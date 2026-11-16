@@ -84,6 +84,17 @@ if ($authUser && ($authUser['role'] ?? '') === 'BUYER') {
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
 
+    <!-- Global Namespace & App Config (Safe for multi-script re-declarations) -->
+    <script>
+        window.SportsJunction = window.SportsJunction || {};
+        window.SportsJunction.baseUrl = '<?= htmlspecialchars($baseUrl) ?>';
+        window.SportsJunction.csrfToken = '<?= htmlspecialchars(\App\Helpers\CSRF::token()) ?>';
+        window.baseUrl = window.SportsJunction.baseUrl;
+        window.csrfToken = window.SportsJunction.csrfToken;
+        var baseUrl = window.baseUrl;
+        var csrfToken = window.csrfToken;
+    </script>
+
     <!-- Suppress Tailwind Play CDN in production console warning -->
     <script>
         (function() {
@@ -129,6 +140,10 @@ if ($authUser && ($authUser['role'] ?? '') === 'BUYER') {
         };
     </script>
     <style>
+        /* Fail-safe utilities for instant rendering before Tailwind CDN finishes */
+        .hidden { display: none !important; }
+        [hidden] { display: none !important; }
+
         .material-symbols-outlined {
             font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
             vertical-align: middle;
@@ -658,7 +673,7 @@ if ($authUser && ($authUser['role'] ?? '') === 'BUYER') {
                     </div>
 
                     <a href="<?= htmlspecialchars($baseUrl) ?>/products" class="text-on-surface-variant hover:text-primary transition-colors shrink-0 font-medium">Products</a>
-                    <a href="<?= htmlspecialchars($baseUrl) ?>/contact" class="text-on-surface-variant hover:text-primary transition-colors shrink-0 font-medium">Help Center</a>
+                    <a href="<?= htmlspecialchars($baseUrl) ?>/help-center" class="text-on-surface-variant hover:text-primary transition-colors shrink-0 font-medium">Help Center</a>
                 </nav>
 
                 <div class="hidden lg:flex items-center gap-5 text-on-surface-variant normal-case shrink-0 text-xs">
@@ -1003,7 +1018,7 @@ if ($authUser && ($authUser['role'] ?? '') === 'BUYER') {
 
     <!-- Interactive Scripts for Modal & Inquiries -->
     <script>
-        const baseUrl = '<?= $baseUrl ?>';
+        var baseUrl = window.baseUrl || '<?= $baseUrl ?>';
         const navCategoriesData = <?= json_encode(array_values(array_map(function($c) {
             return [
                 'name' => (string)($c['name'] ?? ''),
@@ -1354,7 +1369,7 @@ if ($authUser && ($authUser['role'] ?? '') === 'BUYER') {
                 return;
             }
 
-            const csrfToken = '<?= htmlspecialchars(\App\Helpers\CSRF::token()) ?>';
+            var csrfToken = window.csrfToken || '<?= htmlspecialchars(\App\Helpers\CSRF::token()) ?>';
             fetch(`${baseUrl}/api/buyer/sort-list/toggle`, {
                 method: 'POST',
                 headers: {

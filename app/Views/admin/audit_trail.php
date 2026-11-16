@@ -83,7 +83,7 @@ $baseUrl = \App\Core\Response::baseUrl();
 
 <?php ob_start(); ?>
 <script>
-const BASE_URL = <?= json_encode($baseUrl) ?>;
+var BASE_URL = <?= json_encode($baseUrl) ?>;
 let auditTable;
 
 function escapeHtml(str) {

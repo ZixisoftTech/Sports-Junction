@@ -445,8 +445,8 @@ $baseUrl = Response::baseUrl();
 
 <script>
 let suppliersDt = null;
-const csrfToken = '<?= htmlspecialchars(CSRF::token()) ?>';
-const baseUrl = '<?= htmlspecialchars($baseUrl) ?>';
+var csrfToken = window.csrfToken || '<?= htmlspecialchars(CSRF::token()) ?>';
+var baseUrl = window.baseUrl || '<?= htmlspecialchars($baseUrl) ?>';
 
 function escapeHtml(str) {
     if (str === null || str === undefined) return '';

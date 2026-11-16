@@ -303,8 +303,8 @@ $status = $enquiry['status'] ?? 'SUBMITTED';
 
 <?php ob_start(); ?>
 <script>
-const BASE_URL = <?= json_encode($baseUrl) ?>;
-const CSRF_TOKEN = <?= json_encode($csrfToken) ?>;
+var BASE_URL = <?= json_encode($baseUrl) ?>;
+var CSRF_TOKEN = <?= json_encode($csrfToken) ?>;
 const ENQUIRY_ID = <?= (int)$enquiry['id'] ?>;
 
 function saveSupplierAssignment() {
