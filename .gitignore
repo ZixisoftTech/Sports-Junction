@@ -1,17 +1,45 @@
+# Environment & Secrets
 .env
+.env.*
+!.env.example
 .DS_Store
 scratch/
-storage/logs/*.log
-storage/logs/*.html
+
+# Dependencies & Build Artefacts
 vendor/
 node_modules/
 Archive.zip
-public/uploads/chat/*
-public/uploads/settings/*
-!public/uploads/settings/.gitkeep
+
+# Logs & Debug Output
+storage/logs/*.log
+storage/logs/*.html
+
+# Temporary storage & session files
 storage/tmp/*
 !storage/tmp/.gitkeep
 storage/tmp_uploads/*
 !storage/tmp_uploads/.gitkeep
 storage/tmp_uploads_old/
 storage/uploads_old/
+
+# =======================================================================
+# UPLOADED MEDIA, BANNERS, PRODUCTS & ASSETS
+# (Strictly preserve live server uploads; never push local test media)
+# =======================================================================
+public/uploads/*
+!public/uploads/**/.gitkeep
+!public/uploads/.gitkeep
+
+# =======================================================================
+# DATABASE DUMPS & LOCAL DATA EXPORTS
+# (Strictly preserve live database; only schema/migrations are tracked)
+# =======================================================================
+*.sql
+*.sql.gz
+*.tar.gz
+*.bak
+database/*_dump.sql
+database/sports_junction_*.sql
+database/backups/*
+!database/schema.sql
+!database/seeders.sql

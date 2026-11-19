@@ -655,13 +655,16 @@ $router->post('/api/chat/report', [ChatApiController::class, 'submitReport']);
 $router->post('/api/chat/admin/reply', [ChatApiController::class, 'adminReply']);
 
 // -------------------------------------------------------------
-// SYSTEM HEALTH ENDPOINT
+// SYSTEM HEALTH & SCHEMA PIPELINE ENDPOINT
 // -------------------------------------------------------------
 $router->get('/health', function(Request $req, Response $res) {
     $dbConnected = false;
+    $schemaResult = null;
     try {
         \App\Core\Database::getConnection();
         $dbConnected = true;
+        // Non-destructive additive schema pipeline (only adds new fields/tables, preserves all live data)
+        $schemaResult = \App\Core\SchemaMigrator::run();
     } catch (\Throwable $e) {
         // Log silently
     }
@@ -669,7 +672,8 @@ $router->get('/health', function(Request $req, Response $res) {
     $res->json([
         'status' => $dbConnected ? 'healthy' : 'database_unreachable',
         'app_name' => \App\Helpers\Env::get('APP_NAME', 'Sports Junction'),
-        'server_time' => date('Y-m-d H:i:s T')
+        'server_time' => date('Y-m-d H:i:s T'),
+        'schema_pipeline' => $schemaResult
     ], $dbConnected ? 200 : 503);
 });
 
