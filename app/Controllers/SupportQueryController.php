@@ -24,6 +24,8 @@ class SupportQueryController extends Controller
         $name = trim((string) $this->request->post('name', ''));
         $email = trim((string) $this->request->post('email', ''));
         $phone = trim((string) $this->request->post('phone', ''));
+        $companyName = trim((string) $this->request->post('company_name', ''));
+        $countryName = trim((string) $this->request->post('country_name', ''));
         $category = trim((string) $this->request->post('category', ''));
         $subject = trim((string) $this->request->post('subject', ''));
         $orderId = trim((string) $this->request->post('order_id', ''));
@@ -51,9 +53,8 @@ class SupportQueryController extends Controller
             return;
         }
 
-        if (empty($category) || !in_array($category, SupportQuery::CATEGORIES, true)) {
-            $this->json(['success' => false, 'message' => 'Please select a valid query category.'], 422);
-            return;
+        if (empty($category)) {
+            $category = 'Other';
         }
 
         if (empty($subject)) {
@@ -61,9 +62,17 @@ class SupportQueryController extends Controller
             return;
         }
 
-        if (empty($description) || mb_strlen($description) < 10) {
-            $this->json(['success' => false, 'message' => 'Please provide a detailed description of your issue (at least 10 characters).'], 422);
+        if (empty($description) || mb_strlen($description) < 5) {
+            $this->json(['success' => false, 'message' => 'Please provide a detailed description of your issue (at least 5 characters).'], 422);
             return;
+        }
+
+        // Prepend company/country info to description for transparent visibility across all admin panels
+        $metaHeaders = [];
+        if (!empty($companyName)) $metaHeaders[] = "Organization / Company: " . $companyName;
+        if (!empty($countryName)) $metaHeaders[] = "Country / Region: " . $countryName;
+        if (!empty($metaHeaders)) {
+            $description = implode(" | ", $metaHeaders) . "\n\n" . $description;
         }
 
         // Handle File Attachment (Optional)

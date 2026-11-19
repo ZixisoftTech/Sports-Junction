@@ -177,8 +177,6 @@ $dedicatedCmsPages = [
     '/production-monitoring-inspection'   => 'production-monitoring-inspection',
 
     // Column 3: Help & Support
-    '/buyer-help-centre'                  => 'buyer-help-centre',
-    '/seller-help-centre'                 => 'seller-help-centre',
     '/live-chat'                          => 'live-chat',
     '/become-verified-supplier'           => 'become-verified-supplier',
     '/contact-us'                         => 'contact-us',
@@ -203,6 +201,15 @@ foreach ($dedicatedCmsPages as $routePath => $cmsSlug) {
         (new CmsPageController($req, $res))->show(['slug' => $cmsSlug]);
     });
 }
+
+// Dedicated Buyer & Seller Help Centre Portal Routes
+$router->get('/buyer-help-centre', [ShopController::class, 'buyerHelpCentre']);
+$router->get('/buyer-help-center', [ShopController::class, 'buyerHelpCentre']);
+$router->get('/page/buyer-help-centre', [ShopController::class, 'buyerHelpCentre']);
+
+$router->get('/seller-help-centre', [ShopController::class, 'sellerHelpCentre']);
+$router->get('/seller-help-center', [ShopController::class, 'sellerHelpCentre']);
+$router->get('/page/seller-help-centre', [ShopController::class, 'sellerHelpCentre']);
 
 // Dedicated Suggestions & Feedback Form Routes
 $router->get('/feedback-suggestions', [ShopController::class, 'feedback']);
@@ -385,6 +392,12 @@ $router->get('/admin/contact-us-enquiries', [EnquiryManagementController::class,
 $router->get('/admin/support-enquiries', [EnquiryManagementController::class, 'supportEnquiries'], [AuthMiddleware::class]);
 
 // Super Admin Buyer & Seller Support Query Management
+$router->get('/admin/help-centre', function() {
+    \App\Core\Response::redirect('/admin/buyer-queries');
+}, [AuthMiddleware::class]);
+$router->get('/admin/help-center', function() {
+    \App\Core\Response::redirect('/admin/buyer-queries');
+}, [AuthMiddleware::class]);
 $router->get('/admin/buyer-queries', [AdminSupportQueryController::class, 'buyerQueries'], [AuthMiddleware::class]);
 $router->get('/api/admin/buyer-queries/data', [AdminSupportQueryController::class, 'buyerQueriesData'], [AuthMiddleware::class]);
 $router->get('/api/admin/buyer-queries/export', [AdminSupportQueryController::class, 'buyerQueriesExport'], [AuthMiddleware::class]);

@@ -881,6 +881,57 @@ class ShopController extends Controller
     }
 
     /**
+     * Dedicated Buyer Help Centre Page (GET /buyer-help-centre)
+     */
+    public function buyerHelpCentre(): void
+    {
+        $categories = Category::allActive();
+        $user = $this->authUser();
+        $buyerDetails = null;
+        if ($user && ($user['role'] ?? '') === 'BUYER') {
+            $buyerDetails = \App\Models\User::findById((int)$user['id']);
+        }
+
+        $countries = \App\Models\Country::allActive();
+
+        $this->render('frontend/buyer_help_centre', [
+            'pageTitle'       => 'Buyer Help Centre — Sports Junction Sourcing & Procurement Support',
+            'metaDescription' => 'Dedicated trade support for international buyers, retail chains, and sports brands. Submit questions regarding wholesale equipment orders, verified factories, RFQs, escrow payments, and pre-shipment inspections.',
+            'categories'      => $categories,
+            'buyerDetails'    => $buyerDetails,
+            'countries'       => $countries,
+            'sourceType'      => 'BUYER',
+        ], 'frontend');
+    }
+
+    /**
+     * Dedicated Seller & Manufacturer Help Centre Page (GET /seller-help-centre)
+     */
+    public function sellerHelpCentre(): void
+    {
+        $categories = Category::allActive();
+        $user = $this->authUser();
+        $supplierDetails = null;
+        if ($user && ($user['role'] ?? '') === 'SUPPLIER') {
+            $supplierDetails = \App\Models\Supplier::findByUserId((int)$user['id']);
+            if (!$supplierDetails) {
+                $supplierDetails = \App\Models\User::findById((int)$user['id']);
+            }
+        }
+
+        $countries = \App\Models\Country::allActive();
+
+        $this->render('frontend/seller_help_centre', [
+            'pageTitle'       => 'Seller & Manufacturer Help Centre — Sports Junction Operations Support',
+            'metaDescription' => 'Dedicated operational support for Indian sports manufacturing factories and primary exporters. Get assistance with factory verification, catalog indexing, bulk RFQs, sample orders, and statutory compliance.',
+            'categories'      => $categories,
+            'supplierDetails' => $supplierDetails,
+            'countries'       => $countries,
+            'sourceType'      => 'SELLER',
+        ], 'frontend');
+    }
+
+    /**
      * Submit Suggestions & Feedback Form (POST /api/feedback or POST /feedback-suggestions)
      */
     public function submitFeedback(): void

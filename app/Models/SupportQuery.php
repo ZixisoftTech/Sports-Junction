@@ -16,6 +16,11 @@ class SupportQuery extends Model
         'Account & Registration',
         'Technical Issue',
         'Seller / Buyer Related',
+        'RFQ & Custom OEM Inquiries',
+        'Supplier Verification & Statutory Documents',
+        'Catalog & Product Approvals',
+        'Prototype Sample Order Support',
+        'Platform Policies & Sourcing Agreement',
         'Other',
     ];
 

@@ -103,39 +103,7 @@ if (!empty($user['id']) && ($user['role'] ?? '') === 'SUPER_ADMIN') {
             <span>Dashboard</span>
         </a>
 
-        <div class="sj-nav-section-title">Marketplace Catalog</div>
-        <a href="<?= htmlspecialchars($baseUrl) ?>/admin/categories" class="sj-nav-item <?= $activeMenu === 'categories' ? 'active' : '' ?>">
-            <i class="bi bi-grid"></i>
-            <span>Categories</span>
-        </a>
-        <a href="<?= htmlspecialchars($baseUrl) ?>/admin/subcategories" class="sj-nav-item <?= $activeMenu === 'subcategories' ? 'active' : '' ?>">
-            <i class="bi bi-diagram-3"></i>
-            <span>Subcategories</span>
-        </a>
-        <a href="<?= htmlspecialchars($baseUrl) ?>/admin/products" class="sj-nav-item <?= $activeMenu === 'products' ? 'active' : '' ?>">
-            <i class="bi bi-box-seam"></i>
-            <span>Products & Catalog</span>
-        </a>
-        <a href="<?= htmlspecialchars($baseUrl) ?>/" target="_blank" class="sj-nav-item text-info">
-            <i class="bi bi-box-arrow-up-right"></i>
-            <span>View Public Store</span>
-        </a>
-
-        <div class="sj-nav-section-title">Approvals &amp; Vendors</div>
-        <a href="<?= htmlspecialchars($baseUrl) ?>/admin/suppliers" class="sj-nav-item <?= $activeMenu === 'suppliers' ? 'active' : '' ?>">
-            <i class="bi bi-person-check"></i>
-            <span>Supplier Approvals</span>
-        </a>
-        <a href="<?= htmlspecialchars($baseUrl) ?>/admin/product-approvals" class="sj-nav-item <?= $activeMenu === 'product_approvals' ? 'active' : '' ?>">
-            <i class="bi bi-patch-check"></i>
-            <span>Product Approvals</span>
-        </a>
-
-        <div class="sj-nav-section-title">Buyers &amp; Enquiries</div>
-        <a href="<?= htmlspecialchars($baseUrl) ?>/admin/buyers" class="sj-nav-item <?= ($activeMenu === 'buyers' || str_contains($_SERVER['REQUEST_URI'] ?? '', '/admin/buyers')) ? 'active' : '' ?>">
-            <i class="bi bi-people"></i>
-            <span>Buyer Management</span>
-        </a>
+        <div class="sj-nav-section-title">Inquiries</div>
         <a href="<?= htmlspecialchars($baseUrl) ?>/admin/product-enquiries" class="sj-nav-item <?= ($activeMenu === 'enquiries_product' || str_contains($_SERVER['REQUEST_URI'] ?? '', '/admin/product-enquiries')) ? 'active' : '' ?>">
             <i class="bi bi-box-seam"></i>
             <span>Product Page Enquiries</span>
@@ -164,6 +132,16 @@ if (!empty($user['id']) && ($user['role'] ?? '') === 'SUPER_ADMIN') {
             <i class="bi bi-list-check"></i>
             <span>Bulk Product Enquiries</span>
         </a>
+
+        <div class="sj-nav-section-title">Contact &amp; Support</div>
+        <a href="<?= htmlspecialchars($baseUrl) ?>/admin/buyer-queries" class="sj-nav-item <?= ($activeMenu === 'buyer_queries' || str_contains($_SERVER['REQUEST_URI'] ?? '', '/admin/buyer-queries')) ? 'active' : '' ?>">
+            <i class="bi bi-headset"></i>
+            <span>Buyer Help Enquiries</span>
+        </a>
+        <a href="<?= htmlspecialchars($baseUrl) ?>/admin/seller-queries" class="sj-nav-item <?= ($activeMenu === 'seller_queries' || str_contains($_SERVER['REQUEST_URI'] ?? '', '/admin/seller-queries')) ? 'active' : '' ?>">
+            <i class="bi bi-shop-window"></i>
+            <span>Seller Help Enquiries</span>
+        </a>
         <a href="<?= htmlspecialchars($baseUrl) ?>/admin/feedbacks" class="sj-nav-item <?= ($activeMenu === 'feedbacks' || str_contains($_SERVER['REQUEST_URI'] ?? '', '/admin/feedbacks')) ? 'active' : '' ?>">
             <i class="bi bi-chat-heart"></i>
             <span>Suggestions &amp; Feedback</span>
@@ -184,14 +162,36 @@ if (!empty($user['id']) && ($user['role'] ?? '') === 'SUPER_ADMIN') {
             </span>
         </a>
 
-        <div class="sj-nav-section-title">Help Center</div>
-        <a href="<?= htmlspecialchars($baseUrl) ?>/admin/buyer-queries" class="sj-nav-item <?= ($activeMenu === 'buyer_queries' || str_contains($_SERVER['REQUEST_URI'] ?? '', '/admin/buyer-queries')) ? 'active' : '' ?>">
-            <i class="bi bi-headset"></i>
-            <span>Buyer Help Enquiries</span>
+        <div class="sj-nav-section-title">Marketplace Catalog</div>
+        <a href="<?= htmlspecialchars($baseUrl) ?>/admin/categories" class="sj-nav-item <?= $activeMenu === 'categories' ? 'active' : '' ?>">
+            <i class="bi bi-grid"></i>
+            <span>Categories</span>
         </a>
-        <a href="<?= htmlspecialchars($baseUrl) ?>/admin/seller-queries" class="sj-nav-item <?= ($activeMenu === 'seller_queries' || str_contains($_SERVER['REQUEST_URI'] ?? '', '/admin/seller-queries')) ? 'active' : '' ?>">
-            <i class="bi bi-shop-window"></i>
-            <span>Seller Help Enquiries</span>
+        <a href="<?= htmlspecialchars($baseUrl) ?>/admin/subcategories" class="sj-nav-item <?= $activeMenu === 'subcategories' ? 'active' : '' ?>">
+            <i class="bi bi-diagram-3"></i>
+            <span>Subcategories</span>
+        </a>
+        <a href="<?= htmlspecialchars($baseUrl) ?>/admin/products" class="sj-nav-item <?= $activeMenu === 'products' ? 'active' : '' ?>">
+            <i class="bi bi-box-seam"></i>
+            <span>Products & Catalog</span>
+        </a>
+        <a href="<?= htmlspecialchars($baseUrl) ?>/" target="_blank" class="sj-nav-item text-info">
+            <i class="bi bi-box-arrow-up-right"></i>
+            <span>View Public Store</span>
+        </a>
+
+        <div class="sj-nav-section-title">Buyers &amp; Vendors</div>
+        <a href="<?= htmlspecialchars($baseUrl) ?>/admin/buyers" class="sj-nav-item <?= ($activeMenu === 'buyers' || str_contains($_SERVER['REQUEST_URI'] ?? '', '/admin/buyers')) ? 'active' : '' ?>">
+            <i class="bi bi-people"></i>
+            <span>Buyer Management</span>
+        </a>
+        <a href="<?= htmlspecialchars($baseUrl) ?>/admin/suppliers" class="sj-nav-item <?= $activeMenu === 'suppliers' ? 'active' : '' ?>">
+            <i class="bi bi-person-check"></i>
+            <span>Supplier Approvals</span>
+        </a>
+        <a href="<?= htmlspecialchars($baseUrl) ?>/admin/product-approvals" class="sj-nav-item <?= $activeMenu === 'product_approvals' ? 'active' : '' ?>">
+            <i class="bi bi-patch-check"></i>
+            <span>Product Approvals</span>
         </a>
 
         <div class="sj-nav-section-title">Website &amp; CMS</div>
