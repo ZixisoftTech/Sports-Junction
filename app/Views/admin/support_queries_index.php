@@ -13,6 +13,16 @@ $dataUrl = $baseUrl . ($isSeller ? '/api/admin/seller-queries/data' : '/api/admi
 $exportUrl = $baseUrl . ($isSeller ? '/api/admin/seller-queries/export' : '/api/admin/buyer-queries/export');
 ?>
 
+<!-- Help Center Navigation Sub-Tabs -->
+<div class="d-flex align-items-center gap-2 mb-4 p-1.5 rounded-3 border" style="max-width: 440px; background: #e2e8f0; border-color: #cbd5e1;">
+    <a href="<?= $baseUrl ?>/admin/buyer-queries" class="flex-fill text-center py-2 px-3 rounded-2 fw-bold text-decoration-none <?= !$isSeller ? 'bg-white text-primary shadow-sm' : 'text-secondary' ?>" style="font-size: 13px;">
+        <i class="bi bi-headset me-1"></i> Buyer Help Enquiries
+    </a>
+    <a href="<?= $baseUrl ?>/admin/seller-queries" class="flex-fill text-center py-2 px-3 rounded-2 fw-bold text-decoration-none <?= $isSeller ? 'bg-white text-primary shadow-sm' : 'text-secondary' ?>" style="font-size: 13px;">
+        <i class="bi bi-shop-window me-1"></i> Seller Help Enquiries
+    </a>
+</div>
+
 <!-- Header -->
 <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
     <div>

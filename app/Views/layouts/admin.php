@@ -103,32 +103,6 @@ if (!empty($user['id']) && ($user['role'] ?? '') === 'SUPER_ADMIN') {
             <span>Dashboard</span>
         </a>
 
-        <div class="sj-nav-section-title">Master Management</div>
-        <a href="<?= htmlspecialchars($baseUrl) ?>/admin/masters/countries" class="sj-nav-item <?= $activeMenu === 'countries' ? 'active' : '' ?>">
-            <i class="bi bi-globe-americas"></i>
-            <span>Countries</span>
-        </a>
-        <a href="<?= htmlspecialchars($baseUrl) ?>/admin/masters/business-types" class="sj-nav-item <?= $activeMenu === 'business_types' ? 'active' : '' ?>">
-            <i class="bi bi-briefcase"></i>
-            <span>Business Types</span>
-        </a>
-        <a href="<?= htmlspecialchars($baseUrl) ?>/admin/masters/price-units" class="sj-nav-item <?= $activeMenu === 'price_units' ? 'active' : '' ?>">
-            <i class="bi bi-tag"></i>
-            <span>Price Units</span>
-        </a>
-        <a href="<?= htmlspecialchars($baseUrl) ?>/admin/masters/moq-units" class="sj-nav-item <?= $activeMenu === 'moq_units' ? 'active' : '' ?>">
-            <i class="bi bi-boxes"></i>
-            <span>MOQ Units</span>
-        </a>
-        <a href="<?= htmlspecialchars($baseUrl) ?>/admin/masters/product-certificates" class="sj-nav-item <?= $activeMenu === 'product_certificates' ? 'active' : '' ?>">
-            <i class="bi bi-patch-check"></i>
-            <span>Product Certificates</span>
-        </a>
-        <a href="<?= htmlspecialchars($baseUrl) ?>/admin/masters/certification-tags" class="sj-nav-item <?= $activeMenu === 'certification_tags' ? 'active' : '' ?>">
-            <i class="bi bi-tags"></i>
-            <span>Certification Tags</span>
-        </a>
-
         <div class="sj-nav-section-title">Marketplace Catalog</div>
         <a href="<?= htmlspecialchars($baseUrl) ?>/admin/categories" class="sj-nav-item <?= $activeMenu === 'categories' ? 'active' : '' ?>">
             <i class="bi bi-grid"></i>
@@ -186,14 +160,6 @@ if (!empty($user['id']) && ($user['role'] ?? '') === 'SUPER_ADMIN') {
             <i class="bi bi-envelope-paper"></i>
             <span>Contact Us Enquiries</span>
         </a>
-        <a href="<?= htmlspecialchars($baseUrl) ?>/admin/buyer-queries" class="sj-nav-item <?= ($activeMenu === 'buyer_queries' || str_contains($_SERVER['REQUEST_URI'] ?? '', '/admin/buyer-queries')) ? 'active' : '' ?>">
-            <i class="bi bi-person-lines-fill"></i>
-            <span>Buyer Queries</span>
-        </a>
-        <a href="<?= htmlspecialchars($baseUrl) ?>/admin/seller-queries" class="sj-nav-item <?= ($activeMenu === 'seller_queries' || str_contains($_SERVER['REQUEST_URI'] ?? '', '/admin/seller-queries')) ? 'active' : '' ?>">
-            <i class="bi bi-shop-window"></i>
-            <span>Seller Queries</span>
-        </a>
         <a href="<?= htmlspecialchars($baseUrl) ?>/admin/bulk-enquiries" class="sj-nav-item <?= ($activeMenu === 'bulk_enquiries' || str_contains($_SERVER['REQUEST_URI'] ?? '', '/admin/bulk-enquiries')) ? 'active' : '' ?>">
             <i class="bi bi-list-check"></i>
             <span>Bulk Product Enquiries</span>
@@ -216,6 +182,16 @@ if (!empty($user['id']) && ($user['role'] ?? '') === 'SUPER_ADMIN') {
             <span class="badge bg-danger rounded-pill ms-auto small" id="adminSidebarNotifBadge" style="<?= ($adminUnreadNotifCount ?? 0) > 0 ? '' : 'display: none;' ?>">
                 <?= ($adminUnreadNotifCount ?? 0) > 99 ? '99+' : ($adminUnreadNotifCount ?? 0) ?>
             </span>
+        </a>
+
+        <div class="sj-nav-section-title">Help Center</div>
+        <a href="<?= htmlspecialchars($baseUrl) ?>/admin/buyer-queries" class="sj-nav-item <?= ($activeMenu === 'buyer_queries' || str_contains($_SERVER['REQUEST_URI'] ?? '', '/admin/buyer-queries')) ? 'active' : '' ?>">
+            <i class="bi bi-headset"></i>
+            <span>Buyer Help Enquiries</span>
+        </a>
+        <a href="<?= htmlspecialchars($baseUrl) ?>/admin/seller-queries" class="sj-nav-item <?= ($activeMenu === 'seller_queries' || str_contains($_SERVER['REQUEST_URI'] ?? '', '/admin/seller-queries')) ? 'active' : '' ?>">
+            <i class="bi bi-shop-window"></i>
+            <span>Seller Help Enquiries</span>
         </a>
 
         <div class="sj-nav-section-title">Website &amp; CMS</div>
@@ -248,6 +224,32 @@ if (!empty($user['id']) && ($user['role'] ?? '') === 'SUPER_ADMIN') {
         <a href="<?= htmlspecialchars($baseUrl) ?>/admin/audit-trail" class="sj-nav-item <?= ($activeMenu === 'audit_trail') ? 'active' : '' ?>">
             <i class="bi bi-journal-text"></i>
             <span>Audit Trail</span>
+        </a>
+
+        <div class="sj-nav-section-title">Master Management</div>
+        <a href="<?= htmlspecialchars($baseUrl) ?>/admin/masters/countries" class="sj-nav-item <?= $activeMenu === 'countries' ? 'active' : '' ?>">
+            <i class="bi bi-globe-americas"></i>
+            <span>Countries</span>
+        </a>
+        <a href="<?= htmlspecialchars($baseUrl) ?>/admin/masters/business-types" class="sj-nav-item <?= $activeMenu === 'business_types' ? 'active' : '' ?>">
+            <i class="bi bi-briefcase"></i>
+            <span>Business Types</span>
+        </a>
+        <a href="<?= htmlspecialchars($baseUrl) ?>/admin/masters/price-units" class="sj-nav-item <?= $activeMenu === 'price_units' ? 'active' : '' ?>">
+            <i class="bi bi-tag"></i>
+            <span>Price Units</span>
+        </a>
+        <a href="<?= htmlspecialchars($baseUrl) ?>/admin/masters/moq-units" class="sj-nav-item <?= $activeMenu === 'moq_units' ? 'active' : '' ?>">
+            <i class="bi bi-boxes"></i>
+            <span>MOQ Units</span>
+        </a>
+        <a href="<?= htmlspecialchars($baseUrl) ?>/admin/masters/product-certificates" class="sj-nav-item <?= $activeMenu === 'product_certificates' ? 'active' : '' ?>">
+            <i class="bi bi-patch-check"></i>
+            <span>Product Certificates</span>
+        </a>
+        <a href="<?= htmlspecialchars($baseUrl) ?>/admin/masters/certification-tags" class="sj-nav-item <?= $activeMenu === 'certification_tags' ? 'active' : '' ?>">
+            <i class="bi bi-tags"></i>
+            <span>Certification Tags</span>
         </a>
     </div>
 

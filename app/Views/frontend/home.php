@@ -505,7 +505,7 @@ document.addEventListener('DOMContentLoaded', function () {
             </div>
             <h3 class="font-headline font-bold text-base text-on-surface mb-2">Quality Inspection & Port Freight</h3>
             <p class="text-xs text-outline leading-relaxed">
-                100% pre-shipment quality audit and express dispatch from Indian seaports (Nhava Sheva, Mundra) to your distribution warehouses worldwide.
+                Pre-shipment quality audit on eligible equipment lines and express dispatch from Indian seaports (Nhava Sheva, Mundra) to your distribution warehouses worldwide.
             </p>
         </div>
     </div>

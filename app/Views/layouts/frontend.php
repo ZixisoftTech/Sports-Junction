@@ -650,7 +650,7 @@ if ($authUser && ($authUser['role'] ?? '') === 'BUYER') {
                                                  onmouseenter="switchFlyoutCategory(<?= $idx ?>)">
                                                 <a href="<?= htmlspecialchars($baseUrl) ?>/category/<?= htmlspecialchars($catItem['slug']) ?>" class="flex items-center gap-2.5 flex-1 min-w-0 pr-1 text-inherit">
                                                     <?php if ($isImageIcon): ?>
-                                                        <img src="<?= htmlspecialchars(Response::formatImageUrl($catIcon)) ?>" class="w-4 h-4 object-contain rounded shrink-0" alt="">
+                                                        <img src="<?= htmlspecialchars(Response::formatImageUrl($catIcon)) ?>" class="w-4 h-4 object-contain rounded shrink-0" alt="" onerror="this.onerror=null;this.replaceWith((function(){var s=document.createElement('span');s.className='material-symbols-outlined text-[18px] text-blue-900 shrink-0';s.textContent='directions_run';return s;})())">
                                                     <?php else: ?>
                                                         <span class="material-symbols-outlined text-[18px] text-blue-900 shrink-0"><?= htmlspecialchars($catIcon) ?></span>
                                                     <?php endif; ?>

@@ -440,7 +440,7 @@ class CmsSeedData
 </ol>
 
 <div class="my-8 text-center sm:text-left">
-    <a href="/supplier/register" class="inline-flex items-center justify-center px-6 py-3 rounded-full bg-primary text-white font-bold text-sm shadow-md hover:bg-primary-container transition-all">
+    <a href="/supplier/register" class="inline-flex items-center justify-center px-6 py-3 rounded-full bg-primary !text-white font-bold text-sm shadow-md hover:bg-primary-container transition-all" style="color: #ffffff !important; text-decoration: none;">
         Start Free Supplier Registration &rarr;
     </a>
 </div>',

@@ -101,6 +101,17 @@ $authUser = \App\Helpers\Session::get('auth_user');
                 .cms-content ol { list-style-type: decimal; }
                 .cms-content li { margin-bottom: 0.35rem; color: #334155; }
                 .cms-content a { color: #00288e; text-decoration: underline; font-weight: 600; }
+                .cms-content a[class*="text-white"],
+                .cms-content a[class*="bg-"],
+                .cms-content a.btn,
+                .cms-content a.btn-primary {
+                    color: #ffffff !important;
+                    text-decoration: none !important;
+                }
+                .cms-content a[class*="text-white"]:hover,
+                .cms-content a[class*="bg-"]:hover {
+                    color: #ffffff !important;
+                }
                 .cms-content blockquote {
                     border-left: 4px solid #00288e;
                     padding-left: 1rem;

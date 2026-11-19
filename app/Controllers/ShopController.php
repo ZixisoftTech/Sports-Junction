@@ -43,6 +43,8 @@ class ShopController extends Controller
             $pageTitle = htmlspecialchars($selectedCategory['name']) . ' Manufacturers & Wholesale Suppliers | Sports Junction';
         }
 
+        $layout = ($this->request->isAjax() || $this->request->get('ajax') === '1') ? null : 'frontend';
+
         $this->render('frontend/products', [
             'pageTitle'           => $pageTitle,
             'metaDescription'     => 'Discover verified wholesale manufacturers and OEM suppliers for commercial fitness equipment, cricket gear, inflatables, and athletic accessories with zero commission.',
@@ -57,7 +59,7 @@ class ShopController extends Controller
             'filters'             => $filters,
             'selectedCategory'    => $selectedCategory,
             'selectedSubcategory' => $selectedSubcategory,
-        ], 'frontend');
+        ], $layout);
     }
 
     /**
@@ -96,6 +98,8 @@ class ShopController extends Controller
         $pageTitle = $category['name'] . ' — Verified Indian Manufacturers & Wholesale Suppliers';
         $metaDescription = $category['description'] ?? "Source {$category['name']} directly from verified factory manufacturing plants in India at wholesale ex-factory pricing.";
 
+        $layout = ($this->request->isAjax() || $this->request->get('ajax') === '1') ? null : 'frontend';
+
         $this->render('frontend/products', [
             'pageTitle'           => $pageTitle,
             'metaDescription'     => $metaDescription,
@@ -110,7 +114,7 @@ class ShopController extends Controller
             'filters'             => $filters,
             'selectedCategory'    => $category,
             'selectedSubcategory' => null,
-        ], 'frontend');
+        ], $layout);
     }
 
     /**
@@ -139,6 +143,8 @@ class ShopController extends Controller
         $pageTitle = $subcategory['name'] . ' Wholesale Manufacturers — ' . $category['name'];
         $metaDescription = $subcategory['description'] ?? "Factory direct sourcing for {$subcategory['name']} with custom logo OEM printing and low MOQ.";
 
+        $layout = ($this->request->isAjax() || $this->request->get('ajax') === '1') ? null : 'frontend';
+
         $this->render('frontend/products', [
             'pageTitle'           => $pageTitle,
             'metaDescription'     => $metaDescription,
@@ -153,7 +159,7 @@ class ShopController extends Controller
             'filters'             => $filters,
             'selectedCategory'    => $category,
             'selectedSubcategory' => $subcategory,
-        ], 'frontend');
+        ], $layout);
     }
 
     /**

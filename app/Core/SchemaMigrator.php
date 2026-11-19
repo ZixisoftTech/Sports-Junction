@@ -95,6 +95,14 @@ class SchemaMigrator
             self::ensureColumn($db, 'products', 'is_featured', "TINYINT(1) NOT NULL DEFAULT 0 AFTER pending_changes", $changes);
             self::ensureColumn($db, 'products', 'view_count', "INT UNSIGNED NOT NULL DEFAULT 0 AFTER featured_order", $changes);
 
+            // Categories icon healing (e.g. broken 404 upload URLs or missing icons)
+            try {
+                $affected = $db->exec("UPDATE categories SET icon = 'directions_run' WHERE slug IN ('agility-speed-training-equipment', 'agility-and-speed-training') AND (icon LIKE '%uploads%' OR icon LIKE '%e095f630a934257fac7f%' OR icon = '' OR icon IS NULL OR icon = 'timer')");
+                if ($affected) {
+                    $changes[] = "Healed Agility category icon to 'directions_run'";
+                }
+            } catch (Throwable $e) {}
+
             // Email OTPs table
             self::ensureTable($db, 'email_otps', "
                 CREATE TABLE IF NOT EXISTS email_otps (
