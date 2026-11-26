@@ -684,48 +684,33 @@ $router->get('/health', function(Request $req, Response $res) {
         // Non-destructive additive schema pipeline (only adds new fields/tables, preserves all live data)
         $schemaResult = \App\Core\SchemaMigrator::run();
 
-        // Check super admin and sportjunction users on live database
-        $stmt = $db->query("SELECT id, name, email, role, status, password FROM users WHERE role = 'SUPER_ADMIN' OR email LIKE '%sportjunction%'");
-        $users = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-        foreach ($users as $u) {
-            $matchesSport123 = password_verify('Sport@123', $u['password'] ?? '');
-            $adminDiagnostics[] = [
-                'id' => (int)$u['id'],
-                'name' => $u['name'],
-                'email' => $u['email'],
-                'role' => $u['role'],
-                'status' => $u['status'],
-                'matches_Sport123' => $matchesSport123,
-            ];
-            // If this is super admin account sportjunctions@gmail.com and password does NOT match Sport@123, safely update password hash
-            if (strtolower(trim($u['email'])) === 'sportjunctions@gmail.com' && !$matchesSport123) {
-                $newHash = password_hash('Sport@123', PASSWORD_BCRYPT, ['cost' => 12]);
-                $upStmt = $db->prepare("UPDATE users SET password = :pwd, role = 'SUPER_ADMIN', status = 'ACTIVE' WHERE id = :id");
-                $upStmt->execute([':pwd' => $newHash, ':id' => $u['id']]);
-                $adminDiagnostics[count($adminDiagnostics) - 1]['password_healed'] = true;
-            }
+        // Check what users exist on live database
+        $stmt = $db->query("SELECT id, name, email, role, status FROM users ORDER BY id ASC LIMIT 25");
+        $allUsers = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        $adminDiagnostics['live_users_sample'] = $allUsers;
+        $adminDiagnostics['total_users'] = (int)$db->query("SELECT COUNT(*) FROM users")->fetchColumn();
+
+        // Check or create/heal Super Administrator account for sportjunctions@gmail.com
+        $existingAdmin = $db->query("SELECT id, email, role, status FROM users WHERE LOWER(email) = 'sportjunctions@gmail.com' LIMIT 1")->fetch(\PDO::FETCH_ASSOC);
+        $hash = password_hash('Sport@123', PASSWORD_BCRYPT, ['cost' => 12]);
+
+        if (!$existingAdmin) {
+            $ins = $db->prepare("
+                INSERT INTO users (name, email, password, role, status, created_at, updated_at)
+                VALUES ('Super Administrator', 'sportjunctions@gmail.com', :pwd, 'SUPER_ADMIN', 'ACTIVE', NOW(), NOW())
+            ");
+            $ins->execute([':pwd' => $hash]);
+            $adminDiagnostics['action'] = 'Created Super Administrator account (sportjunctions@gmail.com / Sport@123)';
+        } else {
+            $up = $db->prepare("
+                UPDATE users SET password = :pwd, role = 'SUPER_ADMIN', status = 'ACTIVE'
+                WHERE id = :id
+            ");
+            $up->execute([':pwd' => $hash, ':id' => $existingAdmin['id']]);
+            $adminDiagnostics['action'] = 'Updated Super Administrator credentials for ID ' . $existingAdmin['id'] . ' to Sport@123';
         }
 
-        // If sportjunctions@gmail.com does not exist at all, check if another super admin exists or create/update
-        $hasTarget = false;
-        foreach ($adminDiagnostics as $d) {
-            if (strtolower(trim($d['email'])) === 'sportjunctions@gmail.com') {
-                $hasTarget = true;
-                break;
-            }
-        }
-        if (!$hasTarget) {
-            // Check if there is another SUPER_ADMIN, e.g. ID 1
-            $checkId1 = $db->query("SELECT id, email, role FROM users WHERE id = 1 LIMIT 1")->fetch(\PDO::FETCH_ASSOC);
-            if ($checkId1) {
-                $newHash = password_hash('Sport@123', PASSWORD_BCRYPT, ['cost' => 12]);
-                $upStmt = $db->prepare("UPDATE users SET email = 'sportjunctions@gmail.com', password = :pwd, role = 'SUPER_ADMIN', status = 'ACTIVE' WHERE id = 1");
-                $upStmt->execute([':pwd' => $newHash]);
-                $adminDiagnostics[] = ['note' => 'Updated User ID 1 email to sportjunctions@gmail.com and password to Sport@123'];
-            }
-        }
-
-        // Clear any rate limiter lockouts for sportjunctions@gmail.com
+        // Clear any login attempts or rate limiting
         try {
             $db->exec("DELETE FROM login_attempts WHERE email LIKE '%sportjunction%'");
         } catch (\Throwable $e) {}
