@@ -677,52 +677,19 @@ $router->post('/api/chat/admin/reply', [ChatApiController::class, 'adminReply'])
 $router->get('/health', function(Request $req, Response $res) {
     $dbConnected = false;
     $schemaResult = null;
-    $adminDiagnostics = [];
     try {
-        $db = \App\Core\Database::getConnection();
+        \App\Core\Database::getConnection();
         $dbConnected = true;
         // Non-destructive additive schema pipeline (only adds new fields/tables, preserves all live data)
         $schemaResult = \App\Core\SchemaMigrator::run();
-
-        // Check what users exist on live database
-        $stmt = $db->query("SELECT id, name, email, role, status FROM users ORDER BY id ASC LIMIT 25");
-        $allUsers = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-        $adminDiagnostics['live_users_sample'] = $allUsers;
-        $adminDiagnostics['total_users'] = (int)$db->query("SELECT COUNT(*) FROM users")->fetchColumn();
-
-        // Check or create/heal Super Administrator account for sportjunctions@gmail.com
-        $existingAdmin = $db->query("SELECT id, email, role, status FROM users WHERE LOWER(email) = 'sportjunctions@gmail.com' LIMIT 1")->fetch(\PDO::FETCH_ASSOC);
-        $hash = password_hash('Sport@123', PASSWORD_BCRYPT, ['cost' => 12]);
-
-        if (!$existingAdmin) {
-            $ins = $db->prepare("
-                INSERT INTO users (name, email, password, role, status, created_at, updated_at)
-                VALUES ('Super Administrator', 'sportjunctions@gmail.com', :pwd, 'SUPER_ADMIN', 'ACTIVE', NOW(), NOW())
-            ");
-            $ins->execute([':pwd' => $hash]);
-            $adminDiagnostics['action'] = 'Created Super Administrator account (sportjunctions@gmail.com / Sport@123)';
-        } else {
-            $up = $db->prepare("
-                UPDATE users SET password = :pwd, role = 'SUPER_ADMIN', status = 'ACTIVE'
-                WHERE id = :id
-            ");
-            $up->execute([':pwd' => $hash, ':id' => $existingAdmin['id']]);
-            $adminDiagnostics['action'] = 'Updated Super Administrator credentials for ID ' . $existingAdmin['id'] . ' to Sport@123';
-        }
-
-        // Clear any login attempts or rate limiting
-        try {
-            $db->exec("DELETE FROM login_attempts WHERE email LIKE '%sportjunction%'");
-        } catch (\Throwable $e) {}
     } catch (\Throwable $e) {
-        $adminDiagnostics['error'] = $e->getMessage();
+        // Log silently
     }
 
     $res->json([
         'status' => $dbConnected ? 'healthy' : 'database_unreachable',
         'app_name' => \App\Helpers\Env::get('APP_NAME', 'Sports Junction'),
         'server_time' => date('Y-m-d H:i:s T'),
-        'admin_diagnostics' => $adminDiagnostics,
         'schema_pipeline' => $schemaResult
     ], $dbConnected ? 200 : 503);
 });
