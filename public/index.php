@@ -227,6 +227,10 @@ $router->post('/api/careers/apply', [ShopController::class, 'submitCareerApplica
 $router->post('/api/help-centre/submit-query', [SupportQueryController::class, 'submit']);
 $router->post('/api/support/submit-query', [SupportQueryController::class, 'submit']);
 
+// Resilient Google Drive Image Proxy & Cache Endpoints
+$router->get('/api/media/drive-image', [ShopController::class, 'driveImageProxy']);
+$router->get('/media/drive-image', [ShopController::class, 'driveImageProxy']);
+
 $router->post('/contact-us', [ShopController::class, 'submitContact']);
 
 $router->get('/page/{slug}', [CmsPageController::class, 'show']);

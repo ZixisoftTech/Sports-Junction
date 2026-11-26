@@ -1088,30 +1088,44 @@ class BulkProductImporter
             $sampleAvailable = self::parseBool($mapped['sample_available'] ?? 'no');
             $samplePrice = !empty($mapped['sample_price']) && is_numeric($mapped['sample_price']) ? (float)$mapped['sample_price'] : null;
 
-            // 12. Images
-            $primaryImage = $mapped['primary_image'] ?? '';
+            // 12. Images (Support standard URLs, filenames, and Google Drive links)
+            $primaryImage = trim((string)($mapped['primary_image'] ?? ''));
+            $drivePrimary = \App\Helpers\Uploader::formatGoogleDriveUrl($primaryImage);
+            if ($drivePrimary !== null) {
+                $primaryImage = $drivePrimary;
+            }
+
             if (!empty($primaryImage)) {
-                $hasValidSchemeOrExt = (str_starts_with($primaryImage, 'http://') || str_starts_with($primaryImage, 'https://') || str_starts_with($primaryImage, '/') || preg_match('/\.(jpg|jpeg|png|webp|gif)$/i', $primaryImage));
+                $isDrive = \App\Helpers\Uploader::isGoogleDriveUrl($primaryImage) || str_starts_with($primaryImage, 'https://lh3.googleusercontent.com/d/');
+                $hasValidSchemeOrExt = $isDrive || (str_starts_with($primaryImage, 'http://') || str_starts_with($primaryImage, 'https://') || str_starts_with($primaryImage, '/') || preg_match('/\.(jpg|jpeg|png|webp|gif)$/i', $primaryImage));
                 $isValidImg = $hasValidSchemeOrExt && (filter_var($primaryImage, FILTER_VALIDATE_URL) || str_starts_with($primaryImage, '/') || preg_match('/^[a-zA-Z0-9_\-\.\/]+$/', $primaryImage));
                 if (!$isValidImg) {
                     $rowErrors[] = [
                         'field'         => 'Primary Image',
                         'error'         => "Invalid Primary Image format '{$primaryImage}'.",
-                        'suggested_fix' => 'Provide a valid image URL starting with http:// or https:// (or a supported image filename ending in .jpg, .png, or .webp).'
+                        'suggested_fix' => 'Provide a valid image URL (http/https), a Google Drive share link, or a supported image filename (.jpg, .png, .webp).'
                     ];
                 }
             }
             $galleryImagesRaw = $mapped['gallery_images'] ?? '';
-            $galleryImages = array_filter(array_map('trim', preg_split('/[,;|]/', (string)$galleryImagesRaw)));
-            foreach ($galleryImages as $gIdx => $gImg) {
-                $hasValidGSchemeOrExt = (str_starts_with($gImg, 'http://') || str_starts_with($gImg, 'https://') || str_starts_with($gImg, '/') || preg_match('/\.(jpg|jpeg|png|webp|gif)$/i', $gImg));
+            $rawGalleryItems = array_filter(array_map('trim', preg_split('/[,;|]/', (string)$galleryImagesRaw)));
+            $galleryImages = [];
+            foreach ($rawGalleryItems as $gIdx => $gImg) {
+                $driveGImg = \App\Helpers\Uploader::formatGoogleDriveUrl($gImg);
+                if ($driveGImg !== null) {
+                    $gImg = $driveGImg;
+                }
+                $isGDrive = \App\Helpers\Uploader::isGoogleDriveUrl($gImg) || str_starts_with($gImg, 'https://lh3.googleusercontent.com/d/');
+                $hasValidGSchemeOrExt = $isGDrive || (str_starts_with($gImg, 'http://') || str_starts_with($gImg, 'https://') || str_starts_with($gImg, '/') || preg_match('/\.(jpg|jpeg|png|webp|gif)$/i', $gImg));
                 $isValidGImg = $hasValidGSchemeOrExt && (filter_var($gImg, FILTER_VALIDATE_URL) || str_starts_with($gImg, '/') || preg_match('/^[a-zA-Z0-9_\-\.\/]+$/', $gImg));
                 if (!$isValidGImg) {
                     $rowErrors[] = [
                         'field'         => 'Gallery Images',
                         'error'         => "Invalid gallery image URL at item " . ($gIdx + 1) . ": '{$gImg}'.",
-                        'suggested_fix' => 'Provide valid http:// or https:// image URLs separated by commas.'
+                        'suggested_fix' => 'Provide valid http/https image URLs or Google Drive share links separated by commas.'
                     ];
+                } else {
+                    $galleryImages[] = $gImg;
                 }
             }
 

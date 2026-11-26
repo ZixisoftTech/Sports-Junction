@@ -220,13 +220,13 @@ $(document).ready(function() {
             {
                 data: 'product_name',
                 render: (pName, type, row) => {
-                    const img = row.primary_image ? `${BASE_URL}/${escapeHtml(row.primary_image)}` : `${BASE_URL}/assets/images/placeholder.png`;
+                    const img = window.SportsJunction ? window.SportsJunction.formatImageUrl(row.primary_image) : (row.primary_image ? (row.primary_image.startsWith('http') ? row.primary_image : `${BASE_URL}/${escapeHtml(row.primary_image)}`) : `${BASE_URL}/assets/images/placeholder.png`);
                     const title = pName || 'Product Sourcing';
                     const cat = row.category_name ? `<span class="text-muted smaller d-block">${escapeHtml(row.category_name)}</span>` : '';
                     const link = row.product_slug ? `${BASE_URL}/product/${row.product_slug}` : '#';
                     return `
                         <div class="d-flex align-items-center gap-2">
-                            <img src="${img}" alt="" class="rounded object-fit-cover border" style="width: 38px; height: 38px;" onerror="this.src='${BASE_URL}/assets/images/placeholder.png'">
+                            <img src="${img}" alt="" class="rounded object-fit-cover border" style="width: 38px; height: 38px;" onerror="window.SportsJunction && window.SportsJunction.handleImageError ? window.SportsJunction.handleImageError(this, '${BASE_URL}/assets/images/placeholder.png') : (this.src='${BASE_URL}/assets/images/placeholder.png')">
                             <div class="min-w-0" style="max-width: 180px;">
                                 <a href="${link}" target="_blank" class="fw-semibold text-slate-800 text-decoration-none text-truncate d-block small" title="${escapeHtml(title)}">${escapeHtml(title)}</a>
                                 ${cat}

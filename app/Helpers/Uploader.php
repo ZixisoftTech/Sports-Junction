@@ -139,7 +139,70 @@ class Uploader
     }
 
     /**
-     * Resolves an image path to an absolute application URL, falling back to brand logo if missing
+     * Check if a given URL or string is a Google Drive link
+     */
+    public static function isGoogleDriveUrl(?string $url): bool
+    {
+        if (empty($url)) return false;
+        $trimmed = trim($url, "<>'\" \t\n\r\0\x0B");
+        return (bool) preg_match('/(?:drive\.google\.com|docs\.google\.com|googleusercontent\.com)/i', $trimmed);
+    }
+
+    /**
+     * Extract Google Drive File ID from various link structures:
+     * - https://drive.google.com/file/d/FILE_ID/view?usp=sharing
+     * - https://drive.google.com/file/d/FILE_ID
+     * - https://drive.google.com/open?id=FILE_ID
+     * - https://drive.google.com/uc?id=FILE_ID
+     * - https://docs.google.com/file/d/FILE_ID/edit
+     * - drive.google.com/file/d/FILE_ID
+     * - https://lh3.googleusercontent.com/d/FILE_ID
+     * - https://drive.google.com/drive/folders/FILE_ID
+     */
+    public static function extractGoogleDriveFileId(?string $url): ?string
+    {
+        if (empty($url)) return null;
+        $url = trim($url, "<>'\" \t\n\r\0\x0B");
+
+        // Pattern 1: /file/d/{id} or /d/{id} or /file/u/0/d/{id}
+        if (preg_match('#(?:/file/d/|/d/|/file/u/\d+/d/)([a-zA-Z0-9_-]{20,})#i', $url, $matches)) {
+            return $matches[1];
+        }
+
+        // Pattern 2: id={id} in query parameters
+        if (preg_match('#[?&]id=([a-zA-Z0-9_-]{20,})#i', $url, $matches)) {
+            return $matches[1];
+        }
+
+        // Pattern 3: googleusercontent.com/d/{id}
+        if (preg_match('#googleusercontent\.com/d/([a-zA-Z0-9_-]{20,})#i', $url, $matches)) {
+            return $matches[1];
+        }
+
+        // Pattern 4: /folders/{id}
+        if (preg_match('#/folders/([a-zA-Z0-9_-]{20,})#i', $url, $matches)) {
+            return $matches[1];
+        }
+
+        return null;
+    }
+
+    /**
+     * Convert any Google Drive link to a direct embed image CDN URL
+     * Returns: https://lh3.googleusercontent.com/d/{fileId}
+     */
+    public static function formatGoogleDriveUrl(?string $url): ?string
+    {
+        $fileId = self::extractGoogleDriveFileId($url);
+        if ($fileId !== null) {
+            return "https://lh3.googleusercontent.com/d/{$fileId}";
+        }
+        return null;
+    }
+
+    /**
+     * Resolves an image path to an absolute application URL, falling back to brand logo if missing.
+     * Automatically converts Google Drive share links to direct embeddable image URLs.
      */
     public static function imageUrl(?string $path): string
     {
@@ -148,7 +211,14 @@ class Uploader
         if (empty($path) || trim($path) === '') {
             return $defaultLogo;
         }
-        $trimmed = trim($path);
+        $trimmed = trim($path, "<>'\" \t\n\r\0\x0B");
+
+        // Seamlessly convert Google Drive links (with or without http/https)
+        $driveDirectUrl = self::formatGoogleDriveUrl($trimmed);
+        if ($driveDirectUrl !== null) {
+            return $driveDirectUrl;
+        }
+
         if (str_starts_with($trimmed, 'http://') || str_starts_with($trimmed, 'https://') || str_starts_with($trimmed, 'data:')) {
             return $trimmed;
         }

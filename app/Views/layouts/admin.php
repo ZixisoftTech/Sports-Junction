@@ -56,11 +56,31 @@ if (!empty($user['id']) && ($user['role'] ?? '') === 'SUPER_ADMIN') {
         window.SportsJunction.defaultLogo = '<?= htmlspecialchars(\App\Models\SiteSetting::getLogoUrl()) ?>';
         window.baseUrl = '<?= htmlspecialchars($baseUrl) ?>';
 
+        window.SportsJunction.formatGoogleDriveUrl = function (url) {
+            if (!url || typeof url !== 'string') return null;
+            var trimmed = url.trim().replace(/^[<>'"]+|[<>'"]+$/g, '');
+            if (!/(?:drive\.google\.com|docs\.google\.com|googleusercontent\.com)/i.test(trimmed)) {
+                return null;
+            }
+            var m = trimmed.match(/(?:\/file\/d\/|\/d\/|\/file\/u\/\d+\/d\/)([a-zA-Z0-9_-]{20,})/i)
+                 || trimmed.match(/[?&]id=([a-zA-Z0-9_-]{20,})/i)
+                 || trimmed.match(/googleusercontent\.com\/d\/([a-zA-Z0-9_-]{20,})/i)
+                 || trimmed.match(/\/folders\/([a-zA-Z0-9_-]{20,})/i);
+            if (m && m[1]) {
+                return 'https://lh3.googleusercontent.com/d/' + m[1];
+            }
+            return null;
+        };
+
         window.SportsJunction.formatImageUrl = function (path) {
             if (!path || typeof path !== 'string' || path.trim() === '') {
                 return window.SportsJunction.defaultLogo;
             }
             path = path.trim();
+            var driveUrl = window.SportsJunction.formatGoogleDriveUrl(path);
+            if (driveUrl) {
+                return driveUrl;
+            }
             if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('data:')) {
                 return path;
             }
@@ -70,6 +90,25 @@ if (!empty($user['id']) && ($user['role'] ?? '') === 'SUPER_ADMIN') {
                 return clean;
             }
             return b + clean;
+        };
+
+        window.SportsJunction.handleImageError = function (imgEl, fallbackLogo) {
+            if (!imgEl) return;
+            var currentSrc = imgEl.src || '';
+            var logo = fallbackLogo || window.SportsJunction.defaultLogo || (window.SportsJunction.baseUrl + '/assets/images/logo.jpg');
+            var m = currentSrc.match(/googleusercontent\.com\/d\/([a-zA-Z0-9_-]{20,})/i);
+            if (m && m[1] && !imgEl.dataset.driveThumbTried) {
+                imgEl.dataset.driveThumbTried = '1';
+                imgEl.src = 'https://drive.google.com/thumbnail?id=' + m[1] + '&sz=w1000';
+                return;
+            }
+            if (m && m[1] && !imgEl.dataset.driveProxyTried) {
+                imgEl.dataset.driveProxyTried = '1';
+                imgEl.src = (window.SportsJunction.baseUrl || '') + '/api/media/drive-image?id=' + m[1];
+                return;
+            }
+            imgEl.onerror = null;
+            imgEl.src = logo;
         };
 
         window.SportsJunction.escapeHtml = function (str) {
@@ -83,6 +122,7 @@ if (!empty($user['id']) && ($user['role'] ?? '') === 'SUPER_ADMIN') {
         };
 
         window.formatImageUrl = window.SportsJunction.formatImageUrl;
+        window.handleImageError = window.SportsJunction.handleImageError;
         window.escapeHtml = window.SportsJunction.escapeHtml;
     </script>
 </head>

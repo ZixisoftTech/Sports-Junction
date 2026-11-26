@@ -431,7 +431,7 @@ function openAdminBulkDetail(id) {
             tr.innerHTML = `
                 <td class="ps-3">
                     <div class="d-flex align-items-center gap-2">
-                        <img src="${item.primary_image ? (item.primary_image.indexOf('/') !== -1 ? '<?= $baseUrl ?>/' + item.primary_image.replace(/^\//, '') : '<?= $baseUrl ?>/uploads/products/' + item.primary_image) : '<?= $baseUrl ?>/assets/images/logo.jpg'}" onerror="this.onerror=null;this.src='<?= $baseUrl ?>/assets/images/logo.jpg';" class="rounded border" style="width: 36px; height: 36px; object-fit: cover;">
+                        <img src="${window.SportsJunction ? window.SportsJunction.formatImageUrl(item.primary_image) : (item.primary_image ? (item.primary_image.startsWith('http') ? item.primary_image : '<?= $baseUrl ?>/' + item.primary_image.replace(/^\//, '')) : '<?= $baseUrl ?>/assets/images/logo.jpg')}" onerror="window.SportsJunction && window.SportsJunction.handleImageError ? window.SportsJunction.handleImageError(this, '<?= $baseUrl ?>/assets/images/logo.jpg') : (this.src='<?= $baseUrl ?>/assets/images/logo.jpg');" class="rounded border" style="width: 36px; height: 36px; object-fit: cover;">
                         <div>
                             <div class="fw-bold text-slate-900">${item.product_name}</div>
                             <div class="text-muted smaller">Supplier: <strong class="text-primary">${item.supplier_name || 'Verified Factory'}</strong></div>

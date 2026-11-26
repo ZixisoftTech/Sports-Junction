@@ -500,8 +500,18 @@ class Product extends Model
         }
 
         $primaryImage = !empty($data['primary_image']) ? trim($data['primary_image']) : null;
+        if (!empty($primaryImage)) {
+            $drivePrimary = Uploader::formatGoogleDriveUrl($primaryImage);
+            if ($drivePrimary !== null) {
+                $primaryImage = $drivePrimary;
+            }
+        }
         if (empty($primaryImage) && !empty($images[0])) {
             $primaryImage = $images[0];
+            $drivePrimary = Uploader::formatGoogleDriveUrl($primaryImage);
+            if ($drivePrimary !== null) {
+                $primaryImage = $drivePrimary;
+            }
         }
 
         $categoryIds = !empty($data['category_ids']) 
@@ -598,6 +608,10 @@ class Product extends Model
 
             // Insert gallery images
             foreach ($images as $index => $imgPath) {
+                $driveImg = Uploader::formatGoogleDriveUrl($imgPath);
+                if ($driveImg !== null) {
+                    $imgPath = $driveImg;
+                }
                 self::execute("
                     INSERT INTO product_images (product_id, image_path, is_primary, display_order)
                     VALUES (:pid, :path, :is_primary, :ord)
@@ -642,8 +656,18 @@ class Product extends Model
         }
 
         $primaryImage = !empty($data['primary_image']) ? trim($data['primary_image']) : $existing['primary_image'];
+        if (!empty($primaryImage)) {
+            $drivePrimary = Uploader::formatGoogleDriveUrl($primaryImage);
+            if ($drivePrimary !== null) {
+                $primaryImage = $drivePrimary;
+            }
+        }
         if (empty($primaryImage) && !empty($newImages[0])) {
             $primaryImage = $newImages[0];
+            $drivePrimary = Uploader::formatGoogleDriveUrl($primaryImage);
+            if ($drivePrimary !== null) {
+                $primaryImage = $drivePrimary;
+            }
         }
 
         $approvalStatus = in_array($data['approval_status'] ?? '', ['DRAFT', 'PENDING_APPROVAL', 'APPROVED', 'REJECTED'], true)
@@ -776,6 +800,10 @@ class Product extends Model
 
             // Insert new images
             foreach ($newImages as $index => $imgPath) {
+                $driveImg = Uploader::formatGoogleDriveUrl($imgPath);
+                if ($driveImg !== null) {
+                    $imgPath = $driveImg;
+                }
                 self::execute("
                     INSERT INTO product_images (product_id, image_path, is_primary, display_order)
                     VALUES (:pid, :path, 0, :ord)

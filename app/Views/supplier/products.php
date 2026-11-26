@@ -104,7 +104,7 @@ $baseUrl = Response::baseUrl();
                             ?>
                             <tr class="hover:bg-slate-50/50 transition-colors">
                                 <td class="py-4 px-4 font-bold text-slate-900 flex items-center gap-3">
-                                    <img src="<?= htmlspecialchars(\App\Helpers\Uploader::imageUrl($p['primary_image'])) ?>" onerror="this.onerror=null;this.src='<?= htmlspecialchars($baseUrl) ?>/assets/images/logo.jpg';" class="w-12 h-12 rounded-xl object-cover border border-slate-200 shrink-0">
+                                    <img src="<?= htmlspecialchars(\App\Helpers\Uploader::imageUrl($p['primary_image'])) ?>" onerror="window.handleImageError ? window.handleImageError(this, '<?= htmlspecialchars($baseUrl) ?>/assets/images/logo.jpg') : (this.onerror=null, this.src='<?= htmlspecialchars($baseUrl) ?>/assets/images/logo.jpg');" class="w-12 h-12 rounded-xl object-cover border border-slate-200 shrink-0">
                                     <div>
                                         <div class="font-bold text-slate-900 text-sm"><?= htmlspecialchars($p['title']) ?></div>
                                         <div class="text-[11px] text-slate-400 font-normal">SKU: <?= htmlspecialchars($p['sku'] ?? 'SJ-PROD-' . $p['id']) ?></div>

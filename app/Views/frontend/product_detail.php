@@ -76,7 +76,7 @@ $supplierCertificationTags = !empty($product['supplier_id']) ? \App\Models\Suppl
         <div class="lg:col-span-5 space-y-4">
             <!-- Main Hero Image Frame -->
             <div class="relative w-full aspect-square bg-white rounded-2xl border border-surface-container shadow-sm overflow-hidden flex items-center justify-center p-4">
-                <img id="mainProductDisplay" src="<?= htmlspecialchars($primaryImg) ?>" alt="<?= htmlspecialchars($product['name']) ?>" onerror="this.onerror=null;this.src='<?= htmlspecialchars($baseUrl) ?>/assets/images/logo.jpg';" class="max-h-full max-w-full object-contain transition-all duration-300">
+                <img id="mainProductDisplay" src="<?= htmlspecialchars($primaryImg) ?>" alt="<?= htmlspecialchars($product['name']) ?>" onerror="window.handleImageError ? window.handleImageError(this, '<?= htmlspecialchars($baseUrl) ?>/assets/images/logo.jpg') : (this.onerror=null, this.src='<?= htmlspecialchars($baseUrl) ?>/assets/images/logo.jpg');" class="max-h-full max-w-full object-contain transition-all duration-300">
                 
                 <?php if (!empty($productCertificates)): ?>
                     <div class="absolute top-4 left-4 z-10 flex flex-wrap gap-2 items-start max-w-[85%] pointer-events-none">
@@ -107,7 +107,7 @@ $supplierCertificationTags = !empty($product['supplier_id']) ? \App\Models\Suppl
                             $thumbSrc = \App\Helpers\Uploader::imageUrl($gImg['image_path'] ?? null);
                         ?>
                         <button type="button" onclick="changeMainImage('<?= htmlspecialchars($thumbSrc) ?>', this)" class="w-16 h-16 rounded-xl border-2 <?= $idx === 0 ? 'border-primary' : 'border-surface-container' ?> bg-white p-1 overflow-hidden shrink-0 hover:border-primary transition-all focus:outline-none thumb-btn">
-                            <img src="<?= htmlspecialchars($thumbSrc) ?>" alt="Thumb" onerror="this.onerror=null;this.src='<?= htmlspecialchars($baseUrl) ?>/assets/images/logo.jpg';" class="w-full h-full object-cover rounded-lg">
+                            <img src="<?= htmlspecialchars($thumbSrc) ?>" alt="Thumb" onerror="window.handleImageError ? window.handleImageError(this, '<?= htmlspecialchars($baseUrl) ?>/assets/images/logo.jpg') : (this.onerror=null, this.src='<?= htmlspecialchars($baseUrl) ?>/assets/images/logo.jpg');" class="w-full h-full object-cover rounded-lg">
                         </button>
                     <?php endforeach; ?>
                 </div>

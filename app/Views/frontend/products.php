@@ -253,7 +253,7 @@ $sort = $filters['sort'] ?? 'featured';
                                 <!-- Image Container -->
                                 <div class="relative w-full h-56 bg-gray-100 overflow-hidden">
                                     <a href="<?= $prodUrl ?>">
-                                        <img src="<?= htmlspecialchars($img) ?>" alt="<?= htmlspecialchars($prod['name'] ?? $prod['title'] ?? '') ?>" onerror="this.onerror=null;this.src='<?= htmlspecialchars($baseUrl) ?>/assets/images/logo.jpg';" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                                        <img src="<?= htmlspecialchars($img) ?>" alt="<?= htmlspecialchars($prod['name'] ?? $prod['title'] ?? '') ?>" onerror="window.handleImageError ? window.handleImageError(this, '<?= htmlspecialchars($baseUrl) ?>/assets/images/logo.jpg') : (this.onerror=null, this.src='<?= htmlspecialchars($baseUrl) ?>/assets/images/logo.jpg');" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
                                     </a>
                                     
                                     <?php if (!empty($prod['certificates'])): ?>

@@ -1394,5 +1394,87 @@ class ShopController extends Controller
             'products'  => $products,
         ], 'frontend');
     }
+
+    /**
+     * Resilient Proxy & Local Cache Endpoint for Google Drive Images
+     * Handles GET /api/media/drive-image?id={fileId} and GET /media/drive-image?id={fileId}
+     */
+    public function driveImageProxy(): void
+    {
+        $id = trim((string)$this->request->get('id', ''));
+        if (empty($id)) {
+            $url = trim((string)$this->request->get('url', ''));
+            $id = \App\Helpers\Uploader::extractGoogleDriveFileId($url);
+        }
+
+        $id = trim((string)$id, "<>'\" \t\n\r\0\x0B");
+
+        if (empty($id) || !preg_match('/^[a-zA-Z0-9_-]{15,100}$/', $id)) {
+            $this->response->redirect('/assets/images/logo.jpg');
+            return;
+        }
+
+        $cacheDir = dirname(__DIR__, 2) . '/public/uploads/drive_cache';
+        if (!is_dir($cacheDir)) {
+            @mkdir($cacheDir, 0777, true);
+        }
+
+        $cacheFile = $cacheDir . '/' . $id . '.img';
+        $cacheMeta = $cacheDir . '/' . $id . '.meta';
+
+        // Serve from cache if fresh (7 days) and valid
+        if (file_exists($cacheFile) && file_exists($cacheMeta) && (time() - filemtime($cacheFile) < 86400 * 7) && filesize($cacheFile) > 500) {
+            $mime = trim((string)@file_get_contents($cacheMeta)) ?: 'image/jpeg';
+            header('Content-Type: ' . $mime);
+            header('Cache-Control: public, max-age=604800, immutable');
+            header('Content-Length: ' . filesize($cacheFile));
+            @readfile($cacheFile);
+            exit;
+        }
+
+        // Fetch from Google Drive CDN or thumbnail service
+        $candidates = [
+            "https://lh3.googleusercontent.com/d/{$id}=w1200",
+            "https://lh3.googleusercontent.com/d/{$id}",
+            "https://drive.google.com/thumbnail?id={$id}&sz=w1200",
+            "https://drive.google.com/uc?export=view&id={$id}",
+        ];
+
+        $imageData = null;
+        $imageMime = 'image/jpeg';
+
+        foreach ($candidates as $cand) {
+            $ch = curl_init($cand);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+            curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 4);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 6);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+            curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+            $result = curl_exec($ch);
+            $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $contentType = (string)curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
+            curl_close($ch);
+
+            if ($status === 200 && !empty($result) && strlen($result) > 500 && str_starts_with($contentType, 'image/')) {
+                $imageData = $result;
+                $imageMime = $contentType;
+                break;
+            }
+        }
+
+        if ($imageData !== null) {
+            @file_put_contents($cacheFile, $imageData);
+            @file_put_contents($cacheMeta, $imageMime);
+            header('Content-Type: ' . $imageMime);
+            header('Cache-Control: public, max-age=604800, immutable');
+            header('Content-Length: ' . strlen($imageData));
+            echo $imageData;
+            exit;
+        }
+
+        // If fetch fails (e.g. file is private or deleted), fallback to site logo
+        $this->response->redirect('/assets/images/logo.jpg');
+    }
 }
 

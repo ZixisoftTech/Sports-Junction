@@ -279,7 +279,7 @@ function viewBuyerBulkEnquiry(id) {
             row.innerHTML = `
                 <div class="flex items-center justify-between gap-3">
                     <div class="flex items-center gap-3">
-                        <img src="${item.primary_image ? (item.primary_image.indexOf('/') !== -1 ? '<?= htmlspecialchars($baseUrl) ?>/' + item.primary_image.replace(/^\//, '') : '<?= htmlspecialchars($baseUrl) ?>/uploads/products/' + item.primary_image) : '<?= htmlspecialchars($baseUrl) ?>/assets/images/logo.jpg'}" onerror="this.onerror=null;this.src='<?= htmlspecialchars($baseUrl) ?>/assets/images/logo.jpg';" class="w-10 h-10 rounded-lg object-cover border border-slate-100 shrink-0">
+                        <img src="${window.SportsJunction ? window.SportsJunction.formatImageUrl(item.primary_image) : (item.primary_image ? (item.primary_image.startsWith('http') ? item.primary_image : '<?= htmlspecialchars($baseUrl) ?>/' + item.primary_image.replace(/^\//, '')) : '<?= htmlspecialchars($baseUrl) ?>/assets/images/logo.jpg')}" onerror="window.SportsJunction && window.SportsJunction.handleImageError ? window.SportsJunction.handleImageError(this, '<?= htmlspecialchars($baseUrl) ?>/assets/images/logo.jpg') : (this.src='<?= htmlspecialchars($baseUrl) ?>/assets/images/logo.jpg');" class="w-10 h-10 rounded-lg object-cover border border-slate-100 shrink-0">
                         <div>
                             <div class="font-headline font-bold text-xs sm:text-sm text-slate-900">${item.product_name}</div>
                             <div class="text-[11px] text-slate-500">Manufacturer: <strong>${item.supplier_name || 'Verified Indian Factory'}</strong></div>

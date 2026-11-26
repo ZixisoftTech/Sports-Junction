@@ -199,7 +199,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 render: function(row) {
                     const title = row.product_name || row.subject || 'Custom Prototype';
                     const link = row.product_slug ? `<a href="${baseUrl}/products/${escapeHtml(row.product_slug)}" target="_blank" class="fw-semibold text-primary text-decoration-none">${escapeHtml(title)}</a>` : `<span class="fw-semibold text-slate-800">${escapeHtml(title)}</span>`;
-                    const img = row.primary_image ? `<img src="${baseUrl}/${escapeHtml(row.primary_image)}" class="rounded me-2" style="width: 32px; height: 32px; object-fit: cover;" onerror="this.style.display='none'">` : '';
+                    const rawImg = row.primary_image || '';
+                    const imgUrl = rawImg ? (window.SportsJunction ? window.SportsJunction.formatImageUrl(rawImg) : (rawImg.startsWith('http') ? rawImg : `${baseUrl}/${escapeHtml(rawImg)}`)) : '';
+                    const img = imgUrl ? `<img src="${imgUrl}" class="rounded me-2" style="width: 32px; height: 32px; object-fit: cover;" onerror="window.SportsJunction && window.SportsJunction.handleImageError ? window.SportsJunction.handleImageError(this) : (this.style.display='none')">` : '';
                     return `<div class="d-flex align-items-center">${img}<div>${link}</div></div>`;
                 }
             },
